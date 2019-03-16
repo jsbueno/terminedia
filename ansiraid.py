@@ -1,9 +1,12 @@
-
+import termios, fcntl, sys, os
+import time
+from contextlib import contextmanager
 # Keyboard reading code copied and evolved from
 # https://stackoverflow.com/a/6599441/108205
 # (@mheyman, Mar, 2011)
 
-def read_single_keypress():
+@contextmanager
+def realtime_keyb():
     """Waits for a single keypress on stdin.
 
     This is a silly function to call if you need to do it a lot because it has
@@ -17,11 +20,12 @@ def read_single_keypress():
     handled.
 
     """
-    import termios, fcntl, sys, os
     fd = sys.stdin.fileno()
+    fd_stdout = sys.stdout.fileno()
     # save old state
     flags_save = fcntl.fcntl(fd, fcntl.F_GETFL)
     attrs_save = termios.tcgetattr(fd)
+    stdout_save = fcntl.fcntl(fd_stdout, fcntl.F_GETFL)
     # make raw - the way to do this comes from the termios(3) man page.
     attrs = list(attrs_save) # copy the stored version to update
     # iflag
@@ -38,20 +42,41 @@ def read_single_keypress():
                   | termios.ISIG | termios.IEXTEN)
     termios.tcsetattr(fd, termios.TCSANOW, attrs)
     # turn off non-blocking
-    fcntl.fcntl(fd, fcntl.F_SETFL, flags_save & ~os.O_NONBLOCK)
+    # fcntl.fcntl(fd, fcntl.F_SETFL, flags_save & ~os.O_NONBLOCK)
+    fcntl.fcntl(fd, fcntl.F_SETFL, flags_save | os.O_NONBLOCK)
+    fcntl.fcntl(fd_stdout, fcntl.F_SETFL, stdout_save | os.O_NONBLOCK)
     # read a single keystroke
-    ret = []
-    try:
-        ret.append(sys.stdin.read(1)) # returns a single character
-        fcntl.fcntl(fd, fcntl.F_SETFL, flags_save | os.O_NONBLOCK)
+    yield
+    # restore old state
+    termios.tcsetattr(fd, termios.TCSAFLUSH, attrs_save)
+    fcntl.fcntl(fd, fcntl.F_SETFL, flags_save)
+    fcntl.fcntl(fd_stdout, fcntl.F_SETFL, stdout_save | os.O_NONBLOCK)
+
+
+def inkey(break_=True):
+    keycode = ""
+    while True:
         c = sys.stdin.read(1) # returns a single character
-        while len(c) > 0:
-            ret.append(c)
-            c = sys.stdin.read(1)
-    except KeyboardInterrupt:
-        ret.append('\x03')
-    finally:
-        # restore old state
-        termios.tcsetattr(fd, termios.TCSAFLUSH, attrs_save)
-        fcntl.fcntl(fd, fcntl.F_SETFL, flags_save)
-    return tuple(ret)
+        if not c:
+            break
+        if c == "\x03" and break_:
+            raise KeyboardInterrupt
+        keycode += c
+    return keycode
+
+
+def testkeys():
+    with realtime_keyb():
+        while True:
+            try:
+                key = inkey()
+            except KeyboardInterrupt:
+                break
+            if key:
+                print("", key.encode("utf-8"), end="\n")
+            print(".", end="")
+            time.sleep(0.3)
+
+
+if __name__ == "__main__":
+    testkeys()
