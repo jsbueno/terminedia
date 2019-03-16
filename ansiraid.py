@@ -21,11 +21,9 @@ def realtime_keyb():
 
     """
     fd = sys.stdin.fileno()
-    fd_stdout = sys.stdout.fileno()
     # save old state
     flags_save = fcntl.fcntl(fd, fcntl.F_GETFL)
     attrs_save = termios.tcgetattr(fd)
-    stdout_save = fcntl.fcntl(fd_stdout, fcntl.F_GETFL)
     # make raw - the way to do this comes from the termios(3) man page.
     attrs = list(attrs_save) # copy the stored version to update
     # iflag
@@ -41,16 +39,11 @@ def realtime_keyb():
     attrs[3] &= ~(termios.ECHONL | termios.ECHO | termios.ICANON
                   | termios.ISIG | termios.IEXTEN)
     termios.tcsetattr(fd, termios.TCSANOW, attrs)
-    # turn off non-blocking
-    # fcntl.fcntl(fd, fcntl.F_SETFL, flags_save & ~os.O_NONBLOCK)
     fcntl.fcntl(fd, fcntl.F_SETFL, flags_save | os.O_NONBLOCK)
-    fcntl.fcntl(fd_stdout, fcntl.F_SETFL, stdout_save | os.O_NONBLOCK)
-    # read a single keystroke
     yield
     # restore old state
     termios.tcsetattr(fd, termios.TCSAFLUSH, attrs_save)
     fcntl.fcntl(fd, fcntl.F_SETFL, flags_save)
-    fcntl.fcntl(fd_stdout, fcntl.F_SETFL, stdout_save | os.O_NONBLOCK)
 
 
 def inkey(break_=True):
@@ -73,8 +66,8 @@ def testkeys():
             except KeyboardInterrupt:
                 break
             if key:
-                print("", key.encode("utf-8"), end="\n")
-            print(".", end="")
+                print("", key.encode("utf-8"), end="", flush=True)
+            print(".", end="", flush=True)
             time.sleep(0.3)
 
 
