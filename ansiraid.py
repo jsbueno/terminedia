@@ -2,6 +2,8 @@ import termios, fcntl, sys, os
 import threading
 import time
 from contextlib import contextmanager
+from enum import Enum
+from math import ceil
 
 # Keyboard reading code copied and evolved from
 # https://stackoverflow.com/a/6599441/108205
@@ -77,6 +79,13 @@ def testkeys():
 DEFAULT_BG = 0xfffe
 DEFAULT_FG = 0xffff
 
+class Directions(Enum):
+    UP = (0, -1)
+    RIGHT = (1, 0)
+    DOWN = (0, 1)
+    LEFT = (-1, 0)
+
+
 class BlockChars:
     QUADRANT_UPPER_LEFT = '\u2598'
     QUADRANT_UPPER_RIGHT = '\u259D'
@@ -120,7 +129,7 @@ class ScreenCommands:
     def _normalize_color(self, color):
         if isinstance(color, int):
             return color
-        if 0 <= color[0] < 1.0 or color[0] == 1.0 and all(lambda c: c <= 1.0, color[1:]):
+        if 0 <= color[0] < 1.0 or color[0] == 1.0 and all(c <= 1.0 for c in color[1:]):
             color = tuple(int(c * 255) for c in color)
         return color
 
@@ -158,15 +167,16 @@ class Screen:
             size = os.get_terminal_size()
         self.width, self.height = self.size = size
 
-        self.local = threading.local()
+        self.context = threading.local()
         self.commands = ScreenCommands()
         self.clear(True)
 
     def clear(self, wet_run=True):
         self.data = [" "] * self.width * self.height
         self.color_data = [(DEFAULT_FG, DEFAULT_BG)] * self.width * self.height
-        self.local.color = DEFAULT_FG
-        self.local.background = DEFAULT_BG
+        self.context.color = DEFAULT_FG
+        self.context.background = DEFAULT_BG
+        self.context.direction = Directions.RIGHT
         # To use when we allow custom chars along with blocks:
         # self.char_data = " " * self.width * self.height
         if wet_run:
@@ -175,11 +185,18 @@ class Screen:
 
     def set_at(self, pos, color=None):
         if color:
-            self.local.color = color
+            self.context.color = color
         self[pos] = BlockChars.FULL_BLOCK
 
     def reset_at(self, pos):
         self[pos] = " "
+
+    def line_at(self, pos, length, sequence=BlockChars.FULL_BLOCK):
+        x, y = pos
+        for i, char in zip(range(length), sequence * (ceil(length / len(sequence)))):
+            self[x, y] = char
+            x += self.context.direction.value[0]
+            y += self.context.direction.value[1]
 
     def __getitem__(self, pos):
         return self.data[pos[0] + pos[1] * self.width]
@@ -188,7 +205,7 @@ class Screen:
         index = pos[0] + pos[1] * self.width
         self.data[index] = value
         with self.lock:
-            colors = self.local.color, self.local.background
+            colors = self.context.color, self.context.background
             self.color_data[index] = colors
             self.commands.set_colors(*colors)
             self.commands.print_at(pos, value)
@@ -197,12 +214,19 @@ class Screen:
 def main():
     scr = Screen()
     with realtime_keyb():
-        for x in range(10, 30):
-            scr.set_at((x, 10))
-            scr.set_at((x, 20))
-        for y in range(10, 21):
-            scr.set_at((10, y))
-            scr.set_at((29, y))
+        #for x in range(10, 30):
+            #scr.set_at((x, 10))
+            #scr.set_at((x, 20))
+        #for y in range(10, 21):
+            #scr.set_at((10, y))
+            #scr.set_at((29, y))
+
+        scr.line_at((10, 10), 20)
+        scr.line_at((10, 20), 20)
+        scr.context.direction = Directions.DOWN
+        scr.context.color = 1, 0, 0
+        scr.line_at((10, 10), 10)
+        scr.line_at((29, 10), 10)
 
         scr[0, scr.height -1] = ' '
         while True:
