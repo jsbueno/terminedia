@@ -171,6 +171,13 @@ class Screen:
         self.commands = ScreenCommands()
         self.clear(True)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.commands.clear()
+        self.commands.reset_colors()
+
     def clear(self, wet_run=True):
         self.data = [" "] * self.width * self.height
         self.color_data = [(DEFAULT_FG, DEFAULT_BG)] * self.width * self.height
@@ -212,8 +219,7 @@ class Screen:
 
 
 def main():
-    scr = Screen()
-    with realtime_keyb():
+    with realtime_keyb(), Screen() as scr:
         #for x in range(10, 30):
             #scr.set_at((x, 10))
             #scr.set_at((x, 20))
