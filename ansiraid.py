@@ -159,12 +159,57 @@ class ScreenCommands:
         self.SGR(48, 2, *color)
 
 
+class Drawing:
+    """Intended to be used as a namespace for drawing, including primitives"""
+
+    def __init__(self, set_fn, reset_fn, size_fn):
+        self.set = set_fn
+        self.reset = reset_fn
+        self.size = property(size_fn)
+
+    def line(self, pos1, pos2):
+        x1, y1 = pos1
+        x2, y2 = pos2
+        self.set(pos1)
+
+        max_manh = max(abs(x2 - x1), abs(y2 - y1))
+        if max_manh == 0:
+            return
+        step_x = (x2 - x1) / max_manh
+        step_y = (y2 - y1) / max_manh
+        total_manh = 0
+        while total_manh < max_manh:
+            x1 += step_x
+            y1 += step_y
+            total_manh += max(abs(step_x), abs(step_y))
+            self.set((round(x1), round(y1)))
+
+    def rect(self, pos1, pos2, fill=False):
+        x1, y1 = pos1
+        x2, y2 = pos2
+        self.line(pos1, (x2, y1))
+        self.line((x1, y2), pos2)
+        if fill and y2 != y1:
+            direction = int((y2 - y1) / abs(y2 - y1))
+            for y in range(y1 + 1, y2, direction):
+                self.line((x1, y), (x2, y))
+        else:
+            self.line(pos1, (x1, y2))
+            self.line((x2, y1), pos2)
+
+
+
 class Screen:
     lock = threading.Lock()
 
     def __init__(self, size=()):
         if not size:
+            self.get_size = os.get_terminal_size
             size = os.get_terminal_size()
+        else:
+            self.get_size = lambda: size
+
+        self.draw = Drawing(self.set_at, self.reset_at, self.get_size)
         self.width, self.height = self.size = size
 
         self.context = threading.local()
@@ -218,21 +263,23 @@ class Screen:
             self.commands.print_at(pos, value)
 
 
+
+def test_lines(scr):
+        scr.draw.line((30, 15), (30,1))
+        scr.draw.line((30, 15), (1, 1))
+        scr.draw.line((30, 15), (60, 1))
+        scr.draw.line((30, 15), (60, 13))
+        scr.draw.line((30, 15), (1, 17))
+        scr.draw.line((30, 15), (26, 29))
+        scr.draw.line((30, 15), (34, 29))
+        scr.draw.line((30, 15), (19, 25))
+        scr.draw.line((30, 15), (42, 25))
+
+
 def main():
     with realtime_keyb(), Screen() as scr:
-        #for x in range(10, 30):
-            #scr.set_at((x, 10))
-            #scr.set_at((x, 20))
-        #for y in range(10, 21):
-            #scr.set_at((10, y))
-            #scr.set_at((29, y))
-
-        scr.line_at((10, 10), 20)
-        scr.line_at((10, 20), 20)
-        scr.context.direction = Directions.DOWN
-        scr.context.color = 1, 0, 0
-        scr.line_at((10, 10), 10)
-        scr.line_at((29, 10), 10)
+        scr.draw.rect((5, 5), (30, 20))
+        scr.draw.rect((35, 10), (55, 25), fill=True)
 
         scr[0, scr.height -1] = ' '
         while True:
