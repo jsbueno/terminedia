@@ -318,13 +318,38 @@ shape1 = """\
            .
 """
 
+shape2 = """\
+                   .
+    *    **    *   .
+   **   ****   **  .
+  **   **##**   ** .
+  **   **##**   ** .
+  **   **##**   ** .
+  **************** .
+  **************** .
+    !!   !!   !!   .
+   %  % %  % %  %  .
+                   .
+"""
+
+c_map = {
+    '*': DEFAULT_FG,
+    '#': (.5, 0.8, 0.8),
+    '!': (1, 0, 0),
+    '%': (1, 0.7, 0),
+}
+
 def main():
     with realtime_keyb(), Screen() as scr:
-        scr.draw.rect((5, 5), (30, 20))
-        scr.draw.rect((35, 10), (55, 25), fill=True)
+        scr.draw.rect((5, 5), (45, 20))
+        scr.draw.rect((55, 10), (95, 25), fill=True)
 
         scr.draw.blit((8, 8), shape1)
-        scr.draw.blit((37, 12), shape1, erase=True)
+        scr.draw.blit((57, 12), shape1, erase=True)
+
+        scr.draw.blit((20, 8), shape2, c_map)
+        scr.draw.blit((70, 12), shape2, c_map, erase=True)
+
 
         scr[0, scr.height -1] = ' '
         while True:
