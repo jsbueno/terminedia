@@ -115,7 +115,7 @@ class BlockChars:
     block_to_order = _mirror_dict(blocks_in_order)
 
     def __contains__(self, char):
-        return char in block_chars_to_name
+        return char in self.block_chars_to_name
 
     @classmethod
     def op(cls, pos, data, operation):
@@ -134,6 +134,7 @@ class BlockChars:
         op = lambda n, index: n & (0xf - index)
         return cls.op(pos, data, op)
 
+BlockChars = BlockChars()
 
 class ScreenCommands:
 
@@ -262,6 +263,32 @@ class Drawing:
                     self.reset((x, y))
 
 
+class HighRes:
+    def __init__(self, parent):
+        self.parent = parent
+        self.draw = Drawing(self.set_at, self.reset_at, self.get_size, self.parent.context)
+
+    def get_size(self):
+        w, h = self.parent.get_size()
+        return w * 2, h * 2
+
+    def operate(self, pos, operation):
+        p_x = pos[0] // 2
+        p_y = pos[1] // 2
+        i_x, i_y = pos[0] % 2, pos[1] % 2
+        original = self.parent[p_x, p_y]
+        if original not in BlockChars:
+            original = " "
+        self.parent[p_x, p_y] = operation((i_x, i_y), original)
+
+    def set_at(self, pos):
+        self.operate(pos, BlockChars.set)
+
+    def reset_at(self, pos):
+        self.operate(pos, BlockChars.reset)
+
+
+
 class Screen:
     lock = threading.Lock()
 
@@ -276,6 +303,8 @@ class Screen:
 
         self.draw = Drawing(self.set_at, self.reset_at, self.get_size, self.context)
         self.width, self.height = self.size = size
+
+        self.high = HighRes(self)
 
         self.commands = ScreenCommands()
         self.clear(True)
@@ -373,14 +402,16 @@ c_map = {
 def main():
     with realtime_keyb(), Screen() as scr:
         scr.draw.rect((5, 5), (45, 20))
-        scr.draw.rect((55, 10), (95, 25), fill=True)
+        scr.draw.rect((55, 10), (72, 20), fill=True)
 
         scr.draw.blit((8, 8), shape1)
         scr.draw.blit((57, 12), shape1, erase=True)
 
-        scr.draw.blit((20, 8), shape2, c_map)
-        scr.draw.blit((70, 12), shape2, c_map, erase=True)
-
+        scr.high.draw.rect((150, 5), (200, 40))
+        scr.high.draw.blit((155, 8), shape2, c_map)
+        scr.high.draw.blit((175, 12), shape2, c_map, erase=True)
+        scr.context.color = DEFAULT_FG
+        scr.high.draw.blit((160, 25), shape1)
 
         scr[0, scr.height -1] = ' '
         while True:
