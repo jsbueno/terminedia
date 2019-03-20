@@ -86,7 +86,12 @@ class Directions(Enum):
     LEFT = (-1, 0)
 
 
+def _mirror_dict(dct):
+    return {value: key for key, value in dct.items()}
+
+
 class BlockChars:
+    EMPTY = " "
     QUADRANT_UPPER_LEFT = '\u2598'
     QUADRANT_UPPER_RIGHT = '\u259D'
     UPPER_HALF_BLOCK = '\u2580'
@@ -96,10 +101,38 @@ class BlockChars:
     QUADRANT_UPPER_LEFT_AND_UPPER_RIGHT_AND_LOWER_LEFT = '\u259B'
     QUADRANT_LOWER_RIGHT = '\u2597'
     QUADRANT_UPPER_LEFT_AND_LOWER_RIGHT = '\u259A'
+    RIGHT_HALF_BLOCK = '\u2590'
     QUADRANT_UPPER_LEFT_AND_UPPER_RIGHT_AND_LOWER_RIGHT = '\u259C'
-    LOWER_HALF_BLOCK = u'\2584'
+    LOWER_HALF_BLOCK = '\u2584'
     QUADRANT_UPPER_LEFT_AND_LOWER_LEFT_AND_LOWER_RIGHT = '\u2599'
+    QUADRANT_UPPER_RIGHT_AND_LOWER_LEFT_AND_LOWER_RIGHT = '\u259F'
     FULL_BLOCK = '\u2588'
+
+    # This depends on Python 3.6+ ordered behavior for local namespaces and dicts:
+    block_chars_by_name = {key: value for key, value in locals().items() if key.isupper()}
+    block_chars_to_name = _mirror_dict(block_chars_by_name)
+    blocks_in_order = {i: value for i, value in enumerate(block_chars_by_name.values())}
+    block_to_order = _mirror_dict(blocks_in_order)
+
+    def __contains__(self, char):
+        return char in block_chars_to_name
+
+    @classmethod
+    def op(cls, pos, data, operation):
+        number = cls.block_to_order[data]
+        index = 2 ** (pos[0] + 2 * pos[1])
+        number = operation(number, index)
+        return cls.blocks_in_order[number]
+
+    @classmethod
+    def set(cls, pos, data):
+        op = lambda n, index: n | index
+        return cls.op(pos, data, op)
+
+    @classmethod
+    def reset(cls, pos, data):
+        op = lambda n, index: n & (0xf - index)
+        return cls.op(pos, data, op)
 
 
 class ScreenCommands:
@@ -292,8 +325,6 @@ class Screen:
             self.color_data[index] = colors
             self.commands.set_colors(*colors)
             self.commands.print_at(pos, value)
-
-
 
 
 def test_lines(scr):
