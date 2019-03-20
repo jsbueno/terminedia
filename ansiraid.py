@@ -162,10 +162,11 @@ class ScreenCommands:
 class Drawing:
     """Intended to be used as a namespace for drawing, including primitives"""
 
-    def __init__(self, set_fn, reset_fn, size_fn):
+    def __init__(self, set_fn, reset_fn, size_fn, context):
         self.set = set_fn
         self.reset = reset_fn
         self.size = property(size_fn)
+        self.context = context
 
     def line(self, pos1, pos2):
         x1, y1 = pos1
@@ -197,6 +198,35 @@ class Drawing:
             self.line(pos1, (x1, y2))
             self.line((x2, y1), pos2)
 
+    def blit(self, pos, shape, color_map=None, erase=False):
+        """Blits a blocky image in the associated screen at POS
+
+        Any character but space (\x20) or "." is considered a block.
+        Shape can be a "\n" separated string or a list of strings.
+        If a color_map is not given, any non-space character is
+        set with the context color. Otherwise, color_map
+        should be a mapping from characters to RGB colors
+        for each block.
+
+        If "erase" is given, spaces are erased, instead of being ignored.
+
+        ("." is allowed as white-space to allow drawing shapes
+        inside Python multi-line strings when editors
+        and linters are set to remove trailing spaces)
+        """
+        if isinstance(shape, str):
+            shape = shape.split("\n")
+        last_color = self.context.color
+        for y, line in enumerate(shape, start=pos[1]):
+            for x, char in enumerate(line, start=pos[0]):
+                if char not in " .":
+                    if color_map:
+                        color = color_map[char]
+                        if color != last_color:
+                            self.context.color = last_color = color
+                    self.set((x, y))
+                elif erase:
+                    self.reset((x, y))
 
 
 class Screen:
@@ -209,10 +239,11 @@ class Screen:
         else:
             self.get_size = lambda: size
 
-        self.draw = Drawing(self.set_at, self.reset_at, self.get_size)
+        self.context = threading.local()
+
+        self.draw = Drawing(self.set_at, self.reset_at, self.get_size, self.context)
         self.width, self.height = self.size = size
 
-        self.context = threading.local()
         self.commands = ScreenCommands()
         self.clear(True)
 
@@ -264,6 +295,7 @@ class Screen:
 
 
 
+
 def test_lines(scr):
         scr.draw.line((30, 15), (30,1))
         scr.draw.line((30, 15), (1, 1))
@@ -276,10 +308,23 @@ def test_lines(scr):
         scr.draw.line((30, 15), (42, 25))
 
 
+shape1 = """\
+           .
+     *     .
+    * *    .
+   ** **   .
+  *** ***  .
+ ********* .
+           .
+"""
+
 def main():
     with realtime_keyb(), Screen() as scr:
         scr.draw.rect((5, 5), (30, 20))
         scr.draw.rect((35, 10), (55, 25), fill=True)
+
+        scr.draw.blit((8, 8), shape1)
+        scr.draw.blit((37, 12), shape1, erase=True)
 
         scr[0, scr.height -1] = ' '
         while True:
