@@ -148,6 +148,12 @@ class ScreenCommands:
     def clear(self):
         self.CSI(2, 'J')
 
+    def cursor_hide(self):
+        self.CSI('?25', 'l')
+
+    def cursor_show(self):
+        self.CSI('?25', 'h')
+
     def moveto(self, pos):
         x, y = pos
         self.CSI(f'{y + 1};{x + 1}H')
@@ -311,13 +317,14 @@ class Screen:
         self.high = HighRes(self)
 
         self.commands = ScreenCommands()
-        self.clear(True)
 
     def __enter__(self):
+        self.clear(True)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.commands.clear()
+        self.commands.cursor_show()
         self.commands.reset_colors()
 
     def clear(self, wet_run=True):
@@ -331,6 +338,7 @@ class Screen:
         if wet_run:
             with self.lock:
                 self.commands.clear()
+                self.commands.cursor_hide()
 
     def set_at(self, pos, color=None):
         if color:
