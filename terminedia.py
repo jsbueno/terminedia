@@ -44,10 +44,12 @@ def realtime_keyb():
                   | termios.ISIG | termios.IEXTEN)
     termios.tcsetattr(fd, termios.TCSANOW, attrs)
     fcntl.fcntl(fd, fcntl.F_SETFL, flags_save | os.O_NONBLOCK)
-    yield
-    # restore old state
-    termios.tcsetattr(fd, termios.TCSAFLUSH, attrs_save)
-    fcntl.fcntl(fd, fcntl.F_SETFL, flags_save)
+    try:
+        yield
+    finally:
+        # restore old state
+        termios.tcsetattr(fd, termios.TCSAFLUSH, attrs_save)
+        fcntl.fcntl(fd, fcntl.F_SETFL, flags_save)
 
 
 def inkey(break_=True):
