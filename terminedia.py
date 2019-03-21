@@ -123,18 +123,23 @@ class BlockChars:
     def op(cls, pos, data, operation):
         number = cls.block_to_order[data]
         index = 2 ** (pos[0] + 2 * pos[1])
-        number = operation(number, index)
-        return cls.blocks_in_order[number]
+        return operation(number, index)
 
     @classmethod
     def set(cls, pos, data):
         op = lambda n, index: n | index
-        return cls.op(pos, data, op)
+        return cls.blocks_in_order[cls.op(pos, data, op)]
 
     @classmethod
     def reset(cls, pos, data):
         op = lambda n, index: n & (0xf - index)
+        return cls.blocks_in_order[cls.op(pos, data, op)]
+
+    @classmethod
+    def get_at(cls, pos, data):
+        op = lambda n, index: bool(n & index)
         return cls.op(pos, data, op)
+
 
 BlockChars = BlockChars()
 
@@ -278,17 +283,25 @@ class HighRes:
         p_x = pos[0] // 2
         p_y = pos[1] // 2
         i_x, i_y = pos[0] % 2, pos[1] % 2
+        graphics = True
         original = self.parent[p_x, p_y]
         if original not in BlockChars:
+            graphics = False
             original = " "
-        self.parent[p_x, p_y] = operation((i_x, i_y), original)
+        new_block = operation((i_x, i_y), original)
+        return graphics, (p_x, p_y), new_block
 
     def set_at(self, pos):
-        self.operate(pos, BlockChars.set)
+        _, gross_pos, new_block = self.operate(pos, BlockChars.set)
+        self.parent[gross_pos] = new_block
 
     def reset_at(self, pos):
-        self.operate(pos, BlockChars.reset)
+        _, gross_pos, new_block = self.operate(pos, BlockChars.reset)
+        self.parent[gross_pos] = new_block
 
+    def get_at(self, pos):
+        graphics, _, is_set = self.operate(pos, BlockChars.get_at)
+        return is_set if graphics else None
 
 
 class Screen:
@@ -412,10 +425,13 @@ def main():
         scr.high.draw.blit((160, 25), shape1)
 
         scr[0, scr.height -1] = ' '
+
+        result = scr.high.get_at((150, 5)), scr.high.get_at((149, 5))
         while True:
             if inkey() == '\x1b':
                 break
             time.sleep(0.05)
+    print(result)
 
 
 if __name__ == "__main__":
