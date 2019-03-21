@@ -1,9 +1,14 @@
 import termios, fcntl, sys, os
 import threading
 import time
+
 from contextlib import contextmanager
 from enum import Enum
 from math import ceil
+
+__version__ = "0.1.0"
+__author__ = "João S. O. Bueno"
+
 
 # Keyboard reading code copied and evolved from
 # https://stackoverflow.com/a/6599441/108205
