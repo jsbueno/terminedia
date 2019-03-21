@@ -1,10 +1,11 @@
-import termios, fcntl, sys, os
+import fcntl, os, sys, termios
 import threading
 import time
 
 from contextlib import contextmanager
 from enum import Enum
 from math import ceil
+
 
 __version__ = "0.1.0"
 __author__ = "João S. O. Bueno"
@@ -23,11 +24,11 @@ def realtime_keyb():
     flags_save = fcntl.fcntl(fd, fcntl.F_GETFL)
     attrs_save = termios.tcgetattr(fd)
     # make raw - the way to do this comes from the termios(3) man page.
-    attrs = list(attrs_save) # copy the stored version to update
+    attrs = list(attrs_save)  # copy the stored version to update
     # iflag
     attrs[0] &= ~(termios.IGNBRK | termios.BRKINT | termios.PARMRK
                   | termios.ISTRIP | termios.INLCR | termios. IGNCR
-                  | termios.ICRNL | termios.IXON )
+                  | termios.ICRNL | termios.IXON)
     # oflag
     attrs[1] &= ~termios.OPOST
     # cflag
@@ -49,7 +50,7 @@ def realtime_keyb():
 def inkey(break_=True):
     keycode = ""
     while True:
-        c = sys.stdin.read(1) # returns a single character
+        c = sys.stdin.read(1)  # returns a single character
         if not c:
             break
         if c == "\x03" and break_:
@@ -71,9 +72,9 @@ def testkeys():
             time.sleep(0.3)
 
 
-
 DEFAULT_BG = 0xfffe
 DEFAULT_FG = 0xffff
+
 
 class Directions(Enum):
     UP = (0, -1)
@@ -136,6 +137,7 @@ class BlockChars:
 
 
 BlockChars = BlockChars()
+
 
 class ScreenCommands:
 
@@ -414,6 +416,7 @@ c_map = {
     '%': (1, 0.7, 0),
 }
 
+
 def main():
     with realtime_keyb(), Screen() as scr:
         test_lines(scr.high)
@@ -429,7 +432,7 @@ def main():
         scr.context.color = DEFAULT_FG
         scr.high.draw.blit((160, 25), shape1)
 
-        scr[0, scr.height -1] = ' '
+        scr[0, scr.height - 1] = ' '
 
         result = scr.high.get_at((150, 5)), scr.high.get_at((149, 5))
         while True:
