@@ -359,15 +359,10 @@ class Screen:
 
 
 def test_lines(scr):
-        scr.draw.line((30, 15), (30,1))
-        scr.draw.line((30, 15), (1, 1))
-        scr.draw.line((30, 15), (60, 1))
-        scr.draw.line((30, 15), (60, 13))
-        scr.draw.line((30, 15), (1, 17))
-        scr.draw.line((30, 15), (26, 29))
-        scr.draw.line((30, 15), (34, 29))
-        scr.draw.line((30, 15), (19, 25))
-        scr.draw.line((30, 15), (42, 25))
+    w, h = scr.get_size()
+    h -= 2
+    for y in range(0, h, 5):
+        scr.draw.line((0, y), (y * 2, h - 1))
 
 
 shape1 = """\
@@ -403,6 +398,7 @@ c_map = {
 
 def main():
     with realtime_keyb(), Screen() as scr:
+        test_lines(scr.high)
         scr.draw.rect((5, 5), (45, 20))
         scr.draw.rect((55, 10), (72, 20), fill=True)
 
