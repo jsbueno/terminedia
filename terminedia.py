@@ -355,6 +355,9 @@ class Screen:
             x += self.context.direction.value[0]
             y += self.context.direction.value[1]
 
+    def print_at(self, pos, text):
+        self.line_at(pos, len(text), sequence=text)
+
     def __getitem__(self, pos):
         return self.data[pos[0] + pos[1] * self.width]
 
