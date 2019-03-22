@@ -136,6 +136,7 @@ class BlockChars:
         return cls.op(pos, data, op)
 
 
+# Enables __contains__:
 BlockChars = BlockChars()
 
 
@@ -240,6 +241,34 @@ class Drawing:
         else:
             self.line(pos1, (x1, y2))
             self.line((x2, y1), pos2)
+
+    def vsize(self, x, y):
+        return (x ** 2 + y ** 2) ** 0.5
+
+    def ellipse(self, pos1, pos2, fill=False):
+        from math import sin, cos, asin, degrees
+
+        xxx = []
+        x1, y1 = pos1
+        x2, y2 = pos2
+
+        x1, x2 = (x1, x2) if x1 <= x2 else (x2, x1)
+        y1, y2 = (y1, y2) if y1 <= y2 else (y2, y1)
+
+        cx, cy = x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2
+        r1, r2 = x2 - cx, y2 - cy
+
+        for y in range(y1, y2 + 1):
+            sin_y = abs(y - cy) / r2
+            az = asin(sin_y)
+            r_y = self.vsize(r2 * sin_y, r1 * cos(az))
+            for x in range(x1, x2 + 1):
+                d = self.vsize(x - cx, y - cy)
+                if abs(d - r_y) < 1.5:
+                    self.set((x, y))
+                elif fill and d < r_y:
+                    self.set((x, y))
+
 
     def blit(self, pos, shape, color_map=None, erase=False):
         """Blits a blocky image in the associated screen at POS
@@ -419,28 +448,31 @@ c_map = {
 
 def main():
     with realtime_keyb(), Screen() as scr:
-        test_lines(scr.high)
-        scr.draw.rect((5, 5), (45, 20))
-        scr.draw.rect((55, 10), (72, 20), fill=True)
 
-        scr.draw.blit((8, 8), shape1)
-        scr.draw.blit((57, 12), shape1, erase=True)
+        scr.draw.ellipse((0, 0), (40, 20))
+        scr.context.color = 0.5, 0, 1
+        scr.high.draw.ellipse((90, 15), (200, 50), True)
+        #test_lines(scr.high)
+        #scr.draw.rect((5, 5), (45, 20))
+        #scr.draw.rect((55, 10), (72, 20), fill=True)
 
-        scr.high.draw.rect((150, 5), (200, 40))
-        scr.high.draw.blit((155, 8), shape2, c_map)
-        scr.high.draw.blit((175, 12), shape2, c_map, erase=True)
-        scr.context.color = DEFAULT_FG
-        scr.high.draw.blit((160, 25), shape1)
+        #scr.draw.blit((8, 8), shape1)
+        #scr.draw.blit((57, 12), shape1, erase=True)
 
-        scr[0, scr.height - 1] = ' '
+        #scr.high.draw.rect((150, 5), (200, 40))
+        #scr.high.draw.blit((155, 8), shape2, c_map)
+        #scr.high.draw.blit((175, 12), shape2, c_map, erase=True)
+        #scr.context.color = DEFAULT_FG
+        #scr.high.draw.blit((160, 25), shape1)
 
-        result = scr.high.get_at((150, 5)), scr.high.get_at((149, 5))
+        #scr[0, scr.height - 1] = ' '
+
+        #result = scr.high.get_at((150, 5)), scr.high.get_at((149, 5))
         while True:
             if inkey() == '\x1b':
                 break
             time.sleep(0.05)
-    print(result)
-
+    # print(result)
 
 if __name__ == "__main__":
     # testkeys()
