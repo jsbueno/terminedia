@@ -245,10 +245,20 @@ class Drawing:
     def vsize(self, x, y):
         return (x ** 2 + y ** 2) ** 0.5
 
-    def ellipse(self, pos1, pos2, fill=False):
-        from math import sin, cos, asin, degrees
 
-        xxx = []
+    def _link_prev(self, pos, i, limits, mask):
+        if i < limits[0] - 1:
+            for j in range(i, limits[0]):
+                self.set((pos[0] + j, pos[1]))
+                mask[j] = True
+        elif i + 1 > limits[1]:
+            for j in range(limits[1], i):
+                self.set((pos[0] + j, pos[1]))
+                mask[j] = True
+
+    def ellipse(self, pos1, pos2, fill=False):
+        from math import sin, cos, asin
+
         x1, y1 = pos1
         x2, y2 = pos2
 
@@ -258,16 +268,59 @@ class Drawing:
         cx, cy = x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2
         r1, r2 = x2 - cx, y2 - cy
 
+        lx = x2 - x1 + 1
+
+        prev_mask = borders = []
         for y in range(y1, y2 + 1):
             sin_y = abs(y - cy) / r2
             az = asin(sin_y)
             r_y = self.vsize(r2 * sin_y, r1 * cos(az))
-            for x in range(x1, x2 + 1):
+            mask = [False,] * lx
+            inside = False
+            for i, x in enumerate(range(x1, x2 + 1)):
                 d = self.vsize(x - cx, y - cy)
-                if abs(d - r_y) < 1.5:
+                if not inside and d <= (r_y + 0.25):
+                    inside = True
                     self.set((x, y))
-                elif fill and d < r_y:
+                    mask[i] = True
+                    if borders:
+                        self._link_prev((x1, y), i, borders[0], mask)
+
+                elif inside and (d > (r_y + 0.25) and i or i == lx - 1):
+                    inside = False
+                    self.set((x - 1, y))
+                    mask[i - 1] = True
+
+                    if borders:
+                        self._link_prev((x1, y), i - 1, borders[-1], mask)
+
+
+                elif inside and (y == y1 or y == y2) and d <= r_y + 0.25:
                     self.set((x, y))
+                    mask[i] = True
+
+
+                #if abs(r_y - d) <= 1.1:
+                    #self.set((x, y))
+                if fill and d < r_y:
+                    self.set((x, y))
+
+            if not fill:
+                # adaptativeness:
+                border_count = 0
+                borders = []
+                for i, p1 in enumerate(mask):
+                    if (p1 and border_count % 2 == 0):
+                        borders.append([i])
+                        border_count += 1
+                    elif (not p1 and border_count % 2 == 1) or (i == lx - 1 and len(borders[-1]) == 0):
+                        borders[-1].append(i)
+                        border_count += 1
+
+
+
+
+            prev_mask = mask
 
 
     def blit(self, pos, shape, color_map=None, erase=False):
@@ -413,6 +466,18 @@ def test_lines(scr):
     for y in range(0, h, 5):
         scr.draw.line((0, y), (y * 2, h - 1))
 
+def test_ellipses(scr):
+    import random
+    scr.draw.ellipse((0, 0), (40, 20))
+    scr.context.color = 0.5, 0, 1
+    scr.high.draw.ellipse((90, 15), (200, 50), True)
+    for i in range(20):
+        for x in range(0, scr.high.get_size()[0] - 50, 10):
+            for y in range(0, scr.high.get_size()[1] - 30, 10):
+                scr.context.color = random.uniform(0, 1), random.uniform(0, 1), random.uniform(0, 1)
+                scr.high.draw.ellipse((x, y), (x + random.randrange(10, 40),  y + random.randrange(5, 20)))
+                inkey()
+
 
 shape1 = """\
            .
@@ -449,31 +514,33 @@ c_map = {
 def main():
     with realtime_keyb(), Screen() as scr:
 
-        scr.draw.ellipse((0, 0), (40, 20))
-        scr.context.color = 0.5, 0, 1
-        scr.high.draw.ellipse((90, 15), (200, 50), True)
-        #test_lines(scr.high)
-        #scr.draw.rect((5, 5), (45, 20))
-        #scr.draw.rect((55, 10), (72, 20), fill=True)
+        test_lines(scr.high)
+        scr.draw.rect((5, 5), (45, 20))
+        scr.draw.rect((55, 10), (72, 20), fill=True)
 
-        #scr.draw.blit((8, 8), shape1)
-        #scr.draw.blit((57, 12), shape1, erase=True)
+        scr.draw.ellipse((55, 22), (80, 35))
 
-        #scr.high.draw.rect((150, 5), (200, 40))
-        #scr.high.draw.blit((155, 8), shape2, c_map)
-        #scr.high.draw.blit((175, 12), shape2, c_map, erase=True)
-        #scr.context.color = DEFAULT_FG
-        #scr.high.draw.blit((160, 25), shape1)
+        scr.draw.blit((8, 8), shape1)
+        scr.draw.blit((57, 12), shape1, erase=True)
 
-        #scr[0, scr.height - 1] = ' '
+        scr.high.draw.rect((150, 5), (200, 40))
+        scr.high.draw.blit((155, 8), shape2, c_map)
+        scr.high.draw.blit((175, 12), shape2, c_map, erase=True)
+        scr.context.color = DEFAULT_FG
+        scr.high.draw.blit((160, 25), shape1)
 
-        #result = scr.high.get_at((150, 5)), scr.high.get_at((149, 5))
+        scr[0, scr.height - 1] = ' '
+        # test_ellipses(scr)
+
+        result = scr.high.get_at((150, 5)), scr.high.get_at((149, 5))
         while True:
             if inkey() == '\x1b':
                 break
             time.sleep(0.05)
-    # print(result)
+    print(result)
+
 
 if __name__ == "__main__":
     # testkeys()
     main()
+
