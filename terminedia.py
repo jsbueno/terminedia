@@ -142,8 +142,22 @@ BlockChars = BlockChars()
 
 class ScreenCommands:
 
-    def print(self, *args, sep='', end='', flush=True):
-        print(*args, sep=sep, end=end, flush=flush)
+    def print(self, *args, sep='', end='', flush=True, count=0):
+        try:
+            for arg in args:
+                sys.stdout.write(arg)
+                if sep:
+                    sys.stdout.write(sep)
+            if end:
+                sys.stdout.write(end)
+            if flush:
+                sys.stdout.flush()
+        except BlockingIOError:
+            if count > 10:
+                print("arrrrghhhh - stdout clogged out!!!", file=sys.stderr)
+                raise
+            time.sleep(0.002 * 2 ** count)
+            self.print(*args, sep=sep, end=end, flush=flush, count=count + 1)
 
     def CSI(self, *args):
         command = args[-1]
