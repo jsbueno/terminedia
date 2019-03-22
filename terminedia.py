@@ -87,6 +87,34 @@ def _mirror_dict(dct):
     return {value: key for key, value in dct.items()}
 
 
+class KeyCodes:
+    F1 = '\x1bOP'
+    F2 = '\x1bOQ'
+    F3 = '\x1bOR'
+    F4 = '\x1bOS'
+    F5 = '\x1b[15~'
+    F6 = '\x1b[17~'
+    F7 = '\x1b[18~'
+    F8 = '\x1b[19~'
+    F9 = '\x1b[20~'
+    F10 = '\x1b[21~'
+    F11 = '\x1b[23~'
+    F12 = '\x1b[24~'
+    ESC = '\x1b'
+    BACK = '\x7f'
+    DELETE = '\x1b[3~'
+    ENTER = '\r'
+    PGUP = '\x1b[5~'
+    PGDOWN = '\x1b[6~'
+    HOME = '\x1b[H'
+    END = '\x1b[F'
+    INSERT = '\x1b[2~'
+    UP = '\x1b[A'
+    RIGHT = '\x1b[C'
+    DOWN = '\x1b[B'
+    LEFT = '\x1b[D'
+
+
 class BlockChars:
     EMPTY = " "
     QUADRANT_UPPER_LEFT = '\u2598'
@@ -226,10 +254,12 @@ class Drawing:
         self.size = property(size_fn)
         self.context = context
 
-    def line(self, pos1, pos2):
+    def line(self, pos1, pos2, erase=False):
+
+        op = self.reset if erase else self.set
         x1, y1 = pos1
         x2, y2 = pos2
-        self.set(pos1)
+        op(pos1)
 
         max_manh = max(abs(x2 - x1), abs(y2 - y1))
         if max_manh == 0:
@@ -241,17 +271,21 @@ class Drawing:
             x1 += step_x
             y1 += step_y
             total_manh += max(abs(step_x), abs(step_y))
-            self.set((round(x1), round(y1)))
+            op((round(x1), round(y1)))
 
-    def rect(self, pos1, pos2, fill=False):
+    def rect(self, pos1, pos2=(), *, rel=(), fill=False, erase=False):
+        if not pos2:
+            if not rel:
+                raise TypeError("Must have either two corners of 'rel' parameter")
+            pos2 = pos1[0] + rel[0], pos1[1] + rel[1]
         x1, y1 = pos1
         x2, y2 = pos2
-        self.line(pos1, (x2, y1))
-        self.line((x1, y2), pos2)
-        if fill and y2 != y1:
+        self.line(pos1, (x2, y1), erase=erase)
+        self.line((x1, y2), pos2, erase=erase)
+        if (fill or erase) and y2 != y1:
             direction = int((y2 - y1) / abs(y2 - y1))
             for y in range(y1 + 1, y2, direction):
-                self.line((x1, y), (x2, y))
+                self.line((x1, y), (x2, y), erase=erase)
         else:
             self.line(pos1, (x1, y2))
             self.line((x2, y1), pos2)
@@ -462,11 +496,17 @@ class Screen:
         self.line_at(pos, len(text), sequence=text)
 
     def __getitem__(self, pos):
-        return self.data[pos[0] + pos[1] * self.width]
+        index = pos[0] + pos[1] * self.width
+        if index < 0 or index >= len(self.data):
+            return " "
+        return self.data[index]
 
     def __setitem__(self, pos, value):
         index = pos[0] + pos[1] * self.width
+        if index < 0 or index >= len(self.data):
+            return
         self.data[index] = value
+
         with self.lock:
             colors = self.context.color, self.context.background
             self.color_data[index] = colors
@@ -528,30 +568,22 @@ c_map = {
 def main():
     with realtime_keyb(), Screen() as scr:
 
-        test_lines(scr.high)
-        scr.draw.rect((5, 5), (45, 20))
-        scr.draw.rect((55, 10), (72, 20), fill=True)
-
-        scr.draw.ellipse((55, 22), (80, 35))
-
-        scr.draw.blit((8, 8), shape1)
-        scr.draw.blit((57, 12), shape1, erase=True)
-
-        scr.high.draw.rect((150, 5), (200, 40))
-        scr.high.draw.blit((155, 8), shape2, c_map)
-        scr.high.draw.blit((175, 12), shape2, c_map, erase=True)
-        scr.context.color = DEFAULT_FG
-        scr.high.draw.blit((160, 25), shape1)
-
-        scr[0, scr.height - 1] = ' '
-        # test_ellipses(scr)
-
-        result = scr.high.get_at((150, 5)), scr.high.get_at((149, 5))
+        x = scr.get_size()[0] // 2 - 6
+        y = 0
+        K = KeyCodes
         while True:
-            if inkey() == '\x1b':
+            key = inkey()
+            if key == '\x1b':
                 break
-            time.sleep(0.05)
-    print(result)
+
+            scr.draw.rect((x, y), rel=(13,6), erase=True)
+
+            x += (key == K.RIGHT) - (key == K.LEFT)
+            y += (key == K.DOWN) - (key == K.UP)
+
+            scr.draw.blit((x, y), shape1)
+
+            time.sleep(1/30)
 
 
 if __name__ == "__main__":
