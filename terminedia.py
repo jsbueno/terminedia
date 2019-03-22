@@ -439,6 +439,9 @@ class HighRes:
 class Screen:
     lock = threading.Lock()
 
+    last_background = None
+    last_color = None
+
     def __init__(self, size=()):
         if not size:
             self.get_size = os.get_terminal_size
@@ -507,10 +510,15 @@ class Screen:
             return
         self.data[index] = value
 
+        cls = self.__class__
+        update_colors =  cls.last_color != self.context.color or cls.last_background != self.context.background
         with self.lock:
             colors = self.context.color, self.context.background
             self.color_data[index] = colors
-            self.commands.set_colors(*colors)
+            if update_colors:
+                self.commands.set_colors(*colors)
+                cls.last_color = self.context.color
+                cls.last_background = self.context.background
             self.commands.print_at(pos, value)
 
 
@@ -568,7 +576,7 @@ c_map = {
 def main():
     with realtime_keyb(), Screen() as scr:
 
-        x = scr.get_size()[0] // 2 - 6
+        x = scr.high.get_size()[0] // 2 - 6
         y = 0
         K = KeyCodes
         while True:
@@ -576,12 +584,12 @@ def main():
             if key == '\x1b':
                 break
 
-            scr.draw.rect((x, y), rel=(13,6), erase=True)
+            scr.high.draw.rect((x, y), rel=(13, 7), erase=True)
 
             x += (key == K.RIGHT) - (key == K.LEFT)
             y += (key == K.DOWN) - (key == K.UP)
 
-            scr.draw.blit((x, y), shape1)
+            scr.high.draw.blit((x, y), shape1) # , color_map=c_map)
 
             time.sleep(1/30)
 
