@@ -170,6 +170,8 @@ BlockChars = BlockChars()
 
 class ScreenCommands:
 
+    last_pos = None
+
     def print(self, *args, sep='', end='', flush=True, count=0):
         try:
             for arg in args:
@@ -205,12 +207,16 @@ class ScreenCommands:
         self.CSI('?25', 'h')
 
     def moveto(self, pos):
+        if list(pos) == self.__class__.last_pos:
+            return
         x, y = pos
         self.CSI(f'{y + 1};{x + 1}H')
+        self.__class__.last_pos = list(pos)
 
     def print_at(self, pos, txt):
         self.moveto(pos)
         self.print(txt)
+        self.__class__.last_pos[0] += len(txt)
 
     def _normalize_color(self, color):
         if isinstance(color, int):
@@ -576,7 +582,7 @@ c_map = {
 def main():
     with realtime_keyb(), Screen() as scr:
 
-        x = scr.high.get_size()[0] // 2 - 6
+        x = scr.get_size()[0] // 2 - 6
         y = 0
         K = KeyCodes
         while True:
@@ -584,12 +590,12 @@ def main():
             if key == '\x1b':
                 break
 
-            scr.high.draw.rect((x, y), rel=(13, 7), erase=True)
+            scr.draw.rect((x, y), rel=(13, 7), erase=True)
 
             x += (key == K.RIGHT) - (key == K.LEFT)
             y += (key == K.DOWN) - (key == K.UP)
 
-            scr.high.draw.blit((x, y), shape1) # , color_map=c_map)
+            scr.draw.blit((x, y), shape1) # , color_map=c_map)
 
             time.sleep(1/30)
 
