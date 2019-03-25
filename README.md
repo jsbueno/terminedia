@@ -19,6 +19,7 @@ The idea is to keep this as a lightweight install - with no, or
 as little dependencies as possible.
 
 ![Messy screenshot with current capabilities](examples/screenshot_01.png)
+![Graph plot output example](examples/screenshot_02.png)
 
 
 
