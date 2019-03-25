@@ -4,6 +4,7 @@ import time
 
 from contextlib import contextmanager
 from enum import Enum
+from functools import lru_cache
 from math import ceil
 
 
@@ -169,7 +170,6 @@ BlockChars = BlockChars()
 
 
 class ScreenCommands:
-
     last_pos = None
 
     def print(self, *args, sep='', end='', flush=True, count=0):
@@ -218,6 +218,7 @@ class ScreenCommands:
         self.print(txt)
         self.__class__.last_pos[0] += len(txt)
 
+    @lru_cache()
     def _normalize_color(self, color):
         if isinstance(color, int):
             return color
@@ -229,26 +230,102 @@ class ScreenCommands:
         self.SGR(0)
 
     def set_colors(self, foreground, background):
-        if foreground == DEFAULT_FG:
-            fg_seq = 39,
-        else:
-            foreground = self._normalize_color(foreground)
-            fg_seq = 38, 2, *foreground
-        if background == DEFAULT_BG:
-            bg_seq = 49,
-        else:
-            background = self._normalize_color(background)
-            bg_seq = 49, 2, *background
-
-        self.SGR(*fg_seq, *bg_seq)
+        self.set_fg_color(foreground)
+        self.set_bg_color(background)
 
     def set_fg_color(self, color):
-        color = self._normalize_color(color)
-        self.SGR(38, 2, *color)
+        if color == DEFAULT_FG:
+            self.SGR(39)
+        else:
+            color = self._normalize_color(color)
+            self.SGR(38, 2, *color)
 
     def set_bg_color(self, color):
-        color = self._normalize_color(color)
-        self.SGR(48, 2, *color)
+        if color == DEFAULT_BG:
+            self.SGR(49)
+        else:
+            color = self._normalize_color(color)
+            self.SGR(48, 2, *color)
+
+
+
+class JournalingScreenCommands(ScreenCommands):
+
+    def __init__(self):
+        self.in_block = 0
+        self.current_color = DEFAULT_FG
+        self.current_background = DEFAULT_BG
+        self.current_pos = 0, 0
+
+    def __enter__(self):
+        if self.in_block == 0:
+            self.journal = {}
+        self.tick = 0
+        self.in_block += 1
+
+
+    def set(self, pos, char):
+        if not self.in_block:
+            raise RuntimeError("Journal not open")
+        self.journal.setdefault(pos, []).append((self.tick, char, self.current_color, self.current_background))
+        self.tick += 1
+
+
+    def __exit__(self, exc_name, traceback, frame):
+        if exc_name:
+            return
+
+        self.in_block -= 1
+        if self.in_block == 0:
+            self.replay()
+
+    def replay(self):
+        last_color = last_bg = None
+        last_pos = None
+        buffer = ""
+
+        for pos in sorted(self.journal, key=lambda pos: (pos[1], pos[0])):
+            tick, char, color, bg = self.journal[pos][-1]
+            call = []
+            if color != last_color:
+                last_color = color
+                call.append((self.set_fg_color, color))
+
+            if bg != last_bg:
+                last_bg = bg
+                call.append((self.set_bg_color, bg))
+
+            if pos != last_pos:
+                last_pos = pos
+                call.append((self.moveto, pos))
+
+            if call:
+                if buffer:
+                    self.print(buffer)
+                    buffer = ""
+                for func, arg in call:
+                    func(arg)
+            buffer += char
+            last_pos = pos[0] + 1, pos[1]
+
+        if buffer:
+            self.print(buffer)
+
+    def print_at(self, pos, txt):
+        if not self.in_block:
+            return super().print_at(pos, txt)
+        for x, char in enumerate(txt, pos[0]):
+            self.set((x, pos[1]), char)
+
+    def set_fg_color(self, color):
+        if not self.in_block:
+            super().set_fg_color(color)
+        self.current_color = color
+
+    def set_bg_color(self, color):
+        if not self.in_block:
+            super().set_bg_color(color)
+        self.current_background = color
 
 
 class Drawing:
@@ -298,7 +375,6 @@ class Drawing:
 
     def vsize(self, x, y):
         return (x ** 2 + y ** 2) ** 0.5
-
 
     def _link_prev(self, pos, i, limits, mask):
         if i < limits[0] - 1:
@@ -462,7 +538,7 @@ class Screen:
 
         self.high = HighRes(self)
 
-        self.commands = ScreenCommands()
+        self.commands = JournalingScreenCommands()
 
     def __enter__(self):
         self.clear(True)
@@ -548,6 +624,7 @@ shape2 = """\
   **************** .
   **************** .
     !!   !!   !!   .
+    !!   !!   !!   .
    %  % %  % %  %  .
                    .
 """
@@ -562,23 +639,39 @@ c_map = {
 
 def main():
     with realtime_keyb(), Screen() as scr:
-        x = scr.get_size()[0] // 2 - 6
+        factor = 2
+        x = (scr.high.get_size()[0] // 2 - 13)
+        x = x - x % factor
         y = 0
         K = KeyCodes
+        mode = 0
         while True:
             key = inkey()
             if key == '\x1b':
                 break
 
-            scr.draw.rect((x, y), rel=(13, 7), erase=True)
+            with scr.commands:
+                scr.high.draw.rect((x, y), rel=(26, 14), erase=True)
 
-            x += (key == K.RIGHT) - (key == K.LEFT)
-            y += (key == K.DOWN) - (key == K.UP)
 
-            scr.draw.blit((x, y), shape1) # , color_map=c_map)
+                if mode == 0:
+                    y += factor
+
+                    if y >= scr.high.get_size()[1] - 17:
+                        mode = 1
+
+                if mode == 1:
+                    x -= factor
+                    if x <= 0:
+                        break
+
+
+                #x += factor * ((key == K.RIGHT) - (key == K.LEFT))
+                #y += factor * ((key == K.DOWN) - (key == K.UP))
+
+                scr.high.draw.blit((x, y), shape2, color_map=c_map)
 
             time.sleep(1/30)
-
 
 if __name__ == "__main__":
     # testkeys()

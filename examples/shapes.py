@@ -52,12 +52,14 @@ def main(shape, high=False):
             if key == '\x1b':
                 break
 
-            scr.draw.rect((x, y), rel=size_, erase=True)
+            with scr.commands:
 
-            x += factor * ((key == K.RIGHT) - (key == K.LEFT))
-            y += factor * ((key == K.DOWN) - (key == K.UP))
+                scr.draw.rect((x, y), rel=size_, erase=True)
 
-            scr.draw.blit((x, y), shape, **({"color_map": c_map} if shape == shape2 else {}))
+                x += factor * ((key == K.RIGHT) - (key == K.LEFT))
+                y += factor * ((key == K.DOWN) - (key == K.UP))
+
+                scr.draw.blit((x, y), shape, **({"color_map": c_map} if shape == shape2 else {}))
 
             time.sleep(1/30)
 
