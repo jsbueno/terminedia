@@ -1,0 +1,21 @@
+from terminedia import Screen, realtime_keyb, inkey
+
+def test_lines(scr):
+    w, h = scr.get_size()
+    h -= 2
+    for y in range(0, h, 5):
+        scr.draw.line((0, y), (y * 2, h - 1))
+
+
+def main():
+    with realtime_keyb(), Screen() as scr:
+        test_lines(scr.high)
+        while True:
+            if inkey() == '\x1b':
+                break
+
+
+
+if __name__ == "__main__":
+    main()
+
