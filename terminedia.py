@@ -488,6 +488,7 @@ class HighRes:
     def __init__(self, parent):
         self.parent = parent
         self.draw = Drawing(self.set_at, self.reset_at, self.get_size, self.parent.context)
+        self.context = parent.context
 
     def get_size(self):
         w, h = self.parent.get_size()
@@ -572,6 +573,8 @@ class Screen:
 
     def line_at(self, pos, length, sequence=BlockChars.FULL_BLOCK):
         x, y = pos
+        if not sequence:
+            return
         for i, char in zip(range(length), sequence * (ceil(length / len(sequence)))):
             self[x, y] = char
             x += self.context.direction.value[0]
