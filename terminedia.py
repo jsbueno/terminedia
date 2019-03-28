@@ -596,8 +596,8 @@ class Screen:
         self.data[index] = value
 
         cls = self.__class__
-        update_colors =  cls.last_color != self.context.color or cls.last_background != self.context.background
         with self.lock:
+            update_colors =  cls.last_color != self.context.color or cls.last_background != self.context.background
             colors = self.context.color, self.context.background
             self.color_data[index] = colors
             if update_colors:
@@ -605,6 +605,44 @@ class Screen:
                 cls.last_color = self.context.color
                 cls.last_background = self.context.background
             self.commands.print_at(pos, value)
+
+
+class Context:
+    SENTINEL = object()
+    def __init__(self, screen, **kwargs):
+        """Context manager for screen context attributes
+        (Pun not intended)
+
+        Kwargs should contain desired temporary attributes:
+        color: color special value or RGB sequence for foreground color - either int 0-255  or float 0-1 based.
+        background: color special value or RGB sequence sequence for background color
+        direction: terminedia.Directions Enum value with writting direction
+
+        When entering this context, the original context is returned - changes made to it
+        will be reverted when exiting.
+        """
+        self.screen = screen
+        self.attrs = kwargs
+
+    def __enter__(self):
+        self.original_values = {key:getattr(self.screen.context, key) for key in dir(self.screen.context) if not key.startswith("_")}
+        for key, value in self.attrs.items():
+            setattr(self.screen.context, key, value)
+        return self.screen.context
+
+    def __exit__(self, exc_name, traceback, frame):
+        for key, value in self.original_values.items():
+            if value is self.SENTINEL:
+                continue
+            setattr(self.screen.context, key, value)
+        for key in dir(self.screen.context):
+            if not key.startswith("_") and not key in self.original_values:
+                delattr(self.screen.context, key)
+
+
+
+
+
 
 
 shape1 = """\
@@ -642,6 +680,7 @@ c_map = {
 
 def main():
     with realtime_keyb(), Screen() as scr:
+
         factor = 2
         x = (scr.high.get_size()[0] // 2 - 13)
         x = x - x % factor
@@ -677,6 +716,6 @@ def main():
             time.sleep(1/30)
 
 if __name__ == "__main__":
-    # testkeys()
+    #testkeys()
     main()
 
