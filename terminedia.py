@@ -387,6 +387,10 @@ class Drawing:
                 mask[j] = True
 
     def ellipse(self, pos1, pos2, fill=False):
+
+        return self._empty_ellipse(pos1, pos2) if not fill else self._filled_ellipse(pos1, pos2)
+
+    def _filled_ellipse(self, pos1, pos2):
         from math import sin, cos, asin
 
         x1, y1 = pos1
@@ -400,57 +404,54 @@ class Drawing:
 
         lx = x2 - x1 + 1
 
-        prev_mask = borders = []
         for y in range(y1, y2 + 1):
             sin_y = abs(y - cy) / r2
             az = asin(sin_y)
             r_y = self.vsize(r2 * sin_y, r1 * cos(az))
-            mask = [False,] * lx
-            inside = False
             for i, x in enumerate(range(x1, x2 + 1)):
                 d = self.vsize(x - cx, y - cy)
-                if not inside and d <= (r_y + 0.25):
-                    inside = True
-                    self.set((x, y))
-                    mask[i] = True
-                    if borders:
-                        self._link_prev((x1, y), i, borders[0], mask)
 
-                elif inside and (d > (r_y + 0.25) and i or i == lx - 1):
-                    inside = False
-                    self.set((x - 1, y))
-                    mask[i - 1] = True
-
-                    if borders:
-                        self._link_prev((x1, y), i - 1, borders[-1], mask)
-
-
-                elif inside and (y == y1 or y == y2) and d <= r_y + 0.25:
-                    self.set((x, y))
-                    mask[i] = True
-
-
-                #if abs(r_y - d) <= 1.1:
-                    #self.set((x, y))
-                if fill and d < r_y:
+                if d <= r_y:
                     self.set((x, y))
 
-            if not fill:
-                # adaptativeness:
-                border_count = 0
-                borders = []
-                for i, p1 in enumerate(mask):
-                    if (p1 and border_count % 2 == 0):
-                        borders.append([i])
-                        border_count += 1
-                    elif (not p1 and border_count % 2 == 1) or (i == lx - 1 and len(borders[-1]) == 0):
-                        borders[-1].append(i)
-                        border_count += 1
 
+    def _empty_ellipse(self, pos1, pos2):
+        from math import sin, cos, pi
 
+        x1, y1 = pos1
+        x2, y2 = pos2
 
+        cx, cy = x1 + (x2 - x1) / 2, y1 + (y2 - y1) / 2
 
-            prev_mask = mask
+        rx = abs(pos1[0] - cx)
+        ry = abs(pos1[1] - cy)
+        count = 0
+        factor = 0.25
+
+        t = 0
+        step = pi / (2 * max(rx, ry))
+
+        ox = round(rx + cx)
+        oy = round(cy)
+        self.set((ox, oy))
+
+        while t < 2 * pi:
+            t += step
+            x = round(rx * cos(t) + cx)
+            y = round(ry * sin(t) + cy)
+            if abs(x - ox) > 1 or abs(y - oy) > 1:
+                t -= step
+                step *= (1 - factor)
+                factor *= 0.8
+            elif x == ox and y == oy:
+                t -= step
+                step *= (1 + factor)
+                factor *= 0.8
+            else:
+                factor = 0.25
+
+            self.set((x, y))
+            ox, oy = x, y
 
 
     def blit(self, pos, shape, color_map=None, erase=False):

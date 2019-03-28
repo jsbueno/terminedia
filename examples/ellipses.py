@@ -1,11 +1,20 @@
+import time
+
 from terminedia import Screen, realtime_keyb, inkey
 
 def test_ellipses(scr):
     import random
-    scr.draw.ellipse((0, 0), (40, 20))
+    # scr.draw.ellipse((0, 0), (40, 20))
     scr.context.color = 0.5, 0, 1
     scr.high.draw.ellipse((90, 15), (200, 50), True)
-    for i in range(20):
+
+    scr.context.color = 1, 1, 1
+    scr.high.draw.ellipse((90, 15), (200, 50), False)
+    scr.high.draw.ellipse((5, 3), (85, 60), False)
+    while not inkey():
+        time.sleep(1 / 30)
+
+    for i in range(30):
         with scr.commands:
             for x in range(0, scr.high.get_size()[0] - 50, 10):
                 for y in range(0, scr.high.get_size()[1] - 30, 10):
