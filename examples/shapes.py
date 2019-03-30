@@ -41,6 +41,7 @@ def main(shape, high=False):
     if shape == shape2:
         size_ = 21, 12
     with realtime_keyb(), Screen() as scr:
+        parent_scr = scr
         if high:
             scr = scr.high
             factor = 2
@@ -52,7 +53,7 @@ def main(shape, high=False):
             if key == '\x1b':
                 break
 
-            with scr.commands:
+            with parent_scr.commands:
 
                 scr.draw.rect((x, y), rel=size_, erase=True)
 
