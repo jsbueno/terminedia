@@ -369,7 +369,7 @@ class ScreenCommands:
           | txt: Text to render at position
 
         There is an optimization that avoids re-issuing
-        cursor-positioning ansi sequences for repeated
+        cursor-positioning ANSI sequences for repeated
         calls of this function - this uses a class
         attribute so that different Screen instances won't clash,
         but might yield concurrency problems if apropriate
@@ -482,7 +482,11 @@ class JournalingScreenCommands(ScreenCommands):
 
 
     def _set(self, pos, char):
-        """Internal function -
+        """Internal function
+
+        Args:
+          | pos (2-sequence): coordinate where setting
+          | char (strig of lenght 1): character to set
 
         Inside a managed context this is called to anotate the current color and position
         data to the internal Journal.
@@ -552,8 +556,12 @@ class JournalingScreenCommands(ScreenCommands):
 
     def print_at(self, pos, txt):
         """Positions the cursor and prints a text sequence
-        pos: Screen coordinates, with (0,0) being the top-left corner
-        txt: Text to render at position
+
+        Args:
+          | pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
+          | txt: Text to render at position
+
+        All characters are logged into he journal if inside a managed block.
         """
         if not self.in_block:
             return super().print_at(pos, txt)
@@ -562,7 +570,9 @@ class JournalingScreenCommands(ScreenCommands):
 
     def set_fg_color(self, color):
         """Writes ANSI sequence to set the foreground color
-        color: RGB  3-sequence (0.0-1.0 or 0-255 range) or color constant
+
+        Args:
+          | color (constant or 3-sequence): RGB color (0.0-1.0 or 0-255 range) or constant to set as fg color
         """
         if not self.in_block:
             super().set_fg_color(color)
@@ -570,7 +580,9 @@ class JournalingScreenCommands(ScreenCommands):
 
     def set_bg_color(self, color):
         """Writes ANSI sequence to set the background color
-        color: RGB  3-sequence (0.0-1.0 or 0-255 range) or color constant
+
+        Args:
+          | color (constant or 3-sequence): RGB color (0.0-1.0 or 0-255 range) or constant to set as fg color
         """
         if not self.in_block:
             super().set_bg_color(color)
@@ -591,6 +603,12 @@ class Drawing:
     def __init__(self, set_fn, reset_fn, size_fn, context):
         """Not intented to be instanced directly -
 
+        Args:
+          | set_fn (callable): function to set a pixl
+          | reset_fn (callable): function to reset a pixel
+          | size_fn (callable): function to retrieve the width and height of the output
+          | context : namespace where screen attributes are set
+
         This takes note of the callback functions for
         screen-size, pixels set and reset and the drawing context.
         """
@@ -602,9 +620,10 @@ class Drawing:
     def line(self, pos1, pos2, erase=False):
         """Draws a straight line connecting both coordinates.
 
-        pos1: 2-tuple with starting coordinates
-        pos2: 2-tuple with ending coodinates
-        erase: Whether to draw (set) or erase (reset) pixels.
+        Args:
+          | pos1 (2-tuple): starting coordinates
+          | pos2 (2-tuple): ending coodinates
+          | erase (bool): Whether to draw (set) or erase (reset) pixels.
 
         Public call to draw an arbitrary line using character blocks
         on the terminal.
@@ -632,12 +651,12 @@ class Drawing:
 
     def rect(self, pos1, pos2=(), *, rel=(), fill=False, erase=False):
         """Draws a rectangle
-
-        pos1: 2-tuple with top-left coordinates
-        pos2: 2-tuple with bottom-right coodinates. If not given, pass "rel" instead
-        rel: 2-tuple with (width, height) of rectangle. Ignored if "pos2" is given
-        fill: Whether fill-in the rectangle, or only draw the outline. Defaults to False.
-        erase: Whether to draw (set) or erase (reset) pixels.
+        Args:
+          | pos1 (2-tuple): top-left coordinates
+          | pos2 (2-tuple): bottom-right coodinates. If not given, pass "rel" instead
+          | rel (2-tuple): (width, height) of rectangle. Ignored if "pos2" is given
+          | fill (bool): Whether fill-in the rectangle, or only draw the outline. Defaults to False.
+          | erase (bool): Whether to draw (set) or erase (reset) pixels.
 
         Public call to draw a rectangle using character blocks
         on the terminal.
@@ -662,6 +681,16 @@ class Drawing:
             self.line((x2, y1), pos2)
 
     def vsize(self, x, y):
+        """Returns Vector length
+
+           Args:
+             | x (number): length on coordinate x
+             | y (number): length on coordinate x
+
+           Returns:
+             | (float): Euclidian length of vector
+
+        """
         return (x ** 2 + y ** 2) ** 0.5
 
     def _link_prev(self, pos, i, limits, mask):
@@ -677,10 +706,11 @@ class Drawing:
     def ellipse(self, pos1, pos2, *, rel=(), fill=False):
         """Draws an ellipse
 
-        pos1: 2-tuple with top-left coordinates of rectangle conataining ellipse.
-        pos2: 2-tuple with bottom-right coodinates. If not given, pass "rel" instead
-        rel: 2-tuple with (width, height) of rectangle. Ignored if "pos2" is given
-        fill: Whether fill-in the rectangle, or only draw the outline. Defaults to False.
+        Args:
+          | pos1 (2-tuple): top-left coordinates of rectangle conataining ellipse
+          | pos2 (2-tuple): bottom-right coodinates. If not given, pass "rel" instead
+          | rel (2-tuple): (width, height) of rectangle. Ignored if "pos2" is given
+          | fill (bool): Whether fill-in the rectangle, or only draw the outline. Defaults to False.
 
         Public call to draw an ellipse using character blocks
         on the terminal.
@@ -762,10 +792,11 @@ class Drawing:
     def blit(self, pos, shape, color_map=None, erase=False):
         """Blits a blocky image in the associated screen at POS
 
-        pos: coordinates for the top-left corner of the image
-        shape: multi-line string or list of strings with
-        color_map: optional dictionary with palette to be used to render each character
-        erase: if True white-spaces are erased, instead of being ignored.
+        Args:
+          | pos (2-tuple): top-left corner of the image
+          | shape (string, list): multi-line string or list of strings with shape to be drawn
+          | color_map (Optional mapping): palette mapping chracters in shape to a color
+          | erase (bool): if True white-spaces are erased, instead of being ignored. Default is False.
 
         Any character but space (\x20) or "." is considered a block.
         Shape can be a "\n" separated string or a list of strings.
@@ -795,16 +826,41 @@ class Drawing:
 
 
 class HighRes:
+    """ Provides a seamless mechanism to draw with 1/4 character block "pixels".
+
+    This class is meant to be used as an instance associated to "Screen" class,
+    at the "screen.high" namespace. It further associates a "Drawing" instance
+    at "screen.high.draw" which exposes drawing primitives that will use
+    the 1/4 character pixel as a unit.
+
+    Keep in mind that while it is possible to emulate the higher resolution
+    pixels, screen colors are limited to character positions, so color
+    on these pixels will "leak" to their block. (Users familiar
+    with the vintage 8 bit ZX-Spectrum should feel at home)
+
+    This class should not be instanced directly - instead, call the "Drawing" methods
+    in the associated instances created automatically or the
+    "get_at", "get_size" and "print_at" methods.
+
+    """
+
     def __init__(self, parent):
+        """Sets instance attributes"""
         self.parent = parent
         self.draw = Drawing(self.set_at, self.reset_at, self.get_size, self.parent.context)
         self.context = parent.context
 
     def get_size(self):
+        """Returns the width and height available at high-resolution based on parent's size"""
         w, h = self.parent.get_size()
         return w * 2, h * 2
 
     def operate(self, pos, operation):
+        """Internal -
+
+        Common code to calculate the coordinates and get/reset/query a 1/4 character pixel.
+        Call "set_at", "reset_at" or "get_at" instead.
+        """
         p_x = pos[0] // 2
         p_y = pos[1] // 2
         i_x, i_y = pos[0] % 2, pos[1] % 2
@@ -817,26 +873,101 @@ class HighRes:
         return graphics, (p_x, p_y), new_block
 
     def set_at(self, pos):
+        """Sets pixel at given coordinate
+
+        Args:
+          | pos (2-sequence): pixel coordinate
+
+        To be used as a callback to ``.draw.set`` - but there are no drawbacks
+        in being called directly.
+        """
         _, gross_pos, new_block = self.operate(pos, BlockChars.set)
         self.parent[gross_pos] = new_block
 
     def reset_at(self, pos):
+        """Resets pixel at given coordinate
+
+        Args:
+          | pos (2-sequence): pixel coordinate
+
+        To be used as a callback to ``.draw.reset`` - but there are no drawbacks
+        in being called directly.
+        """
         _, gross_pos, new_block = self.operate(pos, BlockChars.reset)
         self.parent[gross_pos] = new_block
 
     def get_at(self, pos):
+        """Queries pixel at given coordinate
+
+        Args:
+          | pos (2-sequence): pixel coordinate
+
+        Returns:
+           | True: pixel is set
+           | False: pixel is not set
+           | None: Character on Screen at given coordinates is not a block character and can't be
+               mapped to 1/4 character pixels.
+        """
         graphics, _, is_set = self.operate(pos, BlockChars.get_at)
         return is_set if graphics else None
 
+    def print_at(self, pos, text):
+        """Positions the cursor and prints a text sequence
+
+        Args:
+          | pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
+          | txt: Text to render at position
+
+        The text is printed as normal full-block characters. The method is given here
+        just to enable using the same coordinate numbers to display other characters
+        when drawing in high resolution.
+
+        Context's direction is respected when printing
+        """
+        pos = pos[0] // 2, pos[1] // 2
+        self.parent.print_at(pos, text)
 
 class Screen:
+    """Canvas class for terminal drawing. Main public class on the library.
+
+    This is the main class on Terminedia - methods and associated instances here
+    should be used to do all screen rendering and drawing save for low-levl work.
+
+    Use this as a context manager to have a block inside which the screen is active;
+
+    For drawing primitives using full-block chars, use the instance's
+    "screen.draw", which contains a Drawing instance. Drawing context colors
+    and other attributes can be set in a thread-safe way on the
+    "screen.context" namespace.
+
+    To draw and position characters using 1/4 character high resolution,
+    use the attributes and methods available at "screen.high".
+    (High resolution drawing methods are available at "screen.high.draw")
+
+    Besides the available methods and associated instances, screen contents
+    can be set and read by using the Screen instance as a 2-dimensional mapping:
+    ``screen[10, 10] = "A"`` will set the character on that position.
+
+    Args:
+      . size (optional 2-sequence): Screen size in blocks. If not given, terminal size is queried automatically.
+         This does not resize the actual terminal - a smaller area is available to the methods instead.
+         If given size is larger than the actual terminal, mayhem ensues.
+      . clear_screen (bool): Whether to clear the terminal and hide cursor when entering the screen. Defaults to True.
+
+    """
+
+    #: Lock to avoid ANSI sequence mangling if used in multi-threading
     lock = threading.Lock()
 
+    #: Internal: tracks last used background attribute to avoid mangling and enable optimizations
     last_background = None
+    #: Internal: tracks last used foreground attribute to avoid mangling and enable optimizations
     last_color = None
 
-    def __init__(self, size=()):
+    def __init__(self, size=(), clear_screen=True):
         if not size:
+            #: Set in runtime to a method to retrieve the screen width, height.
+            #: The class is **not** aware of terminal resizings while running, though.
             self.get_size = os.get_terminal_size
             size = os.get_terminal_size()
         else:
@@ -850,14 +981,16 @@ class Screen:
         self.high = HighRes(self)
 
         self.commands = JournalingScreenCommands()
+        self.clear_screen = clear_screen
 
     def __enter__(self):
-        self.clear(True)
+        self.clear(self.clear_screen)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.commands.clear()
-        self.commands.cursor_show()
+        if self.clear_screen:
+            self.commands.clear()
+            self.commands.cursor_show()
         self.commands.reset_colors()
 
     def clear(self, wet_run=True):
@@ -882,6 +1015,18 @@ class Screen:
         self[pos] = " "
 
     def line_at(self, pos, length, sequence=BlockChars.FULL_BLOCK):
+        """Renders a repeating character sequence of given length respecting the context.direction
+
+        Args:
+          | pos (2-sequence):  coordinates where to start drawing
+          | length (int): length of character sequence to render
+          | sequence (str): Text to render at position - defaults to full-block character
+
+          Draws a vertical or horizontal line of characters, repeating the characteres
+          of the sequence given, up to the specified length. Can be used to draw lines
+          of aritrary characters or short words. The line directin is taken from the
+          context's direction.
+        """
         x, y = pos
         if not sequence:
             return
@@ -891,6 +1036,14 @@ class Screen:
             y += self.context.direction.value[1]
 
     def print_at(self, pos, text):
+        """Positions the cursor and prints a text sequence
+
+        Args:
+          | pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
+          | txt: Text to render at position
+
+        Context's direction is respected when printing
+        """
         self.line_at(pos, len(text), sequence=text)
 
     def __getitem__(self, pos):
