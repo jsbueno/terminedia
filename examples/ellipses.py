@@ -6,11 +6,11 @@ def test_ellipses(scr):
     import random
     # scr.draw.ellipse((0, 0), (40, 20))
     scr.context.color = 0.5, 0, 1
-    scr.high.draw.ellipse((90, 15), (200, 50), True)
+    scr.high.draw.ellipse((90, 15), (200, 50), fill=True)
 
     scr.context.color = 1, 1, 1
-    scr.high.draw.ellipse((90, 15), (200, 50), False)
-    scr.high.draw.ellipse((5, 3), (85, 60), False)
+    scr.high.draw.ellipse((90, 15), (200, 50), fill=False)
+    scr.high.draw.ellipse((5, 3), (85, 60), fill=False)
     while not inkey():
         time.sleep(1 / 30)
 
