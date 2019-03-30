@@ -48,12 +48,12 @@ def realtime_keyb():
     attrs = list(attrs_save)  # copy the stored version to update
     # iflag
     attrs[0] &= ~(termios.IGNBRK | termios.BRKINT | termios.PARMRK
-                  | termios.ISTRIP | termios.INLCR | termios. IGNCR
+                  | termios.ISTRIP | termios.INLCR | termios.IGNCR
                   | termios.ICRNL | termios.IXON)
     # oflag
     attrs[1] &= ~termios.OPOST
     # cflag
-    attrs[2] &= ~(termios.CSIZE | termios. PARENB)
+    attrs[2] &= ~(termios.CSIZE | termios.PARENB)
     attrs[2] |= termios.CS8
     # lflag
     attrs[3] &= ~(termios.ECHONL | termios.ECHO | termios.ICANON
@@ -225,9 +225,9 @@ class BlockChars_:
         """"Sets" a pixel in a block character
 
         Args:
-          | pos (2-sequence): coordinate of the pixel inside the character
+          - pos (2-sequence): coordinate of the pixel inside the character
             (0,0) is top-left corner, (1,1) bottom-right corner and so on)
-          | data: initial character to be composed with the bit to be set. Use
+          - data: initial character to be composed with the bit to be set. Use
             space ("\x20") to start with an empty block.
 
         """
@@ -239,9 +239,9 @@ class BlockChars_:
         """"resets" a pixel in a block character
 
         Args:
-          | pos (2-sequence): coordinate of the pixel inside the character
+          - pos (2-sequence): coordinate of the pixel inside the character
             (0,0) is top-left corner, (1,1) bottom-right corner and so on)
-          | data: initial character to be composed with the bit to be reset.
+          - data: initial character to be composed with the bit to be reset.
         """
         op = lambda n, index: n & (0xf - index)
         return cls.blocks_in_order[cls._op(pos, data, op)]
@@ -251,8 +251,8 @@ class BlockChars_:
         """Retrieves whether a pixel in a block character is set
 
         Args:
-          | pos (2-sequence): The pixel coordinate
-          | data (character): The character were to look at blocks.
+          - pos (2-sequence): The pixel coordinate
+          - data (character): The character were to look at blocks.
 
         Raises KeyError if an invalid character is passed in "data".
         """
@@ -279,11 +279,11 @@ class ScreenCommands:
         """Inner print method
 
         Args:
-          | *args: strings to be joined by "sep" and printed
-          | sep: Separator to join *args
-          | end: Sequence to print at end
-          | flush: Whether to flush stdin file at end, defaults to ``True``
-          | count: Retry counter - used to calculate delays on retries, or raise
+          - *args: strings to be joined by "sep" and printed
+          - sep: Separator to join *args
+          - end: Sequence to print at end
+          - flush: Whether to flush stdin file at end, defaults to ``True``
+          - count: Retry counter - used to calculate delays on retries, or raise
             on max-retries exceeded (currently hardcoded to 10 atempts)
 
         Is used in place of normal Python's print, changing the defaults
@@ -310,7 +310,7 @@ class ScreenCommands:
     def CSI(self, *args):
         """Writes a CSI command to the terminal
         Args:
-          | *args: Sequence of parameters to the command, including the last
+          - *args: Sequence of parameters to the command, including the last
               one that should be a letter specifying the command
 
         Just a fancy way to print the ANSI "CSI" (Control Sequence Introducer" commands
@@ -326,7 +326,7 @@ class ScreenCommands:
         """Writes a SGR command (Select Graphic Rendition)
 
         Args:
-          | *args: Sequence of parameters to the SGR command,
+          - *args: Sequence of parameters to the SGR command,
 
         This function calls .CSI with the command fixed as "m"
           which is "SGR".
@@ -349,7 +349,7 @@ class ScreenCommands:
         """Writes ANSI Sequence to position the text cursor
 
         Args:
-          | pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
+          - pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
 
         Please note that ANSI commands count screen coordinates from 1,
         while in this project, coordinates start at 0 to conform
@@ -365,8 +365,8 @@ class ScreenCommands:
         """Positions the cursor and prints a text sequence
 
         Args:
-          | pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
-          | txt: Text to render at position
+          - pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
+          - txt: Text to render at position
 
         There is an optimization that avoids re-issuing
         cursor-positioning ANSI sequences for repeated
@@ -385,7 +385,7 @@ class ScreenCommands:
         """Converts RGB colors to use 0-255 integers.
 
         Args:
-          | color: Either a color constant or a 3-sequence,
+          - color: Either a color constant or a 3-sequence,
               with float components on the range 0.0-1.0, or integer components
               in the 0-255 range.
 
@@ -485,8 +485,8 @@ class JournalingScreenCommands(ScreenCommands):
         """Internal function
 
         Args:
-          | pos (2-sequence): coordinate where setting
-          | char (strig of lenght 1): character to set
+          - pos (2-sequence): coordinate where setting
+          - char (strig of lenght 1): character to set
 
         Inside a managed context this is called to anotate the current color and position
         data to the internal Journal.
@@ -558,8 +558,8 @@ class JournalingScreenCommands(ScreenCommands):
         """Positions the cursor and prints a text sequence
 
         Args:
-          | pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
-          | txt: Text to render at position
+          - pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
+          - txt: Text to render at position
 
         All characters are logged into he journal if inside a managed block.
         """
@@ -572,7 +572,7 @@ class JournalingScreenCommands(ScreenCommands):
         """Writes ANSI sequence to set the foreground color
 
         Args:
-          | color (constant or 3-sequence): RGB color (0.0-1.0 or 0-255 range) or constant to set as fg color
+          - color (constant or 3-sequence): RGB color (0.0-1.0 or 0-255 range) or constant to set as fg color
         """
         if not self.in_block:
             super().set_fg_color(color)
@@ -582,7 +582,7 @@ class JournalingScreenCommands(ScreenCommands):
         """Writes ANSI sequence to set the background color
 
         Args:
-          | color (constant or 3-sequence): RGB color (0.0-1.0 or 0-255 range) or constant to set as fg color
+          - color (constant or 3-sequence): RGB color (0.0-1.0 or 0-255 range) or constant to set as fg color
         """
         if not self.in_block:
             super().set_bg_color(color)
@@ -604,10 +604,10 @@ class Drawing:
         """Not intented to be instanced directly -
 
         Args:
-          | set_fn (callable): function to set a pixl
-          | reset_fn (callable): function to reset a pixel
-          | size_fn (callable): function to retrieve the width and height of the output
-          | context : namespace where screen attributes are set
+          - set_fn (callable): function to set a pixl
+          - reset_fn (callable): function to reset a pixel
+          - size_fn (callable): function to retrieve the width and height of the output
+          - context : namespace where screen attributes are set
 
         This takes note of the callback functions for
         screen-size, pixels set and reset and the drawing context.
@@ -621,9 +621,9 @@ class Drawing:
         """Draws a straight line connecting both coordinates.
 
         Args:
-          | pos1 (2-tuple): starting coordinates
-          | pos2 (2-tuple): ending coodinates
-          | erase (bool): Whether to draw (set) or erase (reset) pixels.
+          - pos1 (2-tuple): starting coordinates
+          - pos2 (2-tuple): ending coodinates
+          - erase (bool): Whether to draw (set) or erase (reset) pixels.
 
         Public call to draw an arbitrary line using character blocks
         on the terminal.
@@ -652,11 +652,11 @@ class Drawing:
     def rect(self, pos1, pos2=(), *, rel=(), fill=False, erase=False):
         """Draws a rectangle
         Args:
-          | pos1 (2-tuple): top-left coordinates
-          | pos2 (2-tuple): bottom-right coodinates. If not given, pass "rel" instead
-          | rel (2-tuple): (width, height) of rectangle. Ignored if "pos2" is given
-          | fill (bool): Whether fill-in the rectangle, or only draw the outline. Defaults to False.
-          | erase (bool): Whether to draw (set) or erase (reset) pixels.
+          - pos1 (2-tuple): top-left coordinates
+          - pos2 (2-tuple): bottom-right coodinates. If not given, pass "rel" instead
+          - rel (2-tuple): (width, height) of rectangle. Ignored if "pos2" is given
+          - fill (bool): Whether fill-in the rectangle, or only draw the outline. Defaults to False.
+          - erase (bool): Whether to draw (set) or erase (reset) pixels.
 
         Public call to draw a rectangle using character blocks
         on the terminal.
@@ -684,11 +684,11 @@ class Drawing:
         """Returns Vector length
 
            Args:
-             | x (number): length on coordinate x
-             | y (number): length on coordinate x
+             - x (number): length on coordinate x
+             - y (number): length on coordinate x
 
            Returns:
-             | (float): Euclidian length of vector
+             - (float): Euclidian length of vector
 
         """
         return (x ** 2 + y ** 2) ** 0.5
@@ -707,10 +707,10 @@ class Drawing:
         """Draws an ellipse
 
         Args:
-          | pos1 (2-tuple): top-left coordinates of rectangle conataining ellipse
-          | pos2 (2-tuple): bottom-right coodinates. If not given, pass "rel" instead
-          | rel (2-tuple): (width, height) of rectangle. Ignored if "pos2" is given
-          | fill (bool): Whether fill-in the rectangle, or only draw the outline. Defaults to False.
+          - pos1 (2-tuple): top-left coordinates of rectangle conataining ellipse
+          - pos2 (2-tuple): bottom-right coodinates. If not given, pass "rel" instead
+          - rel (2-tuple): (width, height) of rectangle. Ignored if "pos2" is given
+          - fill (bool): Whether fill-in the rectangle, or only draw the outline. Defaults to False.
 
         Public call to draw an ellipse using character blocks
         on the terminal.
@@ -793,10 +793,10 @@ class Drawing:
         """Blits a blocky image in the associated screen at POS
 
         Args:
-          | pos (2-tuple): top-left corner of the image
-          | shape (string, list): multi-line string or list of strings with shape to be drawn
-          | color_map (Optional mapping): palette mapping chracters in shape to a color
-          | erase (bool): if True white-spaces are erased, instead of being ignored. Default is False.
+          - pos (2-tuple): top-left corner of the image
+          - shape (string, list): multi-line string or list of strings with shape to be drawn
+          - color_map (Optional mapping): palette mapping chracters in shape to a color
+          - erase (bool): if True white-spaces are erased, instead of being ignored. Default is False.
 
         Any character but space (\x20) or "." is considered a block.
         Shape can be a "\n" separated string or a list of strings.
@@ -876,7 +876,7 @@ class HighRes:
         """Sets pixel at given coordinate
 
         Args:
-          | pos (2-sequence): pixel coordinate
+          - pos (2-sequence): pixel coordinate
 
         To be used as a callback to ``.draw.set`` - but there are no drawbacks
         in being called directly.
@@ -888,7 +888,7 @@ class HighRes:
         """Resets pixel at given coordinate
 
         Args:
-          | pos (2-sequence): pixel coordinate
+          - pos (2-sequence): pixel coordinate
 
         To be used as a callback to ``.draw.reset`` - but there are no drawbacks
         in being called directly.
@@ -900,12 +900,12 @@ class HighRes:
         """Queries pixel at given coordinate
 
         Args:
-          | pos (2-sequence): pixel coordinate
+          - pos (2-sequence): pixel coordinate
 
         Returns:
-           | True: pixel is set
-           | False: pixel is not set
-           | None: Character on Screen at given coordinates is not a block character and can't be
+           - True: pixel is set
+           - False: pixel is not set
+           - None: Character on Screen at given coordinates is not a block character and can't be
                mapped to 1/4 character pixels.
         """
         graphics, _, is_set = self.operate(pos, BlockChars.get_at)
@@ -915,8 +915,8 @@ class HighRes:
         """Positions the cursor and prints a text sequence
 
         Args:
-          | pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
-          | txt: Text to render at position
+          - pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
+          - txt: Text to render at position
 
         The text is printed as normal full-block characters. The method is given here
         just to enable using the same coordinate numbers to display other characters
@@ -949,10 +949,10 @@ class Screen:
     ``screen[10, 10] = "A"`` will set the character on that position.
 
     Args:
-      . size (optional 2-sequence): Screen size in blocks. If not given, terminal size is queried automatically.
-         This does not resize the actual terminal - a smaller area is available to the methods instead.
-         If given size is larger than the actual terminal, mayhem ensues.
-      . clear_screen (bool): Whether to clear the terminal and hide cursor when entering the screen. Defaults to True.
+      - size (optional 2-sequence): Screen size in blocks. If not given, terminal size is queried automatically.
+        This does not resize the actual terminal - a smaller area is available to the methods instead.
+        If given size is larger than the actual terminal, mayhem ensues.
+      - clear_screen (bool): Whether to clear the terminal and hide cursor when entering the screen. Defaults to True.
 
     """
 
@@ -984,16 +984,33 @@ class Screen:
         self.clear_screen = clear_screen
 
     def __enter__(self):
+        """Enters a fresh screen context"""
         self.clear(self.clear_screen)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """Leaves the screen context and reset terminal colors."""
         if self.clear_screen:
             self.commands.clear()
             self.commands.cursor_show()
         self.commands.reset_colors()
 
     def clear(self, wet_run=True):
+        """Resets internal data, context parameters and clears the screen
+
+        Args:
+          - wet_run (bool): Whether to physically clear the screen or not
+
+        Resets internal data and context parameters. The "self.data" and "self.color_data"
+        structures are where the current character and attributes for each position are kept
+        as characters actually just printed on the terminal can't be "read" back.
+        Context foreground, background and direction are reset.
+
+        In default operation, commands to clear the actual terminal and hide the cursor
+        is also issued - the ``.clear_screen` attribute controls that if `.clear` is being
+        called as part of entering the screen context.
+
+        """
         self.data = [" "] * self.width * self.height
         self.color_data = [(DEFAULT_FG, DEFAULT_BG)] * self.width * self.height
         self.context.color = DEFAULT_FG
@@ -1007,20 +1024,38 @@ class Screen:
                 self.commands.cursor_hide()
 
     def set_at(self, pos, color=None):
+        """Sets pixel at given coordinate
+
+        Args:
+          - pos (2-sequence): pixel coordinate
+
+        To be used as a callback to ``.draw.set`` - but there are no drawbacks
+        in being called directly.
+        """
+
         if color:
             self.context.color = color
         self[pos] = BlockChars.FULL_BLOCK
 
     def reset_at(self, pos):
+        """Resets pixel at given coordinate
+
+        Args:
+          - pos (2-sequence): pixel coordinate
+
+        To be used as a callback to ``.draw.reset`` - but there are no drawbacks
+        in being called directly.
+        """
+
         self[pos] = " "
 
     def line_at(self, pos, length, sequence=BlockChars.FULL_BLOCK):
         """Renders a repeating character sequence of given length respecting the context.direction
 
         Args:
-          | pos (2-sequence):  coordinates where to start drawing
-          | length (int): length of character sequence to render
-          | sequence (str): Text to render at position - defaults to full-block character
+          - pos (2-sequence):  coordinates where to start drawing
+          - length (int): length of character sequence to render
+          - sequence (str): Text to render at position - defaults to full-block character
 
           Draws a vertical or horizontal line of characters, repeating the characteres
           of the sequence given, up to the specified length. Can be used to draw lines
@@ -1039,8 +1074,8 @@ class Screen:
         """Positions the cursor and prints a text sequence
 
         Args:
-          | pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
-          | txt: Text to render at position
+          - pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
+          - txt: Text to render at position
 
         Context's direction is respected when printing
         """
@@ -1071,29 +1106,41 @@ class Screen:
 
 
 class Context:
+    """Context manager for screen context attributes (Pun not intended)
+
+    Args:
+      - screen (Screen): The screen whre to operate
+
+    Kwargs:
+      should contain desired temporary attributes:
+
+      - color: color special value or RGB sequence for foreground color - either int 0-255  or float 0-1 based.
+      - background: color special value or RGB sequence sequence for background color
+      - direction: terminedia.Directions Enum value with writting direction
+
+    Provides a practical way for a sub-routine to draw things to the screen without messing with the
+    callee's expected drawing context. Otherwise one would have to manually save and restore
+    the context colors for each operation.  When entering this context, the original screen context
+    is returned - changes made to it will be reverted when exiting.
+    """
     SENTINEL = object()
     def __init__(self, screen, **kwargs):
-        """Context manager for screen context attributes
-        (Pun not intended)
-
-        Kwargs should contain desired temporary attributes:
-        color: color special value or RGB sequence for foreground color - either int 0-255  or float 0-1 based.
-        background: color special value or RGB sequence sequence for background color
-        direction: terminedia.Directions Enum value with writting direction
-
-        When entering this context, the original context is returned - changes made to it
-        will be reverted when exiting.
-        """
+        """Sets internal attributes"""
         self.screen = screen
         self.attrs = kwargs
 
     def __enter__(self):
+        """Saves current screen context, sets new values and returns the context itself
+
+        The returned context object can be safelly manipulated inside the block
+        """
         self.original_values = {key:getattr(self.screen.context, key) for key in dir(self.screen.context) if not key.startswith("_")}
         for key, value in self.attrs.items():
             setattr(self.screen.context, key, value)
         return self.screen.context
 
     def __exit__(self, exc_name, traceback, frame):
+        """Restores saved and previously not set context parameters"""
         for key, value in self.original_values.items():
             if value is self.SENTINEL:
                 continue
@@ -1101,11 +1148,6 @@ class Context:
         for key in dir(self.screen.context):
             if not key.startswith("_") and not key in self.original_values:
                 delattr(self.screen.context, key)
-
-
-
-
-
 
 
 shape1 = """\
@@ -1142,6 +1184,11 @@ c_map = {
 
 
 def main():
+    """Temporary main function to show some capabilities and perform testing.
+
+    Check the "examples/" folder in the repository at
+    https://github.com/jsbueno/terminedia for more examples.
+    """
     with realtime_keyb(), Screen() as scr:
 
         factor = 2
