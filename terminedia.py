@@ -30,11 +30,11 @@ def realtime_keyb():
     This context manager reconfigures `stdin` so that key presses
     are read in a non-blocking way.
 
-    Inside a managed block, the "inkey" function can be called and will
+    Inside a managed block, the :any:`inkey` function can be called and will
     return whether a key is currently pressed, and which it is.
 
     An app that will make use of keyboard reading alongside screen
-    controling can enter both this and an instance of "Screen" in the
+    controling can enter both this and an instance of :any:`Screen` in the
     same "with" block.
 
     (Currently Posix only)
@@ -76,9 +76,12 @@ def inkey(break_=True):
         (\x03) should raise KeyboardInterrupt or be returned as a
         keycode. Defaults to True.
 
+    *Important*: For this function only works inside a
+    :any:`realtime_keyb` managed context. (Posix)
+
     Code values or code sequences for non-character keys,
     like ESC, direction arrows, fkeys are kept as constants
-    in the "KeyCodes" class
+    in the "KeyCodes" class.
 
     Unfortunatelly, due to the nature of console streaming,
     this can't receive "keypress" or "keyup" events, and repeat-rate
@@ -97,14 +100,17 @@ def inkey(break_=True):
     return keycode
 
 def pause():
-    """Enters non-blocking keyboard mode and waits for any keypress"""
+    """Enters non-blocking keyboard mode and waits for any keypress
+
+    A non-blocking keyboard context is automatically entered to wait for the keypress.
+    """
     with realtime_keyb():
         time.sleep(1/30)
         while not inkey():
             time.sleep(1/30)
 
 def _testkeys():
-    """Debug function to print out keycodes as read by inkey()"""
+    """Debug function to print out keycodes as read by :any:`inkey`"""
     with realtime_keyb():
         while True:
             try:
@@ -117,10 +123,10 @@ def _testkeys():
             time.sleep(0.3)
 
 
-#: Value used as color to mean the default terminal foreground
+#: Constant used as color to mean the default terminal foreground
 #: (Currently all other color values should be RGB)
 DEFAULT_FG = 0xffff
-#: Value used as color to mean the default terminal background
+#: Constant used as color to mean the default terminal background
 DEFAULT_BG = 0xfffe
 
 
@@ -128,7 +134,7 @@ class Directions(Enum):
     """Direction vector constants.
 
     These are used directly as text-printing direction on
-    a Screen context, but can be used by other applications as
+    a :any:`Screen` context, but can be used by other applications as
     well.
     """
     UP = (0, -1)
@@ -139,17 +145,20 @@ class Directions(Enum):
 
 def _mirror_dict(dct):
     """Creates a new dictionary exchanging values for keys
-
-    :param dct: Dictionary to be inverted
+    Args:
+      - dct (mapping): Dictionary to be inverted
     """
     return {value: key for key, value in dct.items()}
 
 
 class KeyCodes:
-    """Character key-codes as they appear in stdin
+    """Character keycodes as they appear in stdin
 
-    (and as they are reported by "inkey" function). This class
-    is used only as a namespace.
+    (and as they are reported by :any:`inkey` function). This class
+    is used only as a namespace. Also note that printable-character
+    keys, such as upper and lower case letters, numbers and symbols
+    are not listed here, as their "code" is just a string containing
+    themselves.
     """
     F1 = '\x1bOP'
     F2 = '\x1bOQ'
@@ -189,9 +198,8 @@ class BlockChars_:
     that decides to manipulate block chars.
 
     The class itself is stateless, and it is used as a single-instance which
-    uses the name "BlockChars" bellow, so that one can use the operator
-    "in" to check if a character is a block-character. (On an instance the
-    "__contains__" method is enabled).
+    uses the name :any:`BlockChars`. The instance is needed so that one can use the operator
+    ``in`` to check if a character is a block-character.
 
     """
     EMPTY = " "
@@ -275,7 +283,7 @@ class ScreenCommands:
     """Low level functions to execute ANSI-Sequence-related tasks on the terminal.
 
     Although not private, this class is meant to be used internally by the higher level
-    "Screen" and "Drawing" classes. One might use these functions directly if
+    :any:`Screen` and :any:`Drawing` classes. One might use these functions directly if
     there is no interest in the other functionalities of the library, though,
     or, to make use of a custom ANSI sequence which is not available in the higher level
     API.
@@ -455,8 +463,8 @@ class JournalingScreenCommands(ScreenCommands):
     render an entire frame at once in a graphics display.
 
     For that purpose, use the instance of this class that is kept
-    in the ".commands" attribute of the Screen class instance.
-    (That is, one should use: "with screen.commands:" to start
+    in the :any:`Screen.commands` attribute of the Screen class instance.
+    (That is, one should use: ``with screen.commands:`` to start
     a block of graphics that should be rendered as fast as possible)
 
     When the context exits, writtings are made to the terminal
@@ -476,7 +484,7 @@ class JournalingScreenCommands(ScreenCommands):
     def __enter__(self):
         """Enters a context where screen rights are collected together.
 
-        Thse are yielded to the screen at once.
+        These are yielded to the screen at once.
         This is written in a way that the contexts can be nested,
         so, if an inner method one is calling opens a
         context, one is free to open a broather context
@@ -531,7 +539,6 @@ class JournalingScreenCommands(ScreenCommands):
         are recorded so far. The journal is not touched and
         can be further used inside the same context.
         """
-        xxx.append(self.journal)
         last_color = last_bg = None
         last_pos = None
         buffer = ""
@@ -601,12 +608,12 @@ class JournalingScreenCommands(ScreenCommands):
 class Drawing:
     """Drawing and rendering API
 
-    An instance of this class is attached to Screen instances as the "draw" attribute.
+    An instance of this class is attached to :any:`Screen` instances as the :any:`Screen.draw` attribute.
     All context-related information is kept on the associanted screen instance,
     the public methods here issue pixel setting and resetting at the Screen -
     using that Screen's context colors and resolution.
 
-    That is - the tipical usage for methods here will be "screen.draw.line((0,0)-(50,20)) "
+    That is - the tipical usage for methods here will be ``screen.draw.line((0,0)-(50,20))``
     """
 
     def __init__(self, set_fn, reset_fn, size_fn, context):
@@ -636,9 +643,9 @@ class Drawing:
 
         Public call to draw an arbitrary line using character blocks
         on the terminal.
-        The color line is defined in the associated's screen context.foreground
+        The color line is defined in the associated's screen context.color
         attribute. In the case of high-resolution drawing, the background color
-        is also from the context.
+        is also taken from the context.
         """
 
         op = self.reset if erase else self.set
@@ -670,9 +677,9 @@ class Drawing:
 
         Public call to draw a rectangle using character blocks
         on the terminal.
-        The color line is defined in the associated's screen context.foreground
+        The color line is defined in the associated's screen context.color
         attribute. In the case of high-resolution drawing, the background color
-        is also from the context.
+        is also taken from the context.
         """
         if not pos2:
             if not rel:
@@ -695,7 +702,7 @@ class Drawing:
 
            Args:
              - x (number): length on coordinate x
-             - y (number): length on coordinate x
+             - y (number): length on coordinate y
 
            Returns:
              - (float): Euclidian length of vector
@@ -724,9 +731,9 @@ class Drawing:
 
         Public call to draw an ellipse using character blocks
         on the terminal.
-        The color line is defined in the associated's screen context.foreground
+        The color line is defined in the associated's screen context.color
         attribute. In the case of high-resolution drawing, the background color
-        is also from the context.
+        is also taken from the context.
         """
         if not pos2:
             if not rel:
@@ -838,9 +845,9 @@ class Drawing:
 class HighRes:
     """ Provides a seamless mechanism to draw with 1/4 character block "pixels".
 
-    This class is meant to be used as an instance associated to "Screen" class,
-    at the "screen.high" namespace. It further associates a "Drawing" instance
-    at "screen.high.draw" which exposes drawing primitives that will use
+    This class is meant to be used as an instance associated to an :any:`Screen` instance,
+    at the :any:`Screen.high` namespace. It further associates a :any:`Drawing` instance
+    as ``screen.high.draw`` which exposes drawing primitives that will use
     the 1/4 character pixel as a unit.
 
     Keep in mind that while it is possible to emulate the higher resolution
@@ -848,9 +855,9 @@ class HighRes:
     on these pixels will "leak" to their block. (Users familiar
     with the vintage 8 bit ZX-Spectrum should feel at home)
 
-    This class should not be instanced directly - instead, call the "Drawing" methods
-    in the associated instances created automatically or the
-    "get_at", "get_size" and "print_at" methods.
+    This class should not be instanced or used directly - instead, call the ``Drawing`` methods
+    or the ``get_at``, ``get_size`` and ``print_at`` methods in the ``HighRes`` instance created
+    automatically for a Screen instance.
 
     """
 
@@ -861,7 +868,7 @@ class HighRes:
         self.context = parent.context
 
     def get_size(self):
-        """Returns the width and height available at high-resolution based on parent's size"""
+        """Returns the width and height available at high-resolution based on parent's Screen size"""
         w, h = self.parent.get_size()
         return w * 2, h * 2
 
@@ -869,7 +876,7 @@ class HighRes:
         """Internal -
 
         Common code to calculate the coordinates and get/reset/query a 1/4 character pixel.
-        Call "set_at", "reset_at" or "get_at" instead.
+        Call  :any:`HighRes.set_at`, :any:`HighRes.reset_at` or :any:`HighRes.get_at` instead.
         """
         p_x = pos[0] // 2
         p_y = pos[1] // 2
@@ -938,12 +945,12 @@ class HighRes:
         self.parent.print_at(pos, text)
 
 class Screen:
-    """Canvas class for terminal drawing. Main public class on the library.
+    """Canvas class for terminal drawing.
 
-    This is the main class on Terminedia - methods and associated instances here
-    should be used to do all screen rendering and drawing save for low-levl work.
+    This is the main class on Terminedia library - methods and associated instances here
+    should be used to do all screen rendering and drawing save for low-level work.
 
-    Use this as a context manager to have a block inside which the screen is active;
+    Use this as a context manager inside which the screen is active;
 
     For drawing primitives using full-block chars, use the instance's
     "screen.draw", which contains a Drawing instance. Drawing context colors
@@ -961,7 +968,7 @@ class Screen:
     Args:
       - size (optional 2-sequence): Screen size in blocks. If not given, terminal size is queried automatically.
         This does not resize the actual terminal - a smaller area is available to the methods instead.
-        If given size is larger than the actual terminal, mayhem ensues.
+        If given size is larger than the actual terminal, mayhen ensues.
       - clear_screen (bool): Whether to clear the terminal and hide cursor when entering the screen. Defaults to True.
 
     """
@@ -983,13 +990,21 @@ class Screen:
         else:
             self.get_size = lambda: size
 
+        #: Namespace to configure drawing and printing color and other parameters.
+        #: Currently, the attributes that are used from here are
+        #: ``color``, ``background`` and ``direction`` (which have to be set to one
+        #: of the values in :any:`Directions`.
         self.context = threading.local()
 
+        #: Namespace for drawing methods, containing an instance of the :any:`Drawing` class
         self.draw = Drawing(self.set_at, self.reset_at, self.get_size, self.context)
         self.width, self.height = self.size = size
 
         self.high = HighRes(self)
 
+        #: Namespace for low-level Terminal commands, an instance of :any:`JournalingScreenCommands`.
+        #: This attribute can be used as a context manager to group
+        #: various screen operations in a single block that is rendered at once.
         self.commands = JournalingScreenCommands()
         self.clear_screen = clear_screen
 
@@ -1093,12 +1108,34 @@ class Screen:
         self.line_at(pos, len(text), sequence=text)
 
     def __getitem__(self, pos):
+        """Retrieves character data at pos
+
+        Args:
+          - pos (2-sequence): coordinate to retrieve data from.
+        """
         index = pos[0] + pos[1] * self.width
         if index < 0 or index >= len(self.data):
             return " "
         return self.data[index]
 
     def __setitem__(self, pos, value):
+        """Writes character data at pos
+
+        Args:
+          - pos (2-sequence): coordinate where to set character
+          - value (length 1 string): Character to set.
+
+        This is mostly used internally by all other drawing and printing methods, although
+        it can be used directly, by using Python's object-key notation with ``[ ]`` and assignment.
+        The thing to have in mind is that all text or graphics that go to the terminal *is
+        be directed through this method* - it is a "single point" where all data is
+        sent, and this enabled keeping an in memory copy of the data that is printed
+        at the terminal, a series of optimizations by not re-issuing color-change
+        commands for each character printed, and finally some block-locking which enables
+        the library to work even in multi-threaded concurrent code drawing at once
+        to the terminal.
+
+        """
         index = pos[0] + pos[1] * self.width
         if index < 0 or index >= len(self.data):
             return
@@ -1135,6 +1172,7 @@ class Context:
     is returned - changes made to it will be reverted when exiting.
     """
     SENTINEL = object()
+
     def __init__(self, screen, **kwargs):
         """Sets internal attributes"""
         self.screen = screen
@@ -1172,17 +1210,17 @@ shape1 = """\
 """
 
 shape2 = """\
-                   .
-    *    **    *   .
-   **   ****   **  .
-  **   **##**   ** .
-  **   **##**   ** .
-  **   **##**   ** .
-  **************** .
-  **************** .
-    !!   !!   !!   .
-    !!   !!   !!   .
-   %  % %  % %  %  .
+                  .
+   *    **    *   .
+  **   ****   **  .
+ **   **##**   ** .
+ **   **##**   ** .
+ **   **##**   ** .
+ **************** .
+ **************** .
+   !!   !!   !!   .
+   !!   !!   !!   .
+  %  % %  % %  %  .
                    .
 """
 
@@ -1235,19 +1273,6 @@ def main():
                 scr.high.draw.blit((x, y), shape2, color_map=c_map)
 
             time.sleep(1/30)
-
-
-def main():
-    global xxx
-    xxx = []
-    with Screen() as scr:
-        scr.context.color = 1.0, 0, 0
-        scr.high.draw.rect((5, 5), (30, 20))
-        scr.context.color = 1.0, 0, 1.0
-        scr.high.print_at((5, 22), "Example Red Square")
-
-        pause()
-    print(xxx)
 
 
 if __name__ == "__main__":
