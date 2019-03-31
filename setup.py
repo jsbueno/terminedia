@@ -5,13 +5,17 @@ from setuptools import setup
 setup(
     name = 'terminedia',
     py_modules = ["terminedia"],
-    version = "0.2.0",
+    version = "0.2.1",
     license = "LGPLv3+",
     author = "João S. O. Bueno",
     author_email = "gwidion@gmail.com",
     description = "Utilities for drawing and interactiveness at the terminal",
     keywords = "terminal cmd posix xterm ANSI color",
     url = "https://github.com/jsbueno/terminedia",
+    project_urls={
+        "Documentation": "https://terminedia.readthedocs.io/en/stable/",
+        "Source Code": "https://github.com/jsbueno/terminedia",
+    }
     long_description = open("README.md").read(),
     test_requires = [],
     extras_require = {

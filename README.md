@@ -21,6 +21,15 @@ as little dependencies as possible.
 ![Messy screenshot with current capabilities](examples/screenshot_01.png)
 ![Graph plot output example](examples/screenshot_02.png)
 
+Documentation
+--------------
+
+Check full documentation at:
+    https://terminedia.readthedocs.io/en/stable/
+
+Also, the ``examples`` folder have concrete snippets and
+some stress-testing code.
+
 
 Compatibility
 --------------

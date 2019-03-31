@@ -16,7 +16,7 @@ from functools import lru_cache
 from math import ceil
 
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 __author__ = "João S. O. Bueno"
 
 
