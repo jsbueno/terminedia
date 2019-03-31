@@ -71,9 +71,10 @@ def realtime_keyb():
 def inkey(break_=True):
     """Return currently pressed key as a string
 
-    :param break_: Boolean parameter specifying whether "CTRL + C"
-    (\x03) should raise KeyboardInterrupt or be returned as a
-    keycode. Defaults to True.
+    Args:
+      - break\_ (bool): Boolean parameter specifying whether "CTRL + C"
+        (\x03) should raise KeyboardInterrupt or be returned as a
+        keycode. Defaults to True.
 
     Code values or code sequences for non-character keys,
     like ESC, direction arrows, fkeys are kept as constants
@@ -260,7 +261,7 @@ class BlockChars_:
         return cls._op(pos, data, op)
 
 
-#: BlockChars_ single instance: enables __contains__:
+#: :any:`BlockChars_` single instance: enables ``__contains__``:
 BlockChars = BlockChars_()
 
 
@@ -279,8 +280,8 @@ class ScreenCommands:
         """Inner print method
 
         Args:
-          - *args: strings to be joined by "sep" and printed
-          - sep: Separator to join *args
+          - \*args: strings to be joined by "sep" and printed
+          - sep: Separator to join \*args
           - end: Sequence to print at end
           - flush: Whether to flush stdin file at end, defaults to ``True``
           - count: Retry counter - used to calculate delays on retries, or raise
@@ -309,11 +310,12 @@ class ScreenCommands:
 
     def CSI(self, *args):
         """Writes a CSI command to the terminal
+
         Args:
-          - *args: Sequence of parameters to the command, including the last
+          - \*args: Sequence of parameters to the command, including the last
               one that should be a letter specifying the command
 
-        Just a fancy way to print the ANSI "CSI" (Control Sequence Introducer" commands
+        Just a fancy way to print the ANSI "CSI" (Control Sequence Introducer") commands
         These are commads stated with the "<ESC>[" sequence.
 
         Check https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_sequences for available commands
@@ -326,7 +328,7 @@ class ScreenCommands:
         """Writes a SGR command (Select Graphic Rendition)
 
         Args:
-          - *args: Sequence of parameters to the SGR command,
+          - \*args: Sequence of parameters to the SGR command,
 
         This function calls .CSI with the command fixed as "m"
           which is "SGR".
@@ -523,6 +525,7 @@ class JournalingScreenCommands(ScreenCommands):
         are recorded so far. The journal is not touched and
         can be further used inside the same context.
         """
+        xxx.append(self.journal)
         last_color = last_bg = None
         last_pos = None
         buffer = ""
@@ -651,6 +654,7 @@ class Drawing:
 
     def rect(self, pos1, pos2=(), *, rel=(), fill=False, erase=False):
         """Draws a rectangle
+
         Args:
           - pos1 (2-tuple): top-left coordinates
           - pos2 (2-tuple): bottom-right coodinates. If not given, pass "rel" instead
@@ -798,8 +802,8 @@ class Drawing:
           - color_map (Optional mapping): palette mapping chracters in shape to a color
           - erase (bool): if True white-spaces are erased, instead of being ignored. Default is False.
 
-        Any character but space (\x20) or "." is considered a block.
-        Shape can be a "\n" separated string or a list of strings.
+        Any character but space (\\x20) or "." is considered a block.
+        Shape can be a "\\n" separated string or a list of strings.
         If a color_map is not given, any non-space character is
         set with the context color. Otherwise, color_map
         should be a mapping from characters to RGB colors
@@ -1007,7 +1011,7 @@ class Screen:
         Context foreground, background and direction are reset.
 
         In default operation, commands to clear the actual terminal and hide the cursor
-        is also issued - the ``.clear_screen` attribute controls that if `.clear` is being
+        is also issued - the ``.clear_screen`` attribute controls that if ``.clear`` is being
         called as part of entering the screen context.
 
         """
@@ -1224,6 +1228,20 @@ def main():
                 scr.high.draw.blit((x, y), shape2, color_map=c_map)
 
             time.sleep(1/30)
+
+
+def main():
+    global xxx
+    xxx = []
+    with Screen() as scr:
+        scr.context.color = 1.0, 0, 0
+        scr.high.draw.rect((5, 5), (30, 20))
+        scr.context.color = 1.0, 0, 1.0
+        scr.high.print_at((5, 22), "Example Red Square")
+
+        pause()
+    print(xxx)
+
 
 if __name__ == "__main__":
     #testkeys()
