@@ -5,7 +5,7 @@ from setuptools import setup
 setup(
     name = 'terminedia',
     py_modules = ["terminedia"],
-    version = "0.2.1",
+    version = "0.3.dev0",
     license = "LGPLv3+",
     author = "João S. O. Bueno",
     author_email = "gwidion@gmail.com",
