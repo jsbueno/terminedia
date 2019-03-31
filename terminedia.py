@@ -96,6 +96,12 @@ def inkey(break_=True):
         keycode += c
     return keycode
 
+def pause():
+    """Enters non-blocking keyboard mode and waits for any keypress"""
+    with realtime_keyb():
+        time.sleep(1/30)
+        while not inkey():
+            time.sleep(1/30)
 
 def _testkeys():
     """Debug function to print out keycodes as read by inkey()"""
