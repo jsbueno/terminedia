@@ -22,7 +22,6 @@ as little dependencies as possible.
 ![Graph plot output example](examples/screenshot_02.png)
 
 
-
 Compatibility
 --------------
 
