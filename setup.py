@@ -11,11 +11,15 @@ setup(
     author_email = "gwidion@gmail.com",
     description = "Utilities for drawing and interactiveness at the terminal",
     keywords = "terminal cmd posix xterm ANSI color",
-    url = 'https://github.com/jsbueno/terminedia',
-    long_description = open('README.md').read(),
+    url = "https://github.com/jsbueno/terminedia",
+    long_description = open("README.md").read(),
     test_requires = [],
+    extras_require = {
+        "doc": ["Sphinx"],
+
+    },
     classifiers = [
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Intended Audience :: System Administrators",
         "Programming Language :: Python :: 3.6",
