@@ -15,7 +15,7 @@ setup(
     project_urls={
         "Documentation": "https://terminedia.readthedocs.io/en/stable/",
         "Source Code": "https://github.com/jsbueno/terminedia",
-    }
+    },
     long_description = open("README.md").read(),
     test_requires = [],
     extras_require = {
