@@ -944,6 +944,7 @@ class HighRes:
         pos = pos[0] // 2, pos[1] // 2
         self.parent.print_at(pos, text)
 
+
 class Screen:
     """Canvas class for terminal drawing.
 
@@ -953,17 +954,17 @@ class Screen:
     Use this as a context manager inside which the screen is active;
 
     For drawing primitives using full-block chars, use the instance's
-    "screen.draw", which contains a Drawing instance. Drawing context colors
+    :any:`Screen.draw`, which contains a :any:`Drawing` instance. Terminal context colors
     and other attributes can be set in a thread-safe way on the
-    "screen.context" namespace.
+    ``screen.context`` namespace.
 
     To draw and position characters using 1/4 character high resolution,
-    use the attributes and methods available at "screen.high".
-    (High resolution drawing methods are available at "screen.high.draw")
+    use the attributes and methods available at :any:`Screen.high`.
+    (High resolution drawing methods are available at ``screen.high.draw``)
 
     Besides the available methods and associated instances, screen contents
-    can be set and read by using the Screen instance as a 2-dimensional mapping:
-    ``screen[10, 10] = "A"`` will set the character on that position.
+    can be set and read by using the Screen instance as a 2-dimensional mapping.
+    For example, ``screen[10, 10] = "A"`` will set the character on that position.
 
     Args:
       - size (optional 2-sequence): Screen size in blocks. If not given, terminal size is queried automatically.
@@ -1000,6 +1001,10 @@ class Screen:
         self.draw = Drawing(self.set_at, self.reset_at, self.get_size, self.context)
         self.width, self.height = self.size = size
 
+        #: Namespace to allow high-resolution drawing using a :any:`HighRes` instance
+        #: One should either use the public methods in HighRes or the methods on the
+        #: :any:`Drawing` instance at ``Screen.high.draw`` to do 1/4 block pixel
+        #: manipulation.
         self.high = HighRes(self)
 
         #: Namespace for low-level Terminal commands, an instance of :any:`JournalingScreenCommands`.
@@ -1154,10 +1159,10 @@ class Screen:
 
 
 class Context:
-    """Context manager for screen context attributes (Pun not intended)
+    """Context manager for :any:`Screen` context attributes (Pun not intended)
 
     Args:
-      - screen (Screen): The screen whre to operate
+      - screen (Screen): The screen where to operate
 
     Kwargs:
       should contain desired temporary attributes:
@@ -1170,6 +1175,7 @@ class Context:
     callee's expected drawing context. Otherwise one would have to manually save and restore
     the context colors for each operation.  When entering this context, the original screen context
     is returned - changes made to it will be reverted when exiting.
+
     """
     SENTINEL = object()
 
