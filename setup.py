@@ -15,7 +15,7 @@ setup(
     long_description = open("README.md").read(),
     test_requires = [],
     extras_require = {
-        "doc": ["Sphinx"],
+        "doc": ["Sphinx==2.0.0"],
 
     },
     classifiers = [
