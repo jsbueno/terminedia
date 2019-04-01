@@ -605,6 +605,47 @@ class JournalingScreenCommands(ScreenCommands):
         self.current_background = color
 
 
+class V2(tuple):
+    """2-component Vector class to ease drawing
+
+    Works as a 2-sequence, but offers "x" and "y" properties to the coordinates
+    as well as basic operations like sum, multiplication by scalar, subtraction
+    and vector length
+    """
+
+    def __new__(cls, x=0, y=0):
+        """Accepts two coordinates as two parameters for x and y"""
+        if hasattr(x, "__len__"):
+            x, y = x
+        return super().__new__(cls, (x, y))
+
+    x = property(lambda self: self[0])
+    y = property(lambda self: self[1])
+
+    def __add__(self, other):
+        """Adds both components of a V2 or other 2-sequence"""
+        return self.__class__(self[0] + other[0], self[1] + other[1])
+
+    def __sub__(self, other):
+        """Subtracts both components of a V2 or other 2-sequence"""
+        return self.__class__(self[0] - other[0], self[1] - other[1])
+
+    def __mul__(self, other):
+        """multiplies a V2 by an scalar"""
+        return self.__class__(self[0] * other, self[1] * other)
+
+    def __abs__(self):
+        """Returns Vector length
+           Returns:
+             - (float): Euclidian length of vector
+
+        """
+        return (self.x ** 2 + self.y ** 2) ** 0.5
+
+    def __repr__(self):
+        return f"V2({self.x}, {self.y})"
+
+
 class Drawing:
     """Drawing and rendering API
 
@@ -697,18 +738,6 @@ class Drawing:
             self.line(pos1, (x1, y2))
             self.line((x2, y1), pos2)
 
-    def vsize(self, x, y):
-        """Returns Vector length
-
-           Args:
-             - x (number): length on coordinate x
-             - y (number): length on coordinate y
-
-           Returns:
-             - (float): Euclidian length of vector
-
-        """
-        return (x ** 2 + y ** 2) ** 0.5
 
     def _link_prev(self, pos, i, limits, mask):
         if i < limits[0] - 1:
@@ -759,9 +788,9 @@ class Drawing:
         for y in range(y1, y2 + 1):
             sin_y = abs(y - cy) / r2
             az = asin(sin_y)
-            r_y = self.vsize(r2 * sin_y, r1 * cos(az))
+            r_y = abs(V2(r2 * sin_y, r1 * cos(az)))
             for i, x in enumerate(range(x1, x2 + 1)):
-                d = self.vsize(x - cx, y - cy)
+                d = abs(V2(x - cx, y - cy))
 
                 if d <= r_y:
                     self.set((x, y))
@@ -804,6 +833,26 @@ class Drawing:
 
             self.set((x, y))
             ox, oy = x, y
+
+    def bezier(self, pos1, pos2, pos3, pos4):
+        """WIP: Draws a bezier curve given the control points
+
+        Args:
+            pos1 (2-sequence): Fist control point
+            pos2 (2-sequence): Second control point
+            pos3 (2-sequence): Third control point
+            pos4 (2-sequence): Fourth control point
+        """
+        x, y = pos1
+        t = 0
+        step = 1 / ()
+        self.set((x, y))
+        ox, oy = x, y
+        while t <= 1.0:
+
+
+            self.set((x, y))
+            t += step
 
 
     def blit(self, pos, shape, color_map=None, erase=False):
@@ -1279,6 +1328,12 @@ def main():
                 scr.high.draw.blit((x, y), shape2, color_map=c_map)
 
             time.sleep(1/30)
+
+def main_():
+    with Screen() as scr:
+        scr.high.draw.bezier(
+            (0,0), (0, 40), (60, 40), (60, 0)
+        )
 
 
 if __name__ == "__main__":
