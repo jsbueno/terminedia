@@ -609,8 +609,17 @@ class V2(tuple):
     """2-component Vector class to ease drawing
 
     Works as a 2-sequence, but offers "x" and "y" properties to the coordinates
-    as well as basic operations like sum, multiplication by scalar, subtraction
-    and vector length
+    as well as basic operations. As V2 inherits from Python's tuple, it is imutable
+    and can be used as dictionary keys, among other common sequence operations.
+
+    Args:
+      x (number or 2-sequence): 1st vector coordinate or 2-sequence with coordinates
+      y (number): 2nd vector coordinate. Ignored if x is a sequence
+    Suported ops:
+      - + (``__add__``): Adds both components of 2 vectors
+      - - (``__sub__``): Subtracts both components of 2 vectors.
+      - * (``__mul__``): Multiplies vector components by a scalar
+      - abs (``__abs__``): Returns vector length
     """
 
     def __new__(cls, x=0, y=0):
@@ -834,8 +843,9 @@ class Drawing:
             self.set((x, y))
             ox, oy = x, y
 
+
     def bezier(self, pos1, pos2, pos3, pos4):
-        """WIP: Draws a bezier curve given the control points
+        """Draws a bezier curve given the control points
 
         Args:
             pos1 (2-sequence): Fist control point
@@ -843,15 +853,22 @@ class Drawing:
             pos3 (2-sequence): Third control point
             pos4 (2-sequence): Fourth control point
         """
+        pos1 = V2(pos1)
+        pos2 = V2(pos2)
+        pos3 = V2(pos3)
+        pos4 = V2(pos4)
         x, y = pos1
+
         t = 0
-        step = 1 / ()
+        step = 1 / (abs(pos4-pos3) + abs(pos3 - pos2) + abs(pos2- pos1))
         self.set((x, y))
         ox, oy = x, y
         while t <= 1.0:
 
+            x, y = pos1 * (1 - t) ** 3 + pos2 * 3 * (1 - t) ** 2 * t + pos3 * 3 * (1 - t) * t ** 2 + pos4 * t ** 3
 
-            self.set((x, y))
+
+            self.set((round(x), round(y)))
             t += step
 
 
@@ -1329,11 +1346,6 @@ def main():
 
             time.sleep(1/30)
 
-def main_():
-    with Screen() as scr:
-        scr.high.draw.bezier(
-            (0,0), (0, 40), (60, 40), (60, 0)
-        )
 
 
 if __name__ == "__main__":
