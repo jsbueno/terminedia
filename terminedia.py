@@ -6,10 +6,15 @@ Drawing primitives that operate with block chars are provided, as well as
 non-blocking keyboard reading.
 """
 
-import fcntl, os, sys, termios
+import array
+import fcntl
+import os
+import sys
+import termios
 import threading
 import time
 
+from collections import defaultdict
 from contextlib import contextmanager
 from enum import Enum
 from functools import lru_cache
@@ -128,6 +133,8 @@ def _testkeys():
 DEFAULT_FG = 0xffff
 #: Constant used as color to mean the default terminal background
 DEFAULT_BG = 0xfffe
+#: Constant used as color to mean keep the current context colors
+CONTEXT_COLORS = 0xfffd
 
 
 class Directions(Enum):
@@ -867,12 +874,11 @@ class Drawing:
 
             x, y = pos1 * (1 - t) ** 3 + pos2 * 3 * (1 - t) ** 2 * t + pos3 * 3 * (1 - t) * t ** 2 + pos4 * t ** 3
 
-
             self.set((round(x), round(y)))
             t += step
 
 
-    def blit(self, pos, shape, color_map=None, erase=False):
+    def blit(self, pos, data, color_map=None, erase=False):
         """Blits a blocky image in the associated screen at POS
 
         Args:
@@ -893,19 +899,29 @@ class Drawing:
         and linters are set to remove trailing spaces)
 
         """
-        if isinstance(shape, str):
-            shape = shape.split("\n")
-        last_color = self.context.color
-        for y, line in enumerate(shape, start=pos[1]):
-            for x, char in enumerate(line, start=pos[0]):
-                if char not in " .":
-                    if color_map:
-                        color = color_map[char]
-                        if color != last_color:
-                            self.context.color = last_color = color
-                    self.set((x, y))
-                elif erase:
-                    self.reset((x, y))
+
+        original_color = self.context.color
+        if isinstance(data, (str, list)):
+            shape=PalletedShape(data, color_map)
+        elif isinstance(data, Shape):
+            shape = data
+
+        pos = V2(pos)
+
+        for pixel_pos, character, fg_color, bg_color, text_effects in shape:
+            if isinstance(character, bool):
+                pixel_function = self.set if character else self.reset
+                if not character and not erase:
+                    continue
+            else:
+                pass
+                # TODO
+                # pixel_function =  self.print_at(...)
+            if fg_color == CONTEXT_COLORS:
+                self.context.color = original_color
+            else:
+                self.context.color = fg_color
+            pixel_function(pos + pixel_pos)
 
 
 class HighRes:
@@ -1269,6 +1285,121 @@ class Context:
         for key in dir(self.screen.context):
             if not key.startswith("_") and not key in self.original_values:
                 delattr(self.screen.context, key)
+
+
+class Shape:
+    """'Shape' is intended to represent blocks of colors/backgrounds and characters
+    to be applied in a rectangular area of the terminal. In this sense, it is
+    more complicated than an "Image" that just care about a foreground color
+    and alpha value for each pixel position.
+
+    This is going to be implemented gradually - the first use case
+    is a plain old "image" - the capability of including specific characters
+    instead of blocks of solid color should be available later as
+    subclasses of Shape.
+
+    """
+
+    foreground = False
+    background = False
+    arbitrary_chars = False
+    character_properties = False  # FUTURE: support for bold, blink, underline...
+
+    def __init__(self, data, color_map=None):
+        raise NotImplementedError("This is meant as an abstract Shape class")
+
+    def __getitem__(self, pos):
+        """Values for each pixel are: character, fg_color, bg_color, text_attributes.
+        """
+        raise NotImplementedError("This is meant as an abstract Shape class")
+
+
+    def __setitem__(self, pos, value):
+        """
+
+        Values for each pixel are: character, fg_color, bg_color
+        """
+        raise NotImplementedError("This is meant as an abstract Shape class")
+
+    def __iter__(self):
+        """Iterates over all pixels in Shape
+
+
+        For each pixel in the image, returns its position,
+        its value, the foreground color, background color, and character_effects byte
+        """
+        for x in range(self.width):
+            for y in range(self.height):
+                pos = V2(x, y)
+                yield (pos, *self[pos])
+
+
+class PalletedShape(Shape):
+    """'Shape' class intended to represent images, using a color-map to map characters to block colors.
+
+    Args:
+      - data (multiline string or list of strings): character map to be used as pixels
+      - color_map (optional mapping): maps characters to RGB colors.
+    This class have no special per pixel values for background or character - each
+    block position will read as "False" or "True" depending only on the
+    underlying character in the input data being space (0x20) or any other thing.
+    """
+
+    foreground = True
+    background = False
+    arbitrary_chars = False
+    character_properties = False  # FUTURE: support for bold, blink, underline...
+
+    def __init__(self, data, color_map=None):
+        if isinstance(data, (str, list)):
+            self.load_paletted(data, color_map)
+            return
+        raise NotImplementedError(f"Can't load shape from {type(data).__name__}")
+
+    def load_paletted(self, data, color_map):
+        if isinstance(data, str):
+            data = data.split("\n")
+        self.width = max(len(line) for line in data)
+        self.height = len(data)
+        self.color_map = color_map
+        self.data = [" "] * self.width * self.height
+
+        for y, line in enumerate(data):
+            for x in range(self.width):
+                char = line[x] if x < len(line) else " "
+                # For string-based shapes, '.' is considered
+                # as whitespace - this allows multiline
+                # strings defining shapes that otherwise would
+                # be distorted by program editor trailing space removal.
+                if char == ".":
+                    char = " "
+                self[x, y] = char
+
+
+    def get_raw(self, pos):
+        return self.data[pos[1] * self.width + pos[0]]
+
+
+    def __getitem__(self, pos):
+        """Values for each pixel are: character, fg_color, bg_color, text_attributes.
+        """
+        char = self.get_raw(pos)
+        if self.color_map:
+            color = self.color_map.get(char, DEFAULT_FG)
+        else:
+            color = DEFAULT_FG
+        if not self.arbitrary_chars:
+            char = True if char != " " else False
+        return char, color, None, None
+
+    def __setitem__(self, pos, value):
+        """
+        Values set for each pixel are: character - only spaces (0x20) or "non-spaces" are
+        taken into account for PalletedShape
+        """
+        self.data[pos[1] * self.width + pos[0]] = value
+
+
 
 
 shape1 = """\
