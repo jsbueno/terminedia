@@ -14,7 +14,7 @@ import termios
 import threading
 import time
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from contextlib import contextmanager
 from enum import Enum
 from functools import lru_cache
@@ -887,16 +887,11 @@ class Drawing:
           - color_map (Optional mapping): palette mapping chracters in shape to a color
           - erase (bool): if True white-spaces are erased, instead of being ignored. Default is False.
 
-        Any character but space (\\x20) or "." is considered a block.
-        Shape can be a "\\n" separated string or a list of strings.
-        If a color_map is not given, any non-space character is
-        set with the context color. Otherwise, color_map
-        should be a mapping from characters to RGB colors
-        for each block.
-
-        ("." is allowed as white-space to allow drawing shapes
-        inside Python multi-line strings when editors
-        and linters are set to remove trailing spaces)
+        Shapes return specialized Pixel classes when iterated upon -
+        what is set on the screen depends on the Pixel returned.
+        As of version 0.3dev, PalletedShape returns a pixel
+        that has a True or False value and a foreground color (or no color) -
+        support for other Pixel capabilities is not yet implemented.
 
         """
 
@@ -908,19 +903,20 @@ class Drawing:
 
         pos = V2(pos)
 
-        for pixel_pos, character, fg_color, bg_color, text_effects in shape:
-            if isinstance(character, bool):
-                pixel_function = self.set if character else self.reset
-                if not character and not erase:
+        for pixel_pos, pixel in shape:
+            if pixel.capabilities.value_type == bool:
+                pixel_function = self.set if pixel.value else self.reset
+                if not pixel.value and not erase:
                     continue
             else:
                 pass
                 # TODO
                 # pixel_function =  self.print_at(...)
-            if fg_color == CONTEXT_COLORS:
-                self.context.color = original_color
-            else:
-                self.context.color = fg_color
+            if pixel.capabilities.has_foreground:
+                if pixel.foreground == CONTEXT_COLORS:
+                    self.context.color = original_color
+                else:
+                    self.context.color = pixel.foreground
             pixel_function(pos + pixel_pos)
 
 
@@ -1287,6 +1283,76 @@ class Context:
                 delattr(self.screen.context, key)
 
 
+#class Color:
+    #__slots__ = "r", "g", "b", "alpha"
+    #def __init__(self, r, g=None, b=None, alpha=1.0):
+        #self.r = r
+        #self.g = g
+        #self.b = b
+        #self.alpha = alpha
+
+    #def __repr__(self):
+        #if self.g is None:
+            #return f"Color(self.r)"
+        #return f"Color(self.r, self.g, self.b, self.alpha"
+
+
+PixelClasses = {}
+
+pixel_capabilities = namedtuple("pixel_capabilities", "value_type has_foreground has_background has_text_attributes")
+
+def pixel_factory(value_type=str, has_foreground=True, has_background=False, has_text_effects=False):
+    """Returns a custom pixel class with specified capabilities
+
+    Args:
+        value_type(str or bool): Data type returned by the pixel
+        has_foreground (bool): Whether pixel has a foreground color
+        has_background (bool): Whether pixel has a background color
+        has_text_effects (bool): Whether pixel has text-attribute flags
+    """
+
+    capabilities = pixel_capabilities(value_type, has_foreground, has_background, has_text_effects)
+    if capabilities in PixelClasses:
+        Pixel = PixelClasses[capabilities]
+    else:
+        pixel_tuple = namedtuple(
+            "PixelBase",
+            (
+                ("value", ) +
+                (("foreground", ) if has_foreground else () ) +
+                (("background", ) if has_background else () ) +
+                (("text_effects", ) if has_text_effects else () )
+            ),
+        )
+
+        def __repr__(self):
+            return "Pixel({})".format(", ".join(
+                f"{field}={getattr(self, field)}" for field in pixel_tuple._fields
+            ))
+
+        Pixel = type(
+            "Pixel",
+            (pixel_tuple,),
+            {
+                "capabilities": capabilities,
+                "__repr__": __repr__,
+                "__slots__": (),
+            }
+        )
+
+
+        @property
+        def value(self):
+            value = super(Pixel, self).value
+            return (value not in (" .")) if value_type is bool and isinstance(value, str) else value_type(value)
+
+        Pixel.value = value
+
+        PixelClasses[capabilities] = Pixel
+
+    return Pixel
+
+
 class Shape:
     """'Shape' is intended to represent blocks of colors/backgrounds and characters
     to be applied in a rectangular area of the terminal. In this sense, it is
@@ -1331,7 +1397,7 @@ class Shape:
         for x in range(self.width):
             for y in range(self.height):
                 pos = V2(x, y)
-                yield (pos, *self[pos])
+                yield (pos, self[pos])
 
 
 class PalletedShape(Shape):
@@ -1348,8 +1414,9 @@ class PalletedShape(Shape):
     foreground = True
     background = False
     arbitrary_chars = False
-    character_properties = False  # FUTURE: support for bold, blink, underline...
+    text_effects = False  # FUTURE: support for bold, blink, underline...
 
+    PixelCls = pixel_factory(bool, has_foreground=True)
     def __init__(self, data, color_map=None):
         if isinstance(data, (str, list)):
             self.load_paletted(data, color_map)
@@ -1362,6 +1429,8 @@ class PalletedShape(Shape):
         self.width = max(len(line) for line in data)
         self.height = len(data)
         self.color_map = color_map
+        if not color_map:
+            self.PixelCls = pixel_factory(bool, has_foreground=False)
         self.data = [" "] * self.width * self.height
 
         for y, line in enumerate(data):
@@ -1385,12 +1454,11 @@ class PalletedShape(Shape):
         """
         char = self.get_raw(pos)
         if self.color_map:
-            color = self.color_map.get(char, DEFAULT_FG)
+            foreground_arg = (self.color_map.get(char, DEFAULT_FG),)
         else:
-            color = DEFAULT_FG
-        if not self.arbitrary_chars:
-            char = True if char != " " else False
-        return char, color, None, None
+            foreground_arg = ()
+
+        return self.PixelCls(char, *foreground_arg)
 
     def __setitem__(self, pos, value):
         """
