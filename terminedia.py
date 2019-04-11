@@ -19,6 +19,7 @@ from contextlib import contextmanager
 from enum import Enum
 from functools import lru_cache
 from math import ceil
+from pathlib import Path
 
 
 __version__ = "0.3.dev0"
@@ -883,7 +884,7 @@ class Drawing:
 
         Args:
           - pos (2-tuple): top-left corner of the image
-          - shape (string, list): multi-line string or list of strings with shape to be drawn
+          - shape (Shape/string/list): Shape object or multi-line string or list of strings with shape to be drawn
           - color_map (Optional mapping): palette mapping chracters in shape to a color
           - erase (bool): if True white-spaces are erased, instead of being ignored. Default is False.
 
@@ -1309,6 +1310,10 @@ def pixel_factory(value_type=str, has_foreground=True, has_background=False, has
         has_foreground (bool): Whether pixel has a foreground color
         has_background (bool): Whether pixel has a background color
         has_text_effects (bool): Whether pixel has text-attribute flags
+
+    Created pixel classes or instances are not intended to be directly manipulated -
+    instead, they are just a way to convey information from internal images/shapes
+    to methods that will draw then.
     """
 
     capabilities = pixel_capabilities(value_type, has_foreground, has_background, has_text_effects)
@@ -1366,13 +1371,19 @@ class Shape:
 
     """
 
-    foreground = False
-    background = False
-    arbitrary_chars = False
-    character_properties = False  # FUTURE: support for bold, blink, underline...
+    # this data is to be found into the PixelCls.capabilities
 
+    #foreground = False
+    #background = False
+    #arbitrary_chars = False
+    #character_properties = False  # FUTURE: support for bold, blink, underline...
+
+    PixelCls = pixel_factory(bool)
     def __init__(self, data, color_map=None):
         raise NotImplementedError("This is meant as an abstract Shape class")
+
+    def get_raw(self, pos):
+        return self.data[pos[1] * self.width + pos[0]]
 
     def __getitem__(self, pos):
         """Values for each pixel are: character, fg_color, bg_color, text_attributes.
@@ -1399,6 +1410,87 @@ class Shape:
                 pos = V2(x, y)
                 yield (pos, self[pos])
 
+class ValueShape(Shape):
+
+    PixelCls = pixel_factory(bool, has_foreground=True)
+    def __init__(self, data, color_map=None):
+
+        if isinstance(data, (Path, str)) or hasattr(data, "read"):
+            self.load_file(data)
+            return
+        raise NotImplementedError(f"Can't load shape from {type(data).__name__}")
+
+    def load_file(self, file_or_path):
+        if not hasattr(file_or_path, "read"):
+            file = open(file_or_path, "rb")
+        else:
+            file = file_or_path
+        raw_data = file.read()
+        if raw_data[0] == ord(b"P") and raw_data[2] in b"\r\n":
+            return self._decode_pnm(raw_data)
+        # TODO: support other file formats with the optional install of Pillow
+        raise NotImplementedError("File format not supported")
+
+
+    def _decode_pnm(self, data):
+        headers = []
+        header_counter = 0
+        offset = 0
+        while True:
+            line_end = data.find(b"\n", offset)
+            line = data[offset: line_end + 1]
+            offset = line_end + 1
+            if line.strip().startswith(b"#"):
+                continue
+            headers.append(line.strip())
+            header_counter += 1
+            if header_counter == 3:
+                break
+        type_, size, max_value = headers
+
+        size=V2(*map(int, size.split()))
+        max_value = int(max_value)
+
+        self.width, self.height = size
+
+        if type_[1] != ord(b"2"):  # ASCII encoding, monochronme file
+            raise NotImplementedError("File not supported")
+
+        # grayscale or rgb pnm files - this depends on the type indicator
+        # on the magic number. TODO: check the exact values:
+        values_per_pixel = 1
+        ascii = True
+
+        data = data[offset:]
+        if ascii:
+            data = [int(v) for v in data.split()]
+        if len(data) != size.x * size.y * values_per_pixel:
+            sys.stderr.write("Warning: malformed PNM file. Trying to continue anyway\n")
+
+        data = [value / max_value for value in data]
+        if values_per_pixel == 1:
+            data = [(value, value, value) for value in data]
+        else:
+            data = [tuple(data[i: i + 3]) for i in range(0, len(data), 3)]
+        self.data = data
+
+
+    def __getitem__(self, pos):
+        """Composes a Pixel object for the given coordinates.
+        """
+        color = self.get_raw(pos)
+
+        return self.PixelCls(True, color)
+
+
+    def __setitem__(self, pos, value):
+        """
+        Values set for each pixel are 3-sequences with an RGB color value
+        """
+        self.data[pos[1] * self.width + pos[0]] = value
+
+
+
 
 class PalletedShape(Shape):
     """'Shape' class intended to represent images, using a color-map to map characters to block colors.
@@ -1417,9 +1509,13 @@ class PalletedShape(Shape):
     text_effects = False  # FUTURE: support for bold, blink, underline...
 
     PixelCls = pixel_factory(bool, has_foreground=True)
+
     def __init__(self, data, color_map=None):
         if isinstance(data, (str, list)):
             self.load_paletted(data, color_map)
+            return
+        elif isinstance(data, Path) or hasattr(data, "read"):
+            self.load_file(data)
             return
         raise NotImplementedError(f"Can't load shape from {type(data).__name__}")
 
@@ -1468,6 +1564,16 @@ class PalletedShape(Shape):
         self.data[pos[1] * self.width + pos[0]] = value
 
 
+def shape(data, color_map=None):
+    if isinstance(data, str) and not "\n" in data or isinstance(data, Path) or hasattr(data, "read"):
+        cls = ValueShape
+    elif isinstance(data, (list, str)):
+        cls = PalletedShape
+    elif isinstance(data, Shape):
+        return data
+    else:
+        raise NotImplementedError("Could not pick a Shape class for given arguments!")
+    return cls(data, color_map)
 
 
 shape1 = """\
