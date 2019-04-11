@@ -2,11 +2,14 @@ from terminedia import shape, Screen, pause
 
 from pathlib import Path
 
+basepath = Path(__file__).parent
 
-img = shape(Path(__file__).parent / "moon_ascii_bw.pgm")
 
 with Screen() as scr:
-    scr.draw.blit((0,0), img)
-    pause()
+    for img_name in "moon_ascii_bw.pgm", "moon_bin_color.pnm":
+        img = shape(basepath / img_name)
+        scr.draw.blit((0,0), img)
+        pause()
+        scr.clear()
 
 

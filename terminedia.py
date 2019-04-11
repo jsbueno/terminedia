@@ -1453,13 +1453,15 @@ class ValueShape(Shape):
 
         self.width, self.height = size
 
-        if type_[1] != ord(b"2"):  # ASCII encoding, monochronme file
-            raise NotImplementedError("File not supported")
+        type_num = int(type_[1:2])
+        if type_num == 2:
+            # ASCII encoding, monochronme file
+            ascii, values_per_pixel = True, 1
+        elif type_num == 6:
+            ascii, values_per_pixel = False, 3
 
-        # grayscale or rgb pnm files - this depends on the type indicator
-        # on the magic number. TODO: check the exact values:
-        values_per_pixel = 1
-        ascii = True
+        else:
+            raise NotImplementedError("File not supported")
 
         data = data[offset:]
         if ascii:
