@@ -1410,9 +1410,11 @@ class Shape:
                 pos = V2(x, y)
                 yield (pos, self[pos])
 
+
 class ValueShape(Shape):
 
     PixelCls = pixel_factory(bool, has_foreground=True)
+
     def __init__(self, data, color_map=None):
 
         if isinstance(data, (Path, str)) or hasattr(data, "read"):
@@ -1457,6 +1459,8 @@ class ValueShape(Shape):
         if type_num == 2:
             # ASCII encoding, monochronme file
             ascii, values_per_pixel = True, 1
+        elif type_num == 3:
+            ascii, values_per_pixel = True, 3
         elif type_num == 6:
             ascii, values_per_pixel = False, 3
 
