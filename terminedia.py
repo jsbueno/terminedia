@@ -1461,11 +1461,12 @@ class ValueShape(Shape):
             ascii, values_per_pixel = True, 1
         elif type_num == 3:
             ascii, values_per_pixel = True, 3
+        elif type_num == 5:
+            ascii, values_per_pixel = False, 1
         elif type_num == 6:
             ascii, values_per_pixel = False, 3
-
         else:
-            raise NotImplementedError("File not supported")
+            raise NotImplementedError(f"File not supported. PNM with magic number: {type_.decode!r}")
 
         data = data[offset:]
         if ascii:
