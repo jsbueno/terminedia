@@ -40,7 +40,7 @@ def main(shape, high=False):
     factor = 1
     if shape == shape2:
         size_ = 21, 12
-    with realtime_keyb(), Screen() as scr:
+    with realtime_keyb(), Screen(clear_screen=False) as scr:
         parent_scr = scr
         if high:
             scr = scr.high

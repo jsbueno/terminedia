@@ -22,6 +22,12 @@ from math import ceil
 from pathlib import Path
 
 
+try:
+    from PIL import Image as PilImage
+except ImportError:
+    PilImage = None
+
+
 __version__ = "0.3.dev0"
 __author__ = "João S. O. Bueno"
 
@@ -1101,7 +1107,8 @@ class Screen:
         """Leaves the screen context and reset terminal colors."""
         if self.clear_screen:
             self.commands.clear()
-            self.commands.cursor_show()
+            self.commands.moveto((0,0))
+        self.commands.cursor_show()
         self.commands.reset_colors()
 
     def clear(self, wet_run=True):
@@ -1128,10 +1135,10 @@ class Screen:
         self.__class__.last_color = None
         # To use when we allow custom chars along with blocks:
         # self.char_data = " " * self.width * self.height
-        if wet_run:
-            with self.lock:
+        with self.lock:
+            if wet_run:
                 self.commands.clear()
-                self.commands.cursor_hide()
+            self.commands.cursor_hide()
 
     def set_at(self, pos, color=None):
         """Sets pixel at given coordinate

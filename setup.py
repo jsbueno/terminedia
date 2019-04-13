@@ -18,6 +18,10 @@ setup(
     },
     long_description = open("README.md").read(),
     test_requires = [],
+    install_requires=[
+        "colorama >= 1.0;platform_system==\"Windows\""
+
+    ]
     extras_require = {
         "doc": ["Sphinx==2.0.0"],
 
