@@ -23,9 +23,9 @@ from pathlib import Path
 
 
 try:
-    from PIL import Image as PilImage
+    from PIL import Image as PILImage
 except ImportError:
-    PilImage = None
+    PILImage = None
 
 
 __version__ = "0.3.dev0"
@@ -665,6 +665,10 @@ class V2(tuple):
         """
         return (self.x ** 2 + self.y ** 2) ** 0.5
 
+    @property
+    def as_int(self):
+        return self.__class__(int(self.x), int(self.y))
+
     def __repr__(self):
         return f"V2({self.x}, {self.y})"
 
@@ -955,7 +959,7 @@ class HighRes:
     def get_size(self):
         """Returns the width and height available at high-resolution based on parent's Screen size"""
         w, h = self.parent.get_size()
-        return w * 2, h * 2
+        return V2(w * 2, h * 2)
 
     def operate(self, pos, operation):
         """Internal -
@@ -1071,10 +1075,10 @@ class Screen:
         if not size:
             #: Set in runtime to a method to retrieve the screen width, height.
             #: The class is **not** aware of terminal resizings while running, though.
-            self.get_size = os.get_terminal_size
-            size = os.get_terminal_size()
+            self.get_size = lambda: V2(os.get_terminal_size())
+            size = self.get_size()
         else:
-            self.get_size = lambda: size
+            self.get_size = lambda: V2(size)
 
         #: Namespace to configure drawing and printing color and other parameters.
         #: Currently, the attributes that are used from here are
@@ -1422,12 +1426,37 @@ class ValueShape(Shape):
 
     PixelCls = pixel_factory(bool, has_foreground=True)
 
-    def __init__(self, data, color_map=None):
+    def __init__(self, data, color_map=None, **kwargs):
 
+        self.kwargs = kwargs
         if isinstance(data, (Path, str)) or hasattr(data, "read"):
             self.load_file(data)
             return
         raise NotImplementedError(f"Can't load shape from {type(data).__name__}")
+
+    def load_file(self, file_or_path):
+        raise NotImplementedError()
+
+
+    def __getitem__(self, pos):
+        """Composes a Pixel object for the given coordinates.
+        """
+        color = self.get_raw(pos)
+
+        return self.PixelCls(True, color)
+
+
+    def __setitem__(self, pos, value):
+        """
+        Values set for each pixel are 3-sequences with an RGB color value
+        """
+        self.data[pos[1] * self.width + pos[0]] = value
+
+
+class PGMShape(ValueShape):
+
+    PixelCls = pixel_factory(bool, has_foreground=True)
+
 
     def load_file(self, file_or_path):
         if not hasattr(file_or_path, "read"):
@@ -1437,8 +1466,7 @@ class ValueShape(Shape):
         raw_data = file.read()
         if raw_data[0] == ord(b"P") and raw_data[2] in b"\r\n":
             return self._decode_pnm(raw_data)
-        # TODO: support other file formats with the optional install of Pillow
-        raise NotImplementedError("File format not supported")
+        raise NotImplementedError("File format not supported. Try installing 'Pillow' ")
 
 
     def _decode_pnm(self, data):
@@ -1489,21 +1517,48 @@ class ValueShape(Shape):
         self.data = data
 
 
-    def __getitem__(self, pos):
-        """Composes a Pixel object for the given coordinates.
-        """
-        color = self.get_raw(pos)
+class ImageShape(ValueShape):
 
-        return self.PixelCls(True, color)
+    PixelCls = pixel_factory(bool, has_foreground=True)
 
+
+    def load_file(self, file_or_path):
+        if isinstance(file_or_path, PILImage.Image):
+            img = file_or_path
+        else:
+            img = PILImage.open(file_or_path)
+        if self.kwargs.get("scale_to_fit", True):
+            scr = self.kwargs.get("screen", None)
+            pixel_ratio = self.kwargs.get("pixel_ratio", 2)
+
+            size = V2(scr.get_size() if scr else (80, 12))
+            img_size = V2(img.width, img.height)
+            if size.x < img_size.x or size.y < img_size.y:
+                ratio_x = size.x / img_size.x
+                ratio_y = (size.y / img_size.y) * pixel_ratio
+                if ratio_x > ratio_y:
+                    size = V2(size.x, img_size.y * ratio_x / pixel_ratio)
+                else:
+                    size = V2(img_size * ratio_y, size.y / pixel_ratio)
+
+                img = img.resize(size.as_int, PILImage.BICUBIC)
+
+        self.width, self.height = img.width, img.height
+
+        if img.mode == "RGB":
+            self.data = img
+        else:
+            # TODO: Alpha, Palleted and Grayscale Support
+            raise NotImplementedError()
+
+    def get_raw(self, pos):
+        return self.data.getpixel(pos)
 
     def __setitem__(self, pos, value):
         """
         Values set for each pixel are 3-sequences with an RGB color value
         """
-        self.data[pos[1] * self.width + pos[0]] = value
-
-
+        self.data.putpixel(value)
 
 
 class PalletedShape(Shape):
@@ -1578,16 +1633,22 @@ class PalletedShape(Shape):
         self.data[pos[1] * self.width + pos[0]] = value
 
 
-def shape(data, color_map=None):
+def shape(data, color_map=None, **kwargs):
     if isinstance(data, str) and not "\n" in data or isinstance(data, Path) or hasattr(data, "read"):
-        cls = ValueShape
+        name = Path(data)
+        if not PILImage or name.suffix.strip(".").lower() in "pnm ppm pgm":
+            cls = PGMShape
+        else:
+            cls = ImageShape
+    elif PILImage and isinstance(data, PILImage.Image):
+        cls = ImageShape
     elif isinstance(data, (list, str)):
         cls = PalletedShape
     elif isinstance(data, Shape):
         return data
     else:
         raise NotImplementedError("Could not pick a Shape class for given arguments!")
-    return cls(data, color_map)
+    return cls(data, color_map, **kwargs)
 
 
 shape1 = """\
