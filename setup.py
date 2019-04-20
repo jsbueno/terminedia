@@ -21,10 +21,9 @@ setup(
     install_requires=[
         "colorama >= 1.0;platform_system==\"Windows\""
 
-    ]
+    ],
     extras_require = {
         "doc": ["Sphinx==2.0.0"],
-
     },
     classifiers = [
         "Development Status :: 4 - Beta",
