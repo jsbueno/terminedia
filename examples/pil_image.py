@@ -7,7 +7,7 @@ basepath = Path(__file__).parent
 
 phrase = "TERMINEDIA EXAMPLE"
 with Screen() as scr:
-    for img_name in "butterfly.jpg", :# "butterfly.pgm", "butterfly.ppm":
+    for img_name in "butterfly.jpg", "butterfly_bw.tiff":
         img = shape(basepath / img_name)
         scr.draw.blit((0,0), img)
         scr.context.color = 1, 0, 0

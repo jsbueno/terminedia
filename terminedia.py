@@ -1527,7 +1527,7 @@ class ImageShape(ValueShape):
             img = file_or_path
         else:
             img = PILImage.open(file_or_path)
-        if self.kwargs.get("scale_to_fit", True):
+        if self.kwargs.get("auto_scale", True):
             scr = self.kwargs.get("screen", None)
             pixel_ratio = self.kwargs.get("pixel_ratio", 2)
 
@@ -1545,11 +1545,12 @@ class ImageShape(ValueShape):
 
         self.width, self.height = img.width, img.height
 
-        if img.mode == "RGB":
-            self.data = img
-        else:
-            # TODO: Alpha, Palleted and Grayscale Support
-            raise NotImplementedError()
+        if img.mode in ("L", "P"):
+            img = img.convert("RGB")
+        elif img.mode in ("LA", "PA"):
+            img = img.convert("RGBA")
+        self.data = img
+
 
     def get_raw(self, pos):
         return self.data.getpixel(pos)
