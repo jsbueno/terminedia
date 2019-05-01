@@ -900,7 +900,7 @@ class Drawing:
 
         Shapes return specialized Pixel classes when iterated upon -
         what is set on the screen depends on the Pixel returned.
-        As of version 0.3dev, PalletedShape returns a pixel
+        As of version 0.3dev, Shape class returns a pixel
         that has a True or False value and a foreground color (or no color) -
         support for other Pixel capabilities is not yet implemented.
 
@@ -1457,7 +1457,6 @@ class PGMShape(ValueShape):
 
     PixelCls = pixel_factory(bool, has_foreground=True)
 
-
     def load_file(self, file_or_path):
         if not hasattr(file_or_path, "read"):
             file = open(file_or_path, "rb")
@@ -1545,7 +1544,7 @@ class ImageShape(ValueShape):
 
         self.width, self.height = img.width, img.height
 
-        if img.mode in ("L", "P"):
+        if img.mode in ("L", "P", "I"):
             img = img.convert("RGB")
         elif img.mode in ("LA", "PA"):
             img = img.convert("RGBA")
@@ -1733,3 +1732,13 @@ if __name__ == "__main__":
     #testkeys()
     main()
 
+# Future chars to acomodate in extended drawing modes:
+"""
+U+25E2	◢	e2 97 a2	BLACK LOWER RIGHT TRIANGLE
+U+25E3	◣	e2 97 a3	BLACK LOWER LEFT TRIANGLE
+U+25E4	◤	e2 97 a4	BLACK UPPER LEFT TRIANGLE
+U+25E5	◥	e2 97 a5	BLACK UPPER RIGHT TRIANGLE
+"""
+
+a = "  ◢◣◤◥"
+a = "◢◣◤◥"

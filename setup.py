@@ -24,6 +24,7 @@ setup(
     ],
     extras_require = {
         "doc": ["Sphinx==2.0.0"],
+        "images": ["pillow>=6.0.0"]
     },
     classifiers = [
         "Development Status :: 4 - Beta",
