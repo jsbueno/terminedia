@@ -1429,6 +1429,10 @@ class ValueShape(Shape):
     def __init__(self, data, color_map=None, **kwargs):
 
         self.kwargs = kwargs
+        # TODO: make color_map work as a to-pixel pallete infornmation
+        # to L or I images - not only providing a color palette,
+        # but also enabbling an "palette color to character" mapping.
+        self.color_map = color_map
         if isinstance(data, (Path, str)) or hasattr(data, "read"):
             self.load_file(data)
             return
@@ -1634,8 +1638,33 @@ class PalletedShape(Shape):
 
 
 def shape(data, color_map=None, **kwargs):
+
+
+    """Factory for shape objects
+
+    Args:
+      - data (Filepath to image, open file, image data as text or list of strings)
+      - color_map (optional mapping): color map to be used for the image - mapping characters to RGB colors.
+      - **kwargs: parameters passed transparently to the selected shape class
+
+    Based on inferences on the data attribute, selects
+    the appropriate Shape subclass to handle the "data" attribute
+    as a pattern to be blitted on Screen instances. That is:
+    given a string without newlines, it is interpreted as a
+    filepath, and if PIL is installd, an RGB "ImageShape"
+    class is used to read the image data. If text with "\n"
+    is passed in, an PalletedShape is used to directly use
+    the passed data as pixels.
+
+    Returns an instance of the selected class with the data set.
+
+
+    """
     if isinstance(data, str) and not "\n" in data or isinstance(data, Path) or hasattr(data, "read"):
-        name = Path(data)
+        if hasattr(data, "read"):
+            name = Path(getattr(data, "name", "stream"))
+        else:
+            name = Path(data)
         if not PILImage or name.suffix.strip(".").lower() in "pnm ppm pgm":
             cls = PGMShape
         else:

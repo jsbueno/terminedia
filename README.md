@@ -39,6 +39,7 @@ on ANSI scape sequences for all terminal manipulation. It should work
 in most Linux and Mac OS terminal applications (including non-X11,
 "native" terminals on Linux)
 
+
 License
 --------
 Terminedia is licensed under GNU's LGPL 3.0 or later, meaning you
