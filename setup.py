@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name = 'terminedia',
-    py_modules = ["terminedia"],
+    packages = ["terminedia"],
     version = "0.3.dev0",
     license = "LGPLv3+",
     author = "João S. O. Bueno",
