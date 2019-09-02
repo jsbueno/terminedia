@@ -1,7 +1,11 @@
+import click
+
 from terminedia import Screen, pause
 
-
+@click.command()
 def main():
+    """Drawing API example for plotting a Bezier-curve
+    """
     with Screen() as scr:
         scr.high.draw.bezier(
             (0,0), (0, 40), (100, 40), (100, 10)

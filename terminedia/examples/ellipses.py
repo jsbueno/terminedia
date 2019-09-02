@@ -1,5 +1,7 @@
 import time
 
+import click
+
 from terminedia import Screen, realtime_keyb, inkey
 
 def test_ellipses(scr):
@@ -22,8 +24,10 @@ def test_ellipses(scr):
                     scr.high.draw.ellipse((x, y), (x + random.randrange(10, 40),  y + random.randrange(5, 20)))
                     inkey()
 
-
+@click.command()
 def main():
+    """Example and benchmark tests for the drawing API using ellipses
+    """
     with realtime_keyb(), Screen() as scr:
         test_ellipses(scr)
         while True:

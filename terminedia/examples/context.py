@@ -1,6 +1,8 @@
 import threading
-
 import time
+
+import click
+
 from terminedia import Context, inkey, realtime_keyb, Screen
 
 
@@ -18,8 +20,10 @@ def worker(scr, base_x, base_color, num_workers):
     time.sleep(1 / num_workers)
     scr.draw.line((base_x, 12), (base_x + 20, 12))
 
-
+@click.command()
 def main():
+    """Example and test for multi-threaded terminal output
+    """
     with realtime_keyb(), Screen() as scr:
 
         scr.context.color = 1, 1, 1

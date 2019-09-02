@@ -30,7 +30,14 @@ setup(
     },
     entry_points = """
         [console_scripts]
+        terminedia-bezier=terminedia.examples.bezier:main
+        terminedia-context=terminedia.examples.context:main
+        terminedia-ellipses=terminedia.examples.ellipses:main
+        terminedia-image=terminedia.examples.image:main
+        terminedia-lines=terminedia.examples.lines:main
+        terminedia-plot=terminedia.examples.plot:main
         terminedia-shapes=terminedia.examples.shapes:main
+        terminedia-snake=terminedia.examples.snake:main
     """,
     classifiers = [
         "Development Status :: 4 - Beta",

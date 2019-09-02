@@ -1,9 +1,8 @@
 import time
-from terminedia import Screen, realtime_keyb, inkey
 
+import click
 
-def f(x):
-    return 2 * x ** 3 + 3 * x**2 - x + 1
+from terminedia import Screen, realtime_keyb, inkey, pause
 
 
 def arange(start, stop = None, step = 1):
@@ -14,7 +13,10 @@ def arange(start, stop = None, step = 1):
         start += step
 
 
-def test_plot(scr, domain=(-2, 2)):
+def test_plot(scr, func, domain=(-2, 2)):
+
+    f = eval(f"lambda x: -({func})")
+
     w, h = scr.high.get_size()
     scr.context.color = 1, 1, 1
 
@@ -47,18 +49,18 @@ def test_plot(scr, domain=(-2, 2)):
 
         scr.print_at ((w // 4 + 1, y // 2), f"{y_tick:0.02f}")
 
-    scr.print_at((w // 2 - 33, 0), "f(x) = 2 * x³ + 3 * x² - x + 1")
+    scr.print_at((w // 2 - 33, 0), f"f(x) = {func.replace('**3', '³').replace('**2', '²')}")
 
 
-
-def main():
-    with realtime_keyb(), Screen() as scr:
-        test_plot(scr)
-        while True:
-            if inkey() == '\x1b':
-                break
-            time.sleep(1/30)
-
+@click.command()
+@click.option("--func", type=str, help=
+              "Function to draw. It should be given as a Python expression using 'x' as a variable.")
+def main(func=None, domain=(-2, 2)):
+    if func is None:
+        func = "2 * x**3 + 3 * x**2 - x + 1"
+    with Screen() as scr:
+        test_plot(scr, func, domain)
+        pause()
 
 if __name__ == "__main__":
     main()

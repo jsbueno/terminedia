@@ -1,3 +1,5 @@
+import click
+
 from terminedia import Screen, realtime_keyb, inkey
 
 def test_lines(scr):
@@ -6,8 +8,10 @@ def test_lines(scr):
     for y in range(0, h, 5):
         scr.draw.line((0, y), (y * 2, h - 1))
 
-
+@click.command()
 def main():
+    """Example for drawing straight lines with the API, using the 1/4 block resolution.
+    """
     with realtime_keyb(), Screen() as scr:
         test_lines(scr.high)
         while True:

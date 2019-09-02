@@ -1,6 +1,8 @@
 import random
 import time
 
+import click
+
 import terminedia
 
 K = terminedia.KeyCodes
@@ -53,7 +55,9 @@ class Snake:
             self.remove[:] = []
 
 
+@click.command()
 def main():
+    """Terminedia snake-game!"""
 
     snake = Snake((2, 2), direction=D.RIGHT)
 
