@@ -17,6 +17,8 @@ setup(
         "Source Code": "https://github.com/jsbueno/terminedia",
     },
     long_description = open("README.md").read(),
+    use_scm_version=True,
+    setup_requires=['setuptools_scm'],
     test_requires = [],
     install_requires=[
         "click",
