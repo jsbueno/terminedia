@@ -1,9 +1,14 @@
 import binascii
 from terminedia import Screen, pause
+from importlib import resources
+
+
+font_registry = {}
 
 
 
-def makechars(lines, initial, last, ch1=" ", ch2="#"):
+
+def makechars(fontname=None, initial=0, last=256, ch1=" ", ch2="#"):
     chars = {}
 
     for i, line in enumerate(lines[initial:last], initial):
@@ -14,6 +19,8 @@ def makechars(lines, initial, last, ch1=" ", ch2="#"):
         chars[chr(i)] = char
 
     return chars
+
+
 
 def main():
     chars = makechars(data, 32, 128)

@@ -19,13 +19,17 @@ setup(
     long_description = open("README.md").read(),
     test_requires = [],
     install_requires=[
-        "colorama >= 1.0;platform_system==\"Windows\""
-
+        "click",
+        "colorama >= 1.0;platform_system==\"Windows\"",
     ],
     extras_require = {
         "doc": ["Sphinx==2.0.0"],
         "images": ["pillow>=6.0.0"]
     },
+    entry_points = """
+        [console_scripts]
+        terminedia-shapes=terminedia.examples.shapes:main
+    """,
     classifiers = [
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

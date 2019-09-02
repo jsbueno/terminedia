@@ -1,4 +1,7 @@
 import time
+
+import click
+
 from terminedia import Screen, realtime_keyb, inkey, DEFAULT_FG
 from terminedia import KeyCodes as K
 
@@ -35,11 +38,31 @@ c_map = {
     '%': (1, 0.7, 0),
 }
 
+
+@click.command()
+@click.option("shape", "--shape1", flag_value=shape1, default=True, help="Default small ship")
+@click.option("shape", "--shape2", flag_value=shape2, help="Large ship, using colors")
+@click.option("shape", "--custom", type=str, help="""
+              Custom shape. Use '*' to set a pixel, '\\n' for a new-line.
+              Pad all sides with spaces for best results
+              """)
+@click.option("high", "--high", flag_value=True, help="Use high-resolution 1/4 block pixels")
 def main(shape, high=False):
-    size_ = 13, 7
+    """Quick example to navigate an string-defined shape through
+    the terminal using the arrow keys! Press <ESC> to exit.
+
+
+    Usage example:
+    $ terminedia-shapes --custom="     \\n *** \\n * * \\n *** "
+
+    """
+    if "\\n" in shape:
+        shape = shape.replace("\\n", "\n")
+    size_ =  shape.count("\n"), (shape.find("\n") if "\n" in shape else 1)
+    #size_ = 13, 7
     factor = 1
-    if shape == shape2:
-        size_ = 21, 12
+    #if shape == shape2:
+    #    size_ = 21, 12
     with realtime_keyb(), Screen(clear_screen=False) as scr:
         parent_scr = scr
         if high:
