@@ -2,7 +2,7 @@ import time
 import sys
 from functools import lru_cache
 
-from terminedia.constants import DEFAULT_BG, DEFAULT_FG
+from terminedia.values import DEFAULT_BG, DEFAULT_FG
 
 
 class ScreenCommands:
