@@ -57,7 +57,7 @@ def test_plot(scr, func, domain=(-2, 2)):
               "Function to draw. It should be given as a Python expression using 'x' as a variable.")
 def main(func=None, domain=(-2, 2)):
     if func is None:
-        func = "2 * x**3 + 3 * x**2 - x + 1"
+        func = "-2 * x**3 - 3 * x**2 + x - 1"
     with Screen() as scr:
         test_plot(scr, func, domain)
         pause()
