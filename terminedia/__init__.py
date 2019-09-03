@@ -21,6 +21,7 @@ from math import ceil
 from pathlib import Path
 
 from terminedia.keyboard import realtime_keyb, inkey, pause, KeyCodes
+from terminedia.utils import V2, mirror_dict, Directions
 
 try:
     from PIL import Image as PILImage
@@ -39,27 +40,6 @@ DEFAULT_FG = 0xffff
 DEFAULT_BG = 0xfffe
 #: Constant used as color to mean keep the current context colors
 CONTEXT_COLORS = 0xfffd
-
-
-class Directions(Enum):
-    """Direction vector constants.
-
-    These are used directly as text-printing direction on
-    a :any:`Screen` context, but can be used by other applications as
-    well.
-    """
-    UP = (0, -1)
-    RIGHT = (1, 0)
-    DOWN = (0, 1)
-    LEFT = (-1, 0)
-
-
-def _mirror_dict(dct):
-    """Creates a new dictionary exchanging values for keys
-    Args:
-      - dct (mapping): Dictionary to be inverted
-    """
-    return {value: key for key, value in dct.items()}
 
 
 class BlockChars_:
@@ -96,9 +76,9 @@ class BlockChars_:
 
     # This depends on Python 3.6+ ordered behavior for local namespaces and dicts:
     block_chars_by_name = {key: value for key, value in locals().items() if key.isupper()}
-    block_chars_to_name = _mirror_dict(block_chars_by_name)
+    block_chars_to_name = mirror_dict(block_chars_by_name)
     blocks_in_order = {i: value for i, value in enumerate(block_chars_by_name.values())}
-    block_to_order = _mirror_dict(blocks_in_order)
+    block_to_order = mirror_dict(blocks_in_order)
 
     def __contains__(self, char):
         """True if a char is a "pixel representing" block char"""
@@ -479,59 +459,6 @@ class JournalingScreenCommands(ScreenCommands):
             super().set_bg_color(color)
         self.current_background = color
 
-
-class V2(tuple):
-    """2-component Vector class to ease drawing
-
-    Works as a 2-sequence, but offers "x" and "y" properties to the coordinates
-    as well as basic operations. As V2 inherits from Python's tuple, it is imutable
-    and can be used as dictionary keys, among other common sequence operations.
-
-    Args:
-      x (number or 2-sequence): 1st vector coordinate or 2-sequence with coordinates
-      y (number): 2nd vector coordinate. Ignored if x is a sequence
-    Suported ops:
-      - + (``__add__``): Adds both components of 2 vectors
-      - - (``__sub__``): Subtracts both components of 2 vectors.
-      - * (``__mul__``): Multiplies vector components by a scalar
-      - abs (``__abs__``): Returns vector length
-    """
-
-    def __new__(cls, x=0, y=0):
-        """Accepts two coordinates as two parameters for x and y"""
-        if hasattr(x, "__len__"):
-            x, y = x
-        return super().__new__(cls, (x, y))
-
-    x = property(lambda self: self[0])
-    y = property(lambda self: self[1])
-
-    def __add__(self, other):
-        """Adds both components of a V2 or other 2-sequence"""
-        return self.__class__(self[0] + other[0], self[1] + other[1])
-
-    def __sub__(self, other):
-        """Subtracts both components of a V2 or other 2-sequence"""
-        return self.__class__(self[0] - other[0], self[1] - other[1])
-
-    def __mul__(self, other):
-        """multiplies a V2 by an scalar"""
-        return self.__class__(self[0] * other, self[1] * other)
-
-    def __abs__(self):
-        """Returns Vector length
-           Returns:
-             - (float): Euclidian length of vector
-
-        """
-        return (self.x ** 2 + self.y ** 2) ** 0.5
-
-    @property
-    def as_int(self):
-        return self.__class__(int(self.x), int(self.y))
-
-    def __repr__(self):
-        return f"V2({self.x}, {self.y})"
 
 
 class Drawing:
