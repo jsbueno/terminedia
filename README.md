@@ -24,11 +24,27 @@ as little dependencies as possible.
 Documentation
 --------------
 
-Check full documentation at:
+Check the full documentation at:
     https://terminedia.readthedocs.io/en/stable/
 
 Also, the ``examples`` folder have concrete snippets and
-some stress-testing code.
+some stress-testing code. Prior to version 0.3, the examples
+were moved into the main package code, and granted stand-alone
+scripts status when the package is pip-installed.
+
+After install, try calling any of the `"terminedia-"` scripts
+made available to check the output.
+
+Although incipient in options, some of these example
+scripts can work as command line tools. For example
+`terminedia-image <image_file>` will downscale and display
+an image file in the terminal.
+
+Note that the default pip install won't bring PIL, which results in
+limited image support - use `pip install terminedia[images]`,
+or simply install PIL directly with `pip install pillow`,
+to be able to load arbitrary image files.
+
 
 
 Compatibility
