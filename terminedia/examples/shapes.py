@@ -56,9 +56,12 @@ def main(shape, high=False):
     $ terminedia-shapes --custom="     \\n *** \\n * * \\n *** "
 
     """
+    # Work around apparent bug in click:
+    if shape is None:
+        shape = shape1
     if "\\n" in shape:
         shape = shape.replace("\\n", "\n")
-    size_ =  shape.count("\n"), (shape.find("\n") if "\n" in shape else 1)
+    size_ =   (shape.find("\n") if "\n" in shape else 1), shape.count("\n")
     #size_ = 13, 7
     factor = 1
     #if shape == shape2:
