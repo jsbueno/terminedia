@@ -100,3 +100,14 @@ class BlockChars_:
 
 #: :any:`BlockChars_` single instance: enables ``__contains__``:
 BlockChars = BlockChars_()
+
+# Future chars to acomodate in extended drawing modes:
+"""
+U+25E2	◢	e2 97 a2	BLACK LOWER RIGHT TRIANGLE
+U+25E3	◣	e2 97 a3	BLACK LOWER LEFT TRIANGLE
+U+25E4	◤	e2 97 a4	BLACK UPPER LEFT TRIANGLE
+U+25E5	◥	e2 97 a5	BLACK UPPER RIGHT TRIANGLE
+"""
+
+a = "  ◢◣◤◥"
+a = "◢◣◤◥"
