@@ -1,5 +1,6 @@
 import sys
 from collections import namedtuple
+from inspect import signature
 from pathlib import Path
 
 from terminedia.utils import V2
@@ -96,6 +97,31 @@ class Shape:
     def __init__(self, data, color_map=None):
         raise NotImplementedError("This is meant as an abstract Shape class")
 
+    _data_func = staticmethod(lambda size: [" " * size.x] * size.y)
+
+    @classmethod
+    def new(cls, size, **kwargs):
+        """Creates an empty shape of this class.
+
+        Args:
+          - size (2-sequence): width x height of the new shape
+          - **kwargs: keyword arguments either to the class empty-data builder
+                     (cls._data_func) - e.g. "color" - or for the
+                     class' __init__  - e.g. color_map.
+
+        Creates a new empty shape, using given size and keyword parameters,
+        which are dispatched as appropriate to build the empty pixel
+        values or to the class itself.
+        """
+        data_parameters = signature(cls._data_func).parameters.keys()
+        data_kw = {}
+        for name, value in list(kwargs.items()):
+            if name in data_parameters:
+                data_kw[name] = value
+                kwargs.pop(name)
+        data = cls._data_func(V2(size), **data_kw)
+        return cls(data, **kwargs)
+
     def get_raw(self, pos):
         return self.data[pos[1] * self.width + pos[0]]
 
@@ -128,6 +154,9 @@ class ValueShape(Shape):
 
     PixelCls = pixel_factory(bool, has_foreground=True)
 
+    _data_func = staticmethod(lambda size, color=(0,0,0): [color] * size.x * size.y)
+    _allowed_types = (Path, str)
+
     def __init__(self, data, color_map=None, **kwargs):
 
         self.kwargs = kwargs
@@ -135,7 +164,7 @@ class ValueShape(Shape):
         # to L or I images - not only providing a color palette,
         # but also enabbling an "palette color to character" mapping.
         self.color_map = color_map
-        if isinstance(data, (Path, str)) or hasattr(data, "read"):
+        if isinstance(data, self._allowed_types) or hasattr(data, "read"):
             self.load_file(data)
             return
         raise NotImplementedError(f"Can't load shape from {type(data).__name__}")
@@ -223,6 +252,10 @@ class ImageShape(ValueShape):
 
     PixelCls = pixel_factory(bool, has_foreground=True)
 
+    _data_func = staticmethod(lambda size, mode="RGB", color=(0, 0, 0): PILImage.new(mode, size, color=color))
+    if PILImage:
+        _allowed_types = (str, Path, PILImage.Image)
+
     def load_file(self, file_or_path):
         if isinstance(file_or_path, PILImage.Image):
             img = file_or_path
@@ -259,7 +292,7 @@ class ImageShape(ValueShape):
         """
         Values set for each pixel are 3-sequences with an RGB color value
         """
-        self.data.putpixel(value)
+        self.data.putpixel(pos, value)
 
 
 class PalletedShape(Shape):
@@ -295,7 +328,7 @@ class PalletedShape(Shape):
         self.width = max(len(line) for line in data)
         self.height = len(data)
         self.color_map = color_map
-        if not color_map:
+        if color_map is None:
             self.PixelCls = pixel_factory(bool, has_foreground=False)
         self.data = [" "] * self.width * self.height
 

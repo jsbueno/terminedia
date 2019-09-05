@@ -215,7 +215,7 @@ class Drawing:
         """Blits a blocky image in the associated screen at POS
 
         Args:
-          - pos (2-tuple): top-left corner of the image
+          - pos (2-sequence): top-left corner of the image
           - shape (Shape/string/list): Shape object or multi-line string or list of strings with shape to be drawn
           - color_map (Optional mapping): palette mapping chracters in shape to a color
           - erase (bool): if True white-spaces are erased, instead of being ignored. Default is False.

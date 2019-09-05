@@ -1,17 +1,15 @@
 import binascii
-from terminedia import Screen, pause
+from terminedia.screen import Screen
+from terminedia.image import Shape
 from importlib import resources
 
 
 font_registry = {}
 
-
-
-
 def makechars(fontname=None, initial=0, last=256, ch1=" ", ch2="#"):
     chars = {}
 
-    for i, line in enumerate(lines[initial:last], initial):
+    for i, line in enumerate(data[initial:last], initial):
         line = line.split(":")[1].strip()
         line = binascii.unhexlify(line)
         char  = "\n".join(f"{bin(v).split('b')[1]}".zfill(8)  for v in line)
@@ -21,6 +19,10 @@ def makechars(fontname=None, initial=0, last=256, ch1=" ", ch2="#"):
     return chars
 
 
+def render(text, font=None, shape_class=None):
+
+
+from terminedia.keyboard import pause
 
 def main():
     chars = makechars(data, 32, 128)
@@ -31,10 +33,8 @@ def main():
             scr.high.draw.blit((x + chsize * i, y), chars[letter])
         pause()
 
-
-
 if __name__ == "__main__":
-    data = open("unscii-8.hex").readlines()
+    data = open("data/unscii-8.hex").readlines()
     main()
 
 
