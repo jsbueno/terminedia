@@ -2,9 +2,9 @@ import os
 import threading
 from math import ceil
 
-from terminedia.utils import V2, Directions
+from terminedia.utils import V2
 from terminedia.terminal import JournalingScreenCommands
-from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG
+from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, Directions
 from terminedia.drawing import Drawing, HighRes
 
 

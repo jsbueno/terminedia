@@ -1,3 +1,5 @@
+from enum import Enum
+
 from terminedia.utils import mirror_dict
 
 
@@ -8,6 +10,19 @@ DEFAULT_FG = 0xffff
 DEFAULT_BG = 0xfffe
 #: Constant used as color to mean keep the current context colors
 CONTEXT_COLORS = 0xfffd
+
+
+class Directions(Enum):
+    """Direction vector constants.
+
+    These are used directly as text-printing direction on
+    a :any:`Screen` context, but can be used by other applications as
+    well.
+    """
+    UP = (0, -1)
+    RIGHT = (1, 0)
+    DOWN = (0, 1)
+    LEFT = (-1, 0)
 
 
 class BlockChars_:

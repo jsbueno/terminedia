@@ -1,10 +1,11 @@
 import sys
+import threading
 from collections import namedtuple
 from inspect import signature
 from pathlib import Path
 
 from terminedia.utils import V2
-from terminedia.values import DEFAULT_FG
+from terminedia.values import DEFAULT_FG, DEFAULT_BG, Directions
 
 
 try:
@@ -96,6 +97,18 @@ class Shape:
 
     def __init__(self, data, color_map=None):
         raise NotImplementedError("This is meant as an abstract Shape class")
+
+    @property
+    def context(self):
+        if not "context" in self.__dict__:
+            context = self.__dict__["context"] = threading.local()
+            context.color = DEFAULT_FG
+            context.background = DEFAULT_BG
+            context.direction = Directions.RIGHT
+
+        return self.__dict__["context"]
+
+
 
     _data_func = staticmethod(lambda size: [" " * size.x] * size.y)
 
@@ -290,7 +303,7 @@ class ImageShape(ValueShape):
 
     def __setitem__(self, pos, value):
         """
-        Values set for each pixel are 3-sequences with an RGB color value
+        Values set for each pixel are treated by PIL.
         """
         self.data.putpixel(pos, value)
 

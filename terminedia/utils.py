@@ -1,19 +1,3 @@
-from enum import Enum
-
-
-class Directions(Enum):
-    """Direction vector constants.
-
-    These are used directly as text-printing direction on
-    a :any:`Screen` context, but can be used by other applications as
-    well.
-    """
-    UP = (0, -1)
-    RIGHT = (1, 0)
-    DOWN = (0, 1)
-    LEFT = (-1, 0)
-
-
 def mirror_dict(dct):
     """Creates a new dictionary exchanging values for keys
     Args:
