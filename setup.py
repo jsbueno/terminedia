@@ -26,7 +26,8 @@ setup(
     ],
     extras_require = {
         "doc": ["Sphinx==2.0.0"],
-        "images": ["pillow>=6.0.0"]
+        "images": ["pillow>=6.0.0"],
+        "tests": ["pytest"]
     },
     entry_points = """
         [console_scripts]
