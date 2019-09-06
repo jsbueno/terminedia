@@ -1,6 +1,8 @@
+import logging
 import sys
 import threading
 from collections import namedtuple
+from collections.abc import Sequence
 from inspect import signature
 from pathlib import Path
 
@@ -8,6 +10,7 @@ from terminedia.drawing import Drawing
 from terminedia.utils import V2
 from terminedia.values import DEFAULT_FG, DEFAULT_BG, Directions
 
+logger = logging.getLogger(__name__)
 
 try:
     from PIL import Image as PILImage
@@ -147,6 +150,40 @@ class Shape:
         data = cls._data_func(V2(size), **data_kw)
         return cls(data, **kwargs)
 
+    def load_data(self, data, size=None):
+        """Sets internal data from an initial value structure.
+        Args:
+          - data: data structure containing the elements
+                  that will be set to inicial pixel values.
+                  Can be a single sequence width x height
+                  in size containing all elements
+                  to be assigned as pixels, or a
+                  height-sized sequence of width-sized sequences.
+          - size (V2-like): width x height.
+
+        Used to explictly set the initial values for a shape,
+        will usually be called internally as part of the
+        Shape initialization. If size is not given, and
+        the passed data is 1D in nature, sie is assumed to
+        be a single colum (1xN) shape. Strings are split
+        at "\n" and will be treated as 2D if multiline.
+        """
+        if isinstance(data, str):
+            data = data.split("\n")
+        if not size:
+            size = V2(len(data[0]), len(data))
+        self.width = w = size[0]
+        self.height = h = size[1]
+
+        if len(data) == w * h:
+            self.data = list(data)
+        else:
+            if len(data) != h:
+                logger.warn("Passed size is inconsistent with data shape. Proceeding anyway")
+            self.data = []
+            for line in data:
+                self.data.extend(list(line))
+
     def get_raw(self, pos):
         return self.data[pos[1] * self.width + pos[0]]
 
@@ -173,15 +210,16 @@ class Shape:
                 pos = V2(x, y)
                 yield (pos, self[pos])
 
+from collections.abc import Sequence
 
 class ValueShape(Shape):
 
     PixelCls = pixel_factory(bool, has_foreground=True)
 
-    _data_func = staticmethod(lambda size, color=(0,0,0): [color] * size.x * size.y)
-    _allowed_types = (Path, str)
+    _data_func = staticmethod(lambda size, color=(0,0,0): [[color] * size.x] * size.y)
+    _allowed_types = (Path, str, Sequence)
 
-    def __init__(self, data, color_map=None, **kwargs):
+    def __init__(self, data, color_map=None, size=None, **kwargs):
 
         self.kwargs = kwargs
         # TODO: make color_map work as a to-pixel pallete infornmation
@@ -189,12 +227,9 @@ class ValueShape(Shape):
         # but also enabbling an "palette color to character" mapping.
         self.color_map = color_map
         if isinstance(data, self._allowed_types) or hasattr(data, "read"):
-            self.load_file(data)
+            self.load_data(data, size)
             return
         raise NotImplementedError(f"Can't load shape from {type(data).__name__}")
-
-    def load_file(self, file_or_path):
-        raise NotImplementedError()
 
     def __getitem__(self, pos):
         """Composes a Pixel object for the given coordinates.
@@ -213,8 +248,12 @@ class ValueShape(Shape):
 class PGMShape(ValueShape):
 
     PixelCls = pixel_factory(bool, has_foreground=True)
+    _allowed_types = (Path, str)
 
-    def load_file(self, file_or_path):
+    def load_data(self, file_or_path, size=None):
+        """Will load data from a PGM/PPM file.
+        Size parameter is ignored
+        """
         if not hasattr(file_or_path, "read"):
             file = open(file_or_path, "rb")
         else:
@@ -280,7 +319,10 @@ class ImageShape(ValueShape):
     if PILImage:
         _allowed_types = (str, Path, PILImage.Image)
 
-    def load_file(self, file_or_path):
+    def load_data(self, file_or_path, size=None):
+        """Will load data from an image file.
+        Size parameter is ignored
+        """
         if isinstance(file_or_path, PILImage.Image):
             img = file_or_path
         else:
@@ -347,25 +389,25 @@ class PalletedShape(Shape):
         raise NotImplementedError(f"Can't load shape from {type(data).__name__}")
 
     def load_paletted(self, data, color_map):
-        if isinstance(data, str):
-            data = data.split("\n")
-        self.width = max(len(line) for line in data)
-        self.height = len(data)
         self.color_map = color_map
+
         if color_map is None:
             self.PixelCls = pixel_factory(bool, has_foreground=False)
-        self.data = [" "] * self.width * self.height
 
-        for y, line in enumerate(data):
-            for x in range(self.width):
-                char = line[x] if x < len(line) else " "
-                # For string-based shapes, '.' is considered
-                # as whitespace - this allows multiline
-                # strings defining shapes that otherwise would
-                # be distorted by program editor trailing space removal.
-                if char == ".":
-                    char = " "
-                self[x, y] = char
+        if isinstance(data, str):
+            data = data.split("\n")
+        width = max(len(line) for line in data)
+        height = len(data)
+
+        new_data = []
+        for line in data:
+            # For string-based shapes, '.' is considered
+            # as whitespace - this allows multiline
+            # strings defining shapes that otherwise would
+            # be distorted by program editor trailing space removal.
+            new_data.append(f"{{line:<{width}s}}".format(line=line).replace(".", " "))
+
+        self.load_data(new_data, V2(width, height))
 
     def get_raw(self, pos):
         return self.data[pos[1] * self.width + pos[0]]
