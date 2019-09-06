@@ -1,4 +1,3 @@
-from terminedia.image import Shape, PalletedShape
 from terminedia.values import BlockChars, CONTEXT_COLORS
 from terminedia.utils import V2
 
@@ -28,8 +27,12 @@ class Drawing:
         """
         self.set = set_fn
         self.reset = reset_fn
-        self.size = property(size_fn)
+        self._size = size_fn
         self.context = context
+
+    @property
+    def size(self):
+        return self._size()
 
     def line(self, pos1, pos2, erase=False):
         """Draws a straight line connecting both coordinates.
@@ -227,12 +230,15 @@ class Drawing:
         support for other Pixel capabilities is not yet implemented.
 
         """
+        from terminedia.image import Shape, PalletedShape
 
         original_color = self.context.color
         if isinstance(data, (str, list)):
             shape = PalletedShape(data, color_map)
         elif isinstance(data, Shape):
             shape = data
+        else:
+            raise TypeError(f"Unknown data argument passed to blit: {type(data)} instance")
 
         pos = V2(pos)
 

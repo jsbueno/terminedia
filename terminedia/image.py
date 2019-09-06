@@ -4,6 +4,7 @@ from collections import namedtuple
 from inspect import signature
 from pathlib import Path
 
+from terminedia.drawing import Drawing
 from terminedia.utils import V2
 from terminedia.values import DEFAULT_FG, DEFAULT_BG, Directions
 
@@ -108,9 +109,20 @@ class Shape:
 
         return self.__dict__["context"]
 
+    @property
+    def draw(self):
+        if not "draw" in self.__dict__:
+            self.__dict__["draw"] = self._get_drawing_func()
 
+        return self.__dict__["draw"]
 
     _data_func = staticmethod(lambda size: [" " * size.x] * size.y)
+    _get_drawing_func = lambda self: Drawing(
+        set_fn = lambda pos: self.__setitem__(pos, self.context.color),
+        reset_fn = lambda pos: self.__setitem__(pos, self.context.background),
+        size_fn = lambda : V2(self.width, self.height),
+        context = self.context
+    )
 
     @classmethod
     def new(cls, size, **kwargs):
@@ -152,7 +164,6 @@ class Shape:
 
     def __iter__(self):
         """Iterates over all pixels in Shape
-
 
         For each pixel in the image, returns its position,
         its value, the foreground color, background color, and character_effects byte
