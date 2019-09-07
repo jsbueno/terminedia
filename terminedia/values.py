@@ -1,6 +1,6 @@
 from enum import Enum
 
-from terminedia.utils import mirror_dict
+from terminedia.utils import mirror_dict, V2
 
 
 #: Constant used as color to mean the default terminal foreground
@@ -19,10 +19,10 @@ class Directions(Enum):
     a :any:`Screen` context, but can be used by other applications as
     well.
     """
-    UP = (0, -1)
-    RIGHT = (1, 0)
-    DOWN = (0, 1)
-    LEFT = (-1, 0)
+    UP = V2(0, -1)
+    RIGHT = V2(1, 0)
+    DOWN = V2(0, 1)
+    LEFT = V2(-1, 0)
 
 
 class BlockChars_:

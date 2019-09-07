@@ -115,6 +115,7 @@ class Screen:
         self.context.background = DEFAULT_BG
         self.context.direction = Directions.RIGHT
         self.__class__.last_color = None
+        self.__class__.last_background = None
         # To use when we allow custom chars along with blocks:
         # self.char_data = " " * self.width * self.height
         with self.lock:

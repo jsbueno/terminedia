@@ -213,6 +213,53 @@ class Shape:
                 pos = V2(x, y)
                 yield (pos, self[pos])
 
+    def concat(self, *others, direction=Directions.RIGHT, **kwargs):
+        """Concatenates two given shapes side by side into a larger shape.
+
+        Args:
+          - other (Shape): Other shape to be concatenated.
+          - direction (V2): Side which will be "enlarged" and on which the other shape
+                will be placed. Most usefull values are Directions.RIGHT and Directions.DOWN
+          - **kwargs: are passed down to the "new" constructor of the resulting shape.
+
+        Creates a new shape combining two or more other shapes. If Shape _allowed_types differ,
+        the logic in Drawing.blit will try to cast pixels to the one used in self.
+        """
+        shapes = (self,) + others
+
+        direction = V2(direction)
+
+        h_size = abs(direction.x) * sum(s.width for s in shapes)
+        v_size = abs(direction.y) * sum(s.height for s in shapes)
+        new_size = V2(
+            max(h_size, max(s.width for s in shapes)),
+            max(v_size, max(s.height for s in shapes))
+        )
+
+        new_shape = self.__class__.new(new_size, **kwargs)
+
+        d = direction
+        offset = V2(
+            0 if d.x >= 0 else new_size.x,
+            0 if d.y >= 0 else new_size.y
+        )
+
+        # blit always take the top-left offset corner
+        # so, depending on direction of concatenation,
+        # offset have to be computed before or after blitting.
+        for s in shapes:
+            offset += (
+                int(s.width * d.x if d.x < 0 else 0),
+                int(s.height * d.y if d.y < 0 else 0)
+            )
+            new_shape.draw.blit(offset, s)
+            offset += (
+                int(s.width * d.x if d.x >= 0 else 0),
+                int(s.height * d.y if d.y >= 0 else 0)
+            )
+
+        return new_shape
+
 
 class ValueShape(Shape):
 

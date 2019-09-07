@@ -11,7 +11,7 @@ from terminedia.utils import V2
 from terminedia.terminal import ScreenCommands, JournalingScreenCommands
 from terminedia.values import BlockChars, Directions, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS
 from terminedia.drawing import Drawing, HighRes
-from terminedia.image import shape, Shape, PalettedShape
+from terminedia.image import shape, ValueShape, ImageShape, PalettedShape
 from terminedia.screen import Screen, Context
 
 

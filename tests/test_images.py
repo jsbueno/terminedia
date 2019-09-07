@@ -1,7 +1,7 @@
 import pytest
 import terminedia.image as IMG
-from terminedia.values import DEFAULT_FG
-
+import terminedia as TM
+from terminedia.values import DEFAULT_FG, Directions as D
 
 def test_palettedshape_new_works():
 
@@ -34,3 +34,36 @@ def test_imageshape_new_works():
 def test_shape_context_works():
     a = IMG.PalettedShape("...\n....")
     assert a.context.color == DEFAULT_FG
+
+@pytest.mark.parametrize(
+    "direction, quantity, exp_width, exp_height, exp_data".split(", "), [
+    (D.RIGHT, 1, 6, 3, [255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128]),
+    (D.LEFT, 1, 6, 3, [0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0]),
+    (D.DOWN, 1, 3, 6, [255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128]),
+    (D.UP, 1, 3, 6, [0, 0, 0, 0, 0, 0, 0, 0, 128, 255, 0, 0, 0, 0, 0, 0, 0, 0]),
+    ((1, 1), 1, 6, 6, [255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128]),
+    ((-1, -1), 1, 6, 6, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+    (D.RIGHT, 2, 9, 3, [255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 0, 0, 128]),
+])
+def test_valueshape_concat(direction, quantity, exp_width, exp_height, exp_data, DISPLAY, DELAY):
+    a = IMG.ValueShape.new((3, 3), color=(0,0,0))
+    b = IMG.ValueShape.new((3, 3), color=(0,0,0))
+
+    a[0, 0] = (255,0,0)
+    b[2, 2] = (128, 128, 255)
+    c = a.concat(*((b,) * quantity), direction=direction)
+
+    compare_data = [v[0] for v in c.data]
+
+    if DISPLAY:
+        with TM.Screen(clear_screen=True) as sc:
+            sc.draw.blit((0,0), c)
+            sc.context.color = (128, 128, 255)
+            sc.print_at((0, 11), f"quantity={quantity}, width={c.width}, heigth={c.height}")
+            sc.print_at((0, 10), f"{compare_data!r}")
+            TM.pause(DELAY)
+
+
+    assert c.width == exp_width
+    assert c.height == exp_height
+    assert  compare_data == exp_data

@@ -89,15 +89,22 @@ def inkey(break_=True):
         keycode += c
     return keycode
 
-def pause():
+def pause(timeout=0):
     """Enters non-blocking keyboard mode and waits for any keypress
+    Args:
+      - timeout (float): time in seconds to wait. If 0 (default), waits forever
 
     A non-blocking keyboard context is automatically entered to wait for the keypress.
     """
+    step = 1 / 30
+    ellapsed = step
     with realtime_keyb():
-        time.sleep(1/30)
+        time.sleep(step)
         while not inkey():
-            time.sleep(1/30)
+            time.sleep(step)
+            ellapsed += step
+            if timeout and ellapsed >= timeout:
+                break
 
 def _testkeys():
     """Debug function to print out keycodes as read by :any:`inkey`"""

@@ -25,6 +25,9 @@ class V2(tuple):
 
     def __new__(cls, x=0, y=0):
         """Accepts two coordinates as two parameters for x and y"""
+        # Enable working with values defined in Enums
+        if hasattr(x, "value"):
+            x = x.value
         if hasattr(x, "__len__"):
             x, y = x
         return super().__new__(cls, (x, y))
