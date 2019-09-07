@@ -6,9 +6,8 @@ from collections.abc import Sequence
 from inspect import signature
 from pathlib import Path
 
-from terminedia.drawing import Drawing
 from terminedia.utils import V2
-from terminedia.values import DEFAULT_FG, DEFAULT_BG, Directions
+from terminedia.values import DEFAULT_FG, DEFAULT_BG, Directions, BlockChars
 
 logger = logging.getLogger(__name__)
 
@@ -115,17 +114,21 @@ class Shape:
     @property
     def draw(self):
         if not "draw" in self.__dict__:
-            self.__dict__["draw"] = self._get_drawing_func()
+            self.__dict__["draw"] = self._get_drawing()
 
         return self.__dict__["draw"]
 
+    # For most shape classes, "empty" is whitespace chars:
     _data_func = staticmethod(lambda size: [" " * size.x] * size.y)
-    _get_drawing_func = lambda self: Drawing(
-        set_fn = lambda pos: self.__setitem__(pos, self.context.color),
-        reset_fn = lambda pos: self.__setitem__(pos, self.context.background),
-        size_fn = lambda : V2(self.width, self.height),
-        context = self.context
-    )
+
+    def _get_drawing(self):
+        from terminedia.drawing import Drawing
+        return Drawing(
+            set_fn = lambda pos: self.__setitem__(pos, self.context.color),
+            reset_fn = lambda pos: self.__setitem__(pos, self.context.background),
+            size_fn = lambda : V2(self.width, self.height),
+            context = self.context
+        )
 
     @classmethod
     def new(cls, size, **kwargs):
@@ -210,7 +213,6 @@ class Shape:
                 pos = V2(x, y)
                 yield (pos, self[pos])
 
-from collections.abc import Sequence
 
 class ValueShape(Shape):
 
@@ -386,19 +388,26 @@ class PalettedShape(Shape):
     PixelCls = pixel_factory(bool, has_foreground=True)
 
     def __init__(self, data, color_map=None):
+        if color_map is None:
+            color_map = {
+                " ": DEFAULT_BG,
+                "#": DEFAULT_FG,
+                BlockChars.FULL_BLOCK: DEFAULT_FG
+            }
+        self.color_map = color_map
         if isinstance(data, (str, list)):
-            self.load_paletted(data, color_map)
+            self.load_paletted(data)
             return
         elif isinstance(data, Path) or hasattr(data, "read"):
             self.load_file(data)
             return
         raise NotImplementedError(f"Can't load shape from {type(data).__name__}")
 
-    def load_paletted(self, data, color_map):
-        self.color_map = color_map
+    def load_paletted(self, data):
 
-        if color_map is None:
-            self.PixelCls = pixel_factory(bool, has_foreground=False)
+        # Legacy boolean shape - deservers another, separate, Shape subclass
+        #if color_map is None:
+        #    self.PixelCls = pixel_factory(bool, has_foreground=False)
 
         if isinstance(data, str):
             data = data.split("\n")
@@ -422,12 +431,16 @@ class PalettedShape(Shape):
         """Values for each pixel are: character, fg_color, bg_color, text_attributes.
         """
         char = self.get_raw(pos)
-        if self.color_map:
-            foreground_arg = (self.color_map.get(char, DEFAULT_FG),)
-        else:
-            foreground_arg = ()
 
-        return self.PixelCls(char, *foreground_arg)
+        # TODO: Legacy: when this class doubled as "BooleanShape".
+        # (remove comment block when BooleanShape is implemented)
+        #if self.color_map:
+            #foreground_arg = (self.color_map.get(char, DEFAULT_FG),)
+        #else:
+            #foreground_arg = ()
+
+        foreground_arg = self.color_map.get(char, DEFAULT_FG)
+        return self.PixelCls(char, foreground_arg)
 
     def __setitem__(self, pos, value):
         """
