@@ -14,7 +14,11 @@ class ScreenCommands:
     or, to make use of a custom ANSI sequence which is not available in the higher level
     API.
     """
+
     last_pos = None
+
+    def __init__(self):
+        self.__class__.last_pos = None
 
     def print(self, *args, sep='', end='', flush=True, count=0):
         """Inner print method
@@ -205,6 +209,7 @@ class JournalingScreenCommands(ScreenCommands):
         self.current_color = DEFAULT_FG
         self.current_background = DEFAULT_BG
         self.current_pos = 0, 0
+        super().__init__()
 
     def __enter__(self):
         """Enters a context where screen rights are collected together.
