@@ -5,7 +5,7 @@ from terminedia.values import DEFAULT_FG
 
 def test_palettedshape_new_works():
 
-    a = IMG.PalletedShape.new((10,10))
+    a = IMG.PalettedShape.new((10,10))
     a[5,5] = "A"
     assert a.data[10 * 5 + 5] == "A"
     assert a.data.count(" ") == 99
@@ -32,5 +32,5 @@ def test_imageshape_new_works():
 
 
 def test_shape_context_works():
-    a = IMG.PalletedShape("...\n....")
+    a = IMG.PalettedShape("...\n....")
     assert a.context.color == DEFAULT_FG

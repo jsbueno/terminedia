@@ -52,7 +52,7 @@ def pixel_factory(value_type=str, has_foreground=True, has_background=False, has
 
         def __repr__(self):
             return "Pixel({})".format(", ".join(
-                f"{field}={getattr(self, field)}" for field in pixel_tuple._fields
+                f"{field}={getattr(self, field)!r}" for field in pixel_tuple._fields
             ))
 
         Pixel = type(
@@ -222,7 +222,7 @@ class ValueShape(Shape):
     def __init__(self, data, color_map=None, size=None, **kwargs):
 
         self.kwargs = kwargs
-        # TODO: make color_map work as a to-pixel pallete infornmation
+        # TODO: make color_map work as a to-pixel palette infornmation
         # to L or I images - not only providing a color palette,
         # but also enabbling an "palette color to character" mapping.
         self.color_map = color_map
@@ -312,6 +312,12 @@ class PGMShape(ValueShape):
 
 
 class ImageShape(ValueShape):
+    """Relies on Python Imaging Library to load and handle image data.
+
+    The internal "data" member is a straighout PIL.Image instance,
+    and one is free to use PIL drawing and image manipulation APIs
+    to draw on it.
+    """
 
     PixelCls = pixel_factory(bool, has_foreground=True)
 
@@ -361,7 +367,7 @@ class ImageShape(ValueShape):
         self.data.putpixel(pos, value)
 
 
-class PalletedShape(Shape):
+class PalettedShape(Shape):
     """'Shape' class intended to represent images, using a color-map to map characters to block colors.
 
     Args:
@@ -426,7 +432,7 @@ class PalletedShape(Shape):
     def __setitem__(self, pos, value):
         """
         Values set for each pixel are: character - only spaces (0x20) or "non-spaces" are
-        taken into account for PalletedShape
+        taken into account for PalettedShape
         """
         self.data[pos[1] * self.width + pos[0]] = value
 
@@ -445,7 +451,7 @@ def shape(data, color_map=None, **kwargs):
     given a string without newlines, it is interpreted as a
     filepath, and if PIL is installd, an RGB "ImageShape"
     class is used to read the image data. If text with "\n"
-    is passed in, an PalletedShape is used to directly use
+    is passed in, an PalettedShape is used to directly use
     the passed data as pixels.
 
     Returns an instance of the selected class with the data set.
@@ -464,7 +470,7 @@ def shape(data, color_map=None, **kwargs):
     elif PILImage and isinstance(data, PILImage.Image):
         cls = ImageShape
     elif isinstance(data, (list, str)):
-        cls = PalletedShape
+        cls = PalettedShape
     elif isinstance(data, Shape):
         return data
     else:

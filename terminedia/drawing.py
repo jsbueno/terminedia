@@ -230,11 +230,11 @@ class Drawing:
         support for other Pixel capabilities is not yet implemented.
 
         """
-        from terminedia.image import Shape, PalletedShape
+        from terminedia.image import Shape, PalettedShape
 
         original_color = self.context.color
         if isinstance(data, (str, list)):
-            shape = PalletedShape(data, color_map)
+            shape = PalettedShape(data, color_map)
         elif isinstance(data, Shape):
             shape = data
         else:
