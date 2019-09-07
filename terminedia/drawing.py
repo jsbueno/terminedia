@@ -71,7 +71,7 @@ class Drawing:
 
         Args:
           - pos1 (2-tuple): top-left coordinates
-          - pos2 (2-tuple): bottom-right coodinates. If not given, pass "rel" instead
+          - pos2 (2-tuple): bottom-right limit coordinates. If not given, pass "rel" instead
           - rel (2-tuple): (width, height) of rectangle. Ignored if "pos2" is given
           - fill (bool): Whether fill-in the rectangle, or only draw the outline. Defaults to False.
           - erase (bool): Whether to draw (set) or erase (reset) pixels.
@@ -86,6 +86,9 @@ class Drawing:
             if not rel:
                 raise TypeError("Must have either two corners or 'rel' parameter")
             pos2 = pos1[0] + rel[0], pos1[1] + rel[1]
+        # Ending interval is open, just as Python works with intervals.
+        pos2 = V2(pos2) - (1,1)
+
         x1, y1 = pos1
         x2, y2 = pos2
         self.line(pos1, (x2, y1), erase=erase)
@@ -113,7 +116,7 @@ class Drawing:
 
         Args:
           - pos1 (2-tuple): top-left coordinates of rectangle conataining ellipse
-          - pos2 (2-tuple): bottom-right coodinates. If not given, pass "rel" instead
+          - pos2 (2-tuple): bottom-right limit coordinates. If not given, pass "rel" instead
           - rel (2-tuple): (width, height) of rectangle. Ignored if "pos2" is given
           - fill (bool): Whether fill-in the rectangle, or only draw the outline. Defaults to False.
 
@@ -127,6 +130,7 @@ class Drawing:
             if not rel:
                 raise TypeError("Must have either two corners or 'rel' parameter")
             pos2 = pos1[0] + rel[0], pos1[1] + rel[1]
+        pos2 = V2(pos2) - (1,1)
 
         return self._empty_ellipse(pos1, pos2) if not fill else self._filled_ellipse(pos1, pos2)
 
