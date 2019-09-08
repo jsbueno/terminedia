@@ -1,40 +1,55 @@
 import binascii
-from terminedia.screen import Screen
-from terminedia.image import Shape
-from importlib import resources
+from pathlib import Path
+
+from terminedia.image import Shape, PalettedShape
+from terminedia.values import Directions
+try:
+    # This is the only Py 3.7+ specific thing in the project
+    from importlib import resources
+except ImportError:
+    resources = None
 
 
 font_registry = {}
 
-def makechars(fontname=None, initial=0, last=256, ch1=" ", ch2="#"):
-    chars = {}
+def load_font(font_path, initial=0, last=256, ch1=" ", ch2="#"):
+
+    if font_path == "DEFAULT" and resources:
+        data = list(resources.open_text("terminedia.data", "unscii-8.hex"))
+
+    elif font_path == "DEFAULT":
+        path = Path(__file__).parent / "data" / "unscii-8.hex"
+        data = list(open(path).readlines())
+
+    else:
+        data = list(open(font_path).readlines())
+
+    font = {}
 
     for i, line in enumerate(data[initial:last], initial):
         line = line.split(":")[1].strip()
         line = binascii.unhexlify(line)
         char  = "\n".join(f"{bin(v).split('b')[1]}".zfill(8)  for v in line)
         char = char.replace("0", ch1).replace("1", ch2)
-        chars[chr(i)] = char
+        font [chr(i)] = char
 
-    return chars
-
-
-def render(text, font=None, shape_class=None):
+    return font
 
 
-from terminedia.keyboard import pause
+def render(text, font=None, shape_cls=PalettedShape, direction=Directions.RIGHT):
+    if font is None:
+        font = "DEFAULT"
 
-def main():
-    chars = makechars(data, 32, 128)
-    chsize = 8
-    with Screen() as scr:
-        x, y = 12, 8
-        for i, letter in enumerate("Hello World!"):
-            scr.high.draw.blit((x + chsize * i, y), chars[letter])
-        pause()
+    if font not in font_registry:
+        font_registry[font] = load_font(font)
 
-if __name__ == "__main__":
-    data = open("data/unscii-8.hex").readlines()
-    main()
+    font = font_registry[font]
+    phrase = [shape_cls(font[chr]) for chr in text]
+    if len(text) == 0:
+        return shape_cls.new((0,0))
+    elif len(text) == 1:
+        return phrase[0]
+    return phrase[0].concat(*phrase[1:], direction=direction)
+
 
 

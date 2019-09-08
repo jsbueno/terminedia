@@ -13,7 +13,7 @@ from terminedia.values import BlockChars, Directions, DEFAULT_BG, DEFAULT_FG, CO
 from terminedia.drawing import Drawing, HighRes
 from terminedia.image import shape, ValueShape, ImageShape, PalettedShape
 from terminedia.screen import Screen, Context
-
+from terminedia.text import render
 
 __version__ = "0.3.dev0"
 __author__ = "João S. O. Bueno"
