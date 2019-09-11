@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, IntFlag
 
 from terminedia.utils import mirror_dict, V2
 
@@ -10,6 +10,8 @@ DEFAULT_FG = 0xffff
 DEFAULT_BG = 0xfffe
 #: Constant used as color to mean keep the current context colors
 CONTEXT_COLORS = 0xfffd
+#: Constant to mean keep the current value, usd as char, fg, bg or effect
+TRANSPARENT = 0xfffe
 
 
 class Directions(Enum):
@@ -23,6 +25,15 @@ class Directions(Enum):
     RIGHT = V2(1, 0)
     DOWN = V2(0, 1)
     LEFT = V2(-1, 0)
+
+
+class Effects(IntFlag):
+    none = 0
+    bold = 1
+    italic = 2
+    underline = 4
+    reverse = 8
+    blink = 16
 
 
 class BlockChars_:

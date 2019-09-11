@@ -7,7 +7,7 @@ from inspect import signature
 from pathlib import Path
 
 from terminedia.utils import V2
-from terminedia.values import DEFAULT_FG, DEFAULT_BG, Directions, BlockChars
+from terminedia.values import DEFAULT_FG, DEFAULT_BG, TRANSPARENT, Directions, BlockChars, Effects
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,19 @@ PixelClasses = {}
 pixel_capabilities = namedtuple("pixel_capabilities", "value_type has_foreground has_background has_text_attributes")
 
 
-def pixel_factory(value_type=str, has_foreground=True, has_background=False, has_text_effects=False):
+class Pixel(tuple):
+    __slots__ = ()
+
+
+full_pixel = namedtuple("Pixel", "char fg bg effects")
+
+def pixel_factory(
+    value_type=str,
+    has_foreground=True,
+    has_background=False,
+    has_text_effects=False,
+    translate_dots=True,
+):
     """Returns a custom pixel class with specified capabilities
 
     Args:
@@ -34,6 +46,7 @@ def pixel_factory(value_type=str, has_foreground=True, has_background=False, has
     instead, they are just a way to convey information from internal images/shapes
     to methods that will draw then.
     """
+    PixelBase = globals()["Pixel"]
 
     capabilities = pixel_capabilities(value_type, has_foreground, has_background, has_text_effects)
     if capabilities in PixelClasses:
@@ -56,7 +69,7 @@ def pixel_factory(value_type=str, has_foreground=True, has_background=False, has
 
         Pixel = type(
             "Pixel",
-            (pixel_tuple,),
+            (PixelBase, pixel_tuple),
             {
                 "capabilities": capabilities,
                 "__repr__": __repr__,
@@ -64,12 +77,13 @@ def pixel_factory(value_type=str, has_foreground=True, has_background=False, has
             }
         )
 
-        @property
-        def value(self):
-            value = super(Pixel, self).value
-            return (value not in (" .")) if value_type is bool and isinstance(value, str) else value_type(value)
+        if translate_dots or value_type != str:
+            @property
+            def value(self):
+                value = super(Pixel, self).value
+                return (value not in (" .")) if value_type is bool and isinstance(value, str) else value_type(value)
 
-        Pixel.value = value
+            Pixel.value = value
 
         PixelClasses[capabilities] = Pixel
 
@@ -105,8 +119,10 @@ class Shape:
     def context(self):
         if not "context" in self.__dict__:
             context = self.__dict__["context"] = threading.local()
+            context.value = "#"
             context.color = DEFAULT_FG
             context.background = DEFAULT_BG
+            context.effects = Effects.none
             context.direction = Directions.RIGHT
 
         return self.__dict__["context"]
@@ -496,6 +512,63 @@ class PalettedShape(Shape):
         """
         self.data[pos[1] * self.width + pos[0]] = value
 
+
+class FullShape(Shape):
+    """Shape class carrying all possible data plus kitchen sink
+
+    Args:
+      - data: a sequence with 4 planes (sequences), each a sequence with n-rows
+            sequences of m-width elements. The first one should carry character
+            data: a unicode sequence representing a singl glyph. The second
+            and 3rd should contain color values, and the 4th an integer
+            representing text effects according to Effects values.
+    """
+
+    PixelCls = pixel_factory(str, has_foreground=True, has_background=True, has_text_effects=True, translate_dots=False)
+
+    @staticmethod
+    def _data_func(size):
+        return [
+            [" " * size.x] * size.y,
+            [DEFAULT_FG * size.x] * size.y,
+            [DEFAULT_BG * size.x] * size.y,
+            [Effects.none * size.x] * size.y,
+        ]
+
+
+    def __init__(self, data):
+        self.value_data, self.fg_data, self.bg_data, self.eff_data = data
+        self.width = len(self.value_data[0])
+        self.height = len(self.value_data)
+
+
+    def get_raw(self, pos):
+        offset = pos[1] * self.width + pos[0]
+        return (
+            self.value_data[offset],
+            self.fg_data[offset],
+            self.bg_data[offset],
+            self.eff_data[offset]
+        )
+
+    def __getitem__(self, pos):
+        """Values for each pixel are: character, fg_color, bg_color, text_attributes.
+        """
+        value = self.get_raw(pos)
+
+        return self.PixelCls(value, foreground_arg)
+
+    def __setitem__(self, pos, value):
+        """
+        Values set for each pixel are: character - only spaces (0x20) or "non-spaces" are
+        taken into account for PalettedShape
+        """
+        offset = pos[1] * self.width + pos[0]
+        if isinstance(data, self.PixelCls):
+            value = value.value
+        for comp, plane in zip(value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)):
+            if value is not TRANSPARENT:
+                plane[offset] = value
 
 def shape(data, color_map=None, **kwargs):
     """Factory for shape objects

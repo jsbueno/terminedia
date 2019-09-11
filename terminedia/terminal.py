@@ -2,7 +2,7 @@ import time
 import sys
 from functools import lru_cache
 
-from terminedia.values import DEFAULT_BG, DEFAULT_FG
+from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects
 
 
 class ScreenCommands:
@@ -147,13 +147,14 @@ class ScreenCommands:
         """Writes ANSI sequence to reset terminal colors to the default"""
         self.SGR(0)
 
-    def set_colors(self, foreground, background):
+    def set_colors(self, foreground, background, effects=Effects.none):
         """Sets foreground and background colors on the terminal
         foreground: the foreground color
         background: the background color
         """
         self.set_fg_color(foreground)
         self.set_bg_color(background)
+        self.set_effects(effects)
 
     def set_fg_color(self, color):
         """Writes ANSI sequence to set the foreground color
@@ -174,6 +175,25 @@ class ScreenCommands:
         else:
             color = self._normalize_color(color)
             self.SGR(48, 2, *color)
+
+    def set_effects(self, effects):
+        """Writes ANSI sequence to set text effects (bold, blink, etc.._
+        """
+        E = Effects
+        effect_map = {
+            E.none: 0,
+            E.bold: 1,
+            E.italic: 3,
+            E.underline: 4,
+            E.reverse: 7,
+            E.blink: 5,
+        }
+        if effects == E.none:
+            self.SGR(0)
+        else:
+            for effect_enum in Effects:
+                if effect_enum & effects:
+                    self.SGR(effect_map[effect_enum])
 
 
 class JournalingScreenCommands(ScreenCommands):

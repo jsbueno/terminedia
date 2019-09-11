@@ -4,8 +4,9 @@ from math import ceil
 
 from terminedia.utils import V2
 from terminedia.terminal import JournalingScreenCommands
-from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, Directions
+from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, Effects, Directions
 from terminedia.drawing import Drawing, HighRes
+from terminedia.image import Pixel
 
 
 __version__ = "0.3.dev0"
@@ -48,6 +49,8 @@ class Screen:
     last_background = None
     #: Internal: tracks last used foreground attribute to avoid mangling and enable optimizations
     last_color = None
+    #: Internal: tracks last used effects attribute to avoid mangling and enable optimizations
+    last_effects = None
 
     def __init__(self, size=(), clear_screen=True):
         if not size:
@@ -110,10 +113,12 @@ class Screen:
 
         """
         self.data = [" "] * self.width * self.height
-        self.color_data = [(DEFAULT_FG, DEFAULT_BG)] * self.width * self.height
+        self.color_data = [(DEFAULT_FG, DEFAULT_BG, Effects.none)] * self.width * self.height
         self.context.color = DEFAULT_FG
         self.context.background = DEFAULT_BG
         self.context.direction = Directions.RIGHT
+        self.context.effects = Effects.none
+        self.context.char = BlockChars.FULL_BLOCK
         self.__class__.last_color = None
         self.__class__.last_background = None
         # To use when we allow custom chars along with blocks:
@@ -133,9 +138,12 @@ class Screen:
         in being called directly.
         """
 
-        if color:
+        if isinstance(color, Pixel):
+            # TODO: attribut all parameters to cell, according to pixel capabilities and values
+            ...
+        elif color:
             self.context.color = color
-        self[pos] = BlockChars.FULL_BLOCK
+        self[pos] = self.context.char
 
     def reset_at(self, pos):
         """Resets pixel at given coordinate
@@ -217,13 +225,18 @@ class Screen:
 
         cls = self.__class__
         with self.lock:
-            update_colors = cls.last_color != self.context.color or cls.last_background != self.context.background
-            colors = self.context.color, self.context.background
+            update_colors = (
+                cls.last_color != self.context.color or
+                cls.last_background != self.context.background or
+                cls.last_effects != self.context.effects
+            )
+            colors = self.context.color, self.context.background, self.context.effects
             self.color_data[index] = colors
             if update_colors:
                 self.commands.set_colors(*colors)
                 cls.last_color = self.context.color
                 cls.last_background = self.context.background
+                cls.last_effects = self.context.effects
             self.commands.print_at(pos, value)
 
 
