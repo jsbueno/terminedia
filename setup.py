@@ -1,10 +1,9 @@
 # coding: utf-8
 
-from setuptools import setup
-
+from setuptools import setup, find_packages
 setup(
     name = 'terminedia',
-    packages = ["terminedia"],
+    packages = find_packages(),
     version = "0.3.dev0",
     license = "LGPLv3+",
     author = "João S. O. Bueno",
