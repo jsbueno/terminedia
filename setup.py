@@ -1,6 +1,6 @@
 # coding: utf-8
-
 from setuptools import setup, find_packages
+
 setup(
     name = 'terminedia',
     packages = find_packages(),
@@ -16,8 +16,9 @@ setup(
         "Source Code": "https://github.com/jsbueno/terminedia",
     },
     long_description = open("README.md").read(),
-    use_scm_version=True,
+    # use_scm_version=True,
     setup_requires=['setuptools_scm'],
+    include_package_data=True,
     test_requires = [],
     install_requires=[
         "click",
