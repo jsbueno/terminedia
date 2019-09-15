@@ -5,9 +5,7 @@ Bezier curves primitive (v)
 2D Vector class (v)
 PNM Image File loading and Displaying (v)
 Shape Class (v)
-    - with support to z-index, and background keeping
 Image File Displaying Support(v)
-    - with alpha support
 Preliminary CLI (v)
 move examples to CLI-based standalone scripts available to pip-installs (v)
 refactor into full package (v)
@@ -27,7 +25,9 @@ multiple backends: (check pygments):
     postscript backend
     .rtf backend
 
+alpha channel support for images
 Single-write optimization
+support to z-index, and background keeping on blitting ("sprite" api)
 REPL Environment wit bottom lines for python console and upper screen for image
 MS-Windows support (colorama/mscrvt/color reducing)
 "business" framed-window api
@@ -89,18 +89,30 @@ for sane text rendering:
     Improve font selection and loading
     Bundle 8x16 UNSCII font to packages
     Add arbitrary font handling by using PIL to cache rendered chars.
+    write example script using large-text rendering.
 
 
 Imaging capabilities:
     make "Alpha" value work for value-shapes.
-    make "intensity" rendering for values
+    make "intensity" rendering for values (B&W shapes)
 
-    create full fledged shape with char, fg, bg, effects (WIP)
-    enable rendering of pixels with char, fg, bg, effects
-    update blit and other actions on drawing api to use all pixel properties.
-    enable rendering of text effects on screen
+    create full fledged shape with char, fg, bg, effects (WIP):
+        implement FullShape class (v)
+        make text effects work on terminal (WIP)
+        Associate a base FullShape class with a Screen
+        Add example with terminal text effects
+        Add example using FullShape
+        enable rendering of pixels with char, fg, bg, effects
+        update blit and other actions on drawing api to use all pixel properties.
 
 General Refactoring:
-    Use base Shape class for Screen.
     Add a proper rectangle class
+    write a refresh method to redraw a Screen rectangle given internal data
     improve "blit" to allow optional source and destination ROI
+    (them proceed to write the different backends.)
+
+Improvements and bugs:
+    CRITICAL: effects refactoring led rendering to be B&W (WIP)
+    Text effects are not cached in the terminal journaling-commands (WIP)
+    make double-width unicode characters take 2 character cells.
+    plot example script prints completly bogus values on the y scale.

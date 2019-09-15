@@ -176,24 +176,54 @@ class ScreenCommands:
             color = self._normalize_color(color)
             self.SGR(48, 2, *color)
 
-    def set_effects(self, effects):
-        """Writes ANSI sequence to set text effects (bold, blink, etc.._
+    def set_effects(self, effects, *, reset=True, turn_off=False):
+        """Writes ANSI sequence to set text effects (bold, blink, etc...)
+
+        When using the high-level drawing functions, each time a text-effect
+        attribute is changed, all text effects are reset. The
+        turn_off and reset parameters are suplied for low-level
+        use of this function.
+
+        - Args:
+          effects (terminedia.Effects): enum specifying which text effects should be affected
+          reset (bool): When True, all effect attributes on the screen are reset to match
+                        the passed effects description. (i.e. if blinking is currently on,
+                        and effects == Effect.underline, blinking will be turned off, and
+                        only underline will be active). If reset is False, only the
+                        underline terminal property will be affected by this call
+          turn_off (bool): Only used when "reset" is False: meant to indicate
+                           the specified effects should be turnned off instead of on.
         """
         E = Effects
-        effect_map = {
-            E.none: 0,
+        effect_on_map = {
             E.bold: 1,
             E.italic: 3,
             E.underline: 4,
             E.reverse: 7,
             E.blink: 5,
         }
-        if effects == E.none:
-            self.SGR(0)
-        else:
-            for effect_enum in Effects:
-                if effect_enum & effects:
-                    self.SGR(effect_map[effect_enum])
+        effect_off_map = {
+            E.bold: 22,
+            E.italic: 23,
+            E.underline: 24,
+            E.reverse: 27,
+            E.blink: 25,
+        }
+        sgr_codes = []
+
+        effect_map = effect_off_map if turn_off else effect_on_map
+
+        for effect_enum in Effects:
+            if effect_enum is Effects.none:
+                continue
+            if effect_enum & effects:
+                sgr_codes.append(effect_map[effect_enum])
+            elif reset:
+                sgr_codes.append(effect_off_map[effect_enum])
+
+        self.SGR(*sgr_codes)
+
+
 
 
 class JournalingScreenCommands(ScreenCommands):
@@ -228,6 +258,7 @@ class JournalingScreenCommands(ScreenCommands):
         self.in_block = 0
         self.current_color = DEFAULT_FG
         self.current_background = DEFAULT_BG
+        self.current_effect = Effects.none
         self.current_pos = 0, 0
         super().__init__()
 
@@ -258,7 +289,8 @@ class JournalingScreenCommands(ScreenCommands):
         """
         if not self.in_block:
             raise RuntimeError("Journal not open")
-        self.journal.setdefault(pos, []).append((self.tick, char, self.current_color, self.current_background))
+        self.journal.setdefault(pos, []).append(
+            (self.tick, char, self.current_color, self.current_background, self.current_effect))
         self.tick += 1
 
     def __exit__(self, exc_name, traceback, frame):
@@ -288,11 +320,12 @@ class JournalingScreenCommands(ScreenCommands):
         can be further used inside the same context.
         """
         last_color = last_bg = None
+        last_effect = Effects.none
         last_pos = None
         buffer = ""
 
         for pos in sorted(self.journal, key=lambda pos: (pos[1], pos[0])):
-            tick, char, color, bg = self.journal[pos][-1]
+            tick, char, color, bg, effect = self.journal[pos][-1]
             call = []
             if color != last_color:
                 last_color = color
@@ -301,6 +334,10 @@ class JournalingScreenCommands(ScreenCommands):
             if bg != last_bg:
                 last_bg = bg
                 call.append((self.set_bg_color, bg))
+
+            if effect != last_effect:
+                last_effect = effect
+                call.append((self.set_effects, effect))
 
             if pos != last_pos:
                 last_pos = pos
@@ -351,3 +388,8 @@ class JournalingScreenCommands(ScreenCommands):
         if not self.in_block:
             super().set_bg_color(color)
         self.current_background = color
+
+    def set_effects(self, effects):
+        if not self.in_block:
+            super().set_effects(effects)
+        self.current_effect = effects

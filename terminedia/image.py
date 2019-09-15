@@ -96,10 +96,8 @@ class Shape:
     more complicated than an "Image" that just care about a foreground color
     and alpha value for each pixel position.
 
-    This is going to be implemented gradually - the first use case
-    is a plain old "image" - the capability of including specific characters
-    instead of blocks of solid color should be available later as
-    subclasses of Shape.
+    As internal data and rendering intents vary accross desired capabilities,
+    there are subclasses to represent each intended use.
 
     """
 
@@ -108,7 +106,7 @@ class Shape:
     # foreground = False
     # background = False
     # arbitrary_chars = False
-    # character_properties = False  # FUTURE: support for bold, blink, underline...
+    # effects = False  # support for bold, blink, underline...
 
     PixelCls = pixel_factory(bool)
 
@@ -366,7 +364,7 @@ class PGMShape(ValueShape):
         if ascii:
             data = [int(v) for v in data.split()]
         if len(data) != size.x * size.y * values_per_pixel:
-            sys.stderr.write("Warning: malformed PNM file. Trying to continue anyway\n")
+            logger.warn("Malformed PNM file. Trying to continue anyway\n")
 
         data = [value / max_value for value in data]
         if values_per_pixel == 1:
@@ -570,6 +568,7 @@ class FullShape(Shape):
             if value is not TRANSPARENT:
                 plane[offset] = value
 
+
 def shape(data, color_map=None, **kwargs):
     """Factory for shape objects
 
@@ -579,10 +578,10 @@ def shape(data, color_map=None, **kwargs):
       - **kwargs: parameters passed transparently to the selected shape class
 
     Based on inferences on the data attribute, selects
-    the appropriate Shape subclass to handle the "data" attribute
-    as a pattern to be blitted on Screen instances. That is:
+    the appropriate Shape subclass to handle the "data" attribute.
+    That is:
     given a string without newlines, it is interpreted as a
-    filepath, and if PIL is installd, an RGB "ImageShape"
+    filepath, and if PIL is installed, an RGB "ImageShape"
     class is used to read the image data. If text with "\n"
     is passed in, an PalettedShape is used to directly use
     the passed data as pixels.

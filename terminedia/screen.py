@@ -69,8 +69,7 @@ class Screen:
 
         #: Namespace to configure drawing and printing color and other parameters.
         #: Currently, the attributes that are used from here are
-        #: ``color``, ``background`` and ``direction`` (which have to be set to one
-        #: of the values in :any:`Directions`.
+        #: ``color``, ``background``, ``direction``, ``effects`` and ``char``.
         self.context = threading.local()
 
         #: Namespace for drawing methods, containing an instance of the :any:`Drawing` class
@@ -139,13 +138,14 @@ class Screen:
 
         Args:
           - pos (2-sequence): pixel coordinate
+          - color (Optional[Color]): sets the context color prior to printing
 
         To be used as a callback to ``.draw.set`` - but there are no drawbacks
         in being called directly.
         """
 
         if isinstance(color, Pixel):
-            # TODO: attribut all parameters to cell, according to pixel capabilities and values
+            # TODO: attribute all parameters to cell, according to pixel capabilities and values
             ...
         elif color:
             self.context.color = color
@@ -258,6 +258,8 @@ class Context:
       - color: color special value or RGB sequence for foreground color - either int 0-255  or float 0-1 based.
       - background: color special value or RGB sequence sequence for background color
       - direction: terminedia.Directions Enum value with writting direction
+      - effects: terminedia.Effects Enum value with combination of text effects
+      - char: Char to be plotted when setting a single color.
 
     Provides a practical way for a sub-routine to draw things to the screen without messing with the
     callee's expected drawing context. Otherwise one would have to manually save and restore
