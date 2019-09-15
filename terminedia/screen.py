@@ -124,6 +124,7 @@ class Screen:
         self.context.direction = Directions.RIGHT
         self.context.effects = Effects.none
         self.context.char = BlockChars.FULL_BLOCK
+        self.context.last_pos = V2(0,0)
         self.__class__.last_color = None
         self.__class__.last_background = None
         # To use when we allow custom chars along with blocks:
@@ -195,6 +196,11 @@ class Screen:
         """
         self.line_at(pos, len(text), sequence=text)
 
+    def print(self, text):
+        """Prints text picking at the last position that were printed to."""
+        pos  = self.context.last_pos + self.context.direction.value
+        self.print_at(pos, text)
+
     def __getitem__(self, pos):
         """Retrieves character data at pos
 
@@ -215,7 +221,7 @@ class Screen:
 
         This is mostly used internally by all other drawing and printing methods, although
         it can be used directly, by using Python's object-key notation with ``[ ]`` and assignment.
-        The thing to have in mind is that all text or graphics that go to the terminal *is
+        The thing to have in mind is that all text or graphics that go to the terminal *are
         directed through this method* - it is a "single point" where all data is
         sent, and this enabled keeping an in memory copy of the data that is printed
         at the terminal, a series of optimizations by not re-issuing color-change
@@ -244,6 +250,7 @@ class Screen:
                 cls.last_background = self.context.background
                 cls.last_effects = self.context.effects
             self.commands.print_at(pos, value)
+            self.context.last_pos = V2(pos)
 
 
 class Context:
