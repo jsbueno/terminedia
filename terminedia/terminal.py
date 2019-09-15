@@ -5,6 +5,58 @@ from functools import lru_cache
 from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects
 
 
+E = Effects
+
+#: Inner mappings with actual ANSI codes to turn on and off text effects.
+#: These are defined on module escope to avoid
+#: re-parsing of the dict bodies at each invocatin
+#: of ``set_effects``
+effect_on_map = {
+    E.bold: 1,
+    E.italic: 3,
+    E.underline: 4,
+    E.reverse: 7,
+    E.blink: 5,
+    E.faint: 2,
+    E.fast_blink: 6,
+    E.conceal: 8,
+    E.crossed_out: 9,
+    E.double_underline: 21,
+    E.framed: 51,
+    E.encircled: 52,
+    E.overlined: 53,
+    E.fraktur: 20,
+}
+effect_off_map = {
+    E.bold: 22,
+    E.italic: 23,
+    E.underline: 24,
+    E.reverse: 27,
+    E.blink: 25,
+    E.faint: 22,
+    E.fast_blink: 25,
+    E.conceal: 28,
+    E.crossed_out: 29,
+    E.double_underline: 24,
+    E.framed: 54,
+    E.encircled: 54,
+    E.overlined: 55,
+    E.fraktur: 23,
+}
+#: Helper mapping to avoid automatically turning off text attributes
+#: that happen to use the same code to switch off than others
+effect_double_off = {
+    E.bold: {E.faint},
+    E.italic: {E.fraktur},
+    E.underline: {E.double_underline},
+    E.blink: {E.fast_blink},
+    E.faint: {E.bold},
+    E.fast_blink: {E.blink},
+    E.double_underline: {E.underline},
+    E.framed: {E.encircled},
+    E.fraktur: {E.italic}
+}
+
 class ScreenCommands:
     """Low level functions to execute ANSI-Sequence-related tasks on the terminal.
 
@@ -194,21 +246,7 @@ class ScreenCommands:
           turn_off (bool): Only used when "reset" is False: meant to indicate
                            the specified effects should be turnned off instead of on.
         """
-        E = Effects
-        effect_on_map = {
-            E.bold: 1,
-            E.italic: 3,
-            E.underline: 4,
-            E.reverse: 7,
-            E.blink: 5,
-        }
-        effect_off_map = {
-            E.bold: 22,
-            E.italic: 23,
-            E.underline: 24,
-            E.reverse: 27,
-            E.blink: 25,
-        }
+
         sgr_codes = []
 
         effect_map = effect_off_map if turn_off else effect_on_map
@@ -218,7 +256,8 @@ class ScreenCommands:
                 continue
             if effect_enum & effects:
                 sgr_codes.append(effect_map[effect_enum])
-            elif reset:
+            elif reset and (not effect_enum in effect_double_off or
+                            not any(e & effects for e in effect_double_off[effect_enum])):
                 sgr_codes.append(effect_off_map[effect_enum])
 
         self.SGR(*sgr_codes)

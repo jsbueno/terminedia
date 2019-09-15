@@ -24,6 +24,7 @@ multiple backends: (check pygments):
     image backend (pixels are simple color-only boring, image pixels)
     postscript backend
     .rtf backend
+    Fallback terminal to 1-byte color setting for up to 216 colors + 24 grayscale
 
 alpha channel support for images
 Single-write optimization

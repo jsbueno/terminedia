@@ -12,7 +12,7 @@ def main(phrases):
         for line, (phrase, effect) in enumerate(zip(phrases, TM.Effects)):
             sc.context.effects = TM.Effects.none
 
-            sc.print_at((0, line), f"{effect.name}: ")
+            sc.print_at((0, 2* line), f"{effect.name}: ")
             sc.context.effects = effect
             sc.print(phrase)
         TM.pause()

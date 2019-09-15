@@ -28,12 +28,31 @@ class Directions(Enum):
 
 
 class Effects(IntFlag):
+    """Text effect Enums
+
+    Some of these are implemented in most terminal programs -
+    the codes used here are so that their value can be ORed.
+    (The "real" codes for terminal rendering are issed
+    in ``terminal.py``).
+
+    The somewhat arbitrary order tries to put first
+    the most supported/most useful attributes.
+    """
     none = 0
     bold = 1
     italic = 2
     underline = 4
     reverse = 8
     blink = 16
+    faint = 32
+    fast_blink = 64
+    conceal = 128
+    crossed_out = 256
+    double_underline = 512
+    framed = 1024
+    encircled = 2048
+    overlined = 4096
+    fraktur = 8192
 
 
 class BlockChars_:
