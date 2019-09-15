@@ -1,3 +1,4 @@
+import logging
 import os
 import threading
 from math import ceil
@@ -8,15 +9,14 @@ from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, Effects, Direc
 from terminedia.drawing import Drawing, HighRes
 from terminedia.image import Pixel
 
-
-__version__ = "0.3.dev0"
-__author__ = "João S. O. Bueno"
+logger = logging.getLogger(__name__)
 
 
 class Screen:
     """Canvas class for terminal drawing.
 
-    This is the main class on Terminedia library - methods and associated instances here
+    This is the main class to interact with the terminal on Terminedia
+    library - methods and associated instances here
     should be used to do all screen rendering and drawing save for low-level work.
 
     Use this as a context manager inside which the screen is active;
@@ -57,7 +57,13 @@ class Screen:
             #: Set in runtime to a method to retrieve the screen width, height.
             #: The class is **not** aware of terminal resizings while running, though.
             self.get_size = lambda: V2(os.get_terminal_size())
-            size = self.get_size()
+            try:
+                size = self.get_size()
+            except OSError as error:
+                if error.errno == 25:
+                    logger.error("This terminal type does not allow guessing screen size."
+                        "Pass an explicit (cols, rows) size when instantiating {self.__class__}")
+                raise
         else:
             self.get_size = lambda: V2(size)
 
