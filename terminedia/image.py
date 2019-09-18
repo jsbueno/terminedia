@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from inspect import signature
 from pathlib import Path
 
-from terminedia.utils import V2
+from terminedia.utils import V2, LazyBindProperty
 from terminedia.values import DEFAULT_FG, DEFAULT_BG, TRANSPARENT, Directions, BlockChars, Effects
 
 logger = logging.getLogger(__name__)
@@ -90,6 +90,7 @@ def pixel_factory(
     return Pixel
 
 
+
 class Shape:
     """'Shape' is intended to represent blocks of colors/backgrounds and characters
     to be applied in a rectangular area of the terminal. In this sense, it is
@@ -113,26 +114,29 @@ class Shape:
     def __init__(self, data, color_map=None):
         raise NotImplementedError("This is meant as an abstract Shape class")
 
-    @property
+    @LazyBindProperty
     def context(self):
-        if not "context" in self.__dict__:
-            context = self.__dict__["context"] = threading.local()
-            context.value = "#"
-            context.color = DEFAULT_FG
-            context.background = DEFAULT_BG
-            context.effects = Effects.none
-            context.direction = Directions.RIGHT
+        context = self.__dict__["context"] = threading.local()
+        context.value = "#"
+        context.color = DEFAULT_FG
+        context.background = DEFAULT_BG
+        context.effects = Effects.none
+        context.direction = Directions.RIGHT
+        return context
 
-        return self.__dict__["context"]
-
-    @property
+    @LazyBindProperty
     def draw(self):
-        if not "draw" in self.__dict__:
-            self.__dict__["draw"] = self._get_drawing()
+        return self._get_drawing()
 
-        return self.__dict__["draw"]
+    @LazyBindProperty
+    def text(self):
+        return self._get_text()
 
-    # For most shape classes, "empty" is whitespace chars:
+    @LazyBindProperty
+    def high(self):
+        return self._get_highres()
+
+    #: For most shape classes, "empty" is whitespace chars:
     _data_func = staticmethod(lambda size: [" " * size.x] * size.y)
 
     def _get_drawing(self):
@@ -143,6 +147,14 @@ class Shape:
             size_fn = lambda : V2(self.width, self.height),
             context = self.context
         )
+
+    def _get_highres(self):
+        from terminedia.drawing import HighRes
+        return HighRes(self)
+
+    def _get_text(self):
+        from terminedia.text import Text
+        return Text(self)
 
     @classmethod
     def new(cls, size, **kwargs):
@@ -562,7 +574,7 @@ class FullShape(Shape):
         taken into account for PalettedShape
         """
         offset = pos[1] * self.width + pos[0]
-        if isinstance(data, self.PixelCls):
+        if isinstance(value, self.PixelCls):
             value = value.value
         for comp, plane in zip(value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)):
             if value is not TRANSPARENT:

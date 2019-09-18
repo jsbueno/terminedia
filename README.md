@@ -1,9 +1,10 @@
 TERMINEDIA
 ===========
 
-This aims to be a Python library allowing using a text-terminal as a low-resolution graphics
-output, along with keyboard realtime reading, mouse events, and a couple utilities
-enough to enable using a text terminal to run simple 2D games.
+This is a Python library allowing using a text-terminal as a low-resolution graphics
+output, along with keyboard realtime reading, and a couple utilities
+enough to enable using a text terminal to run simple 2D games or simply rich terminal
+apps.
 
 The "noveau" factor is that it uses Unicode quarter-character block combinations
 to effectivelly enable 1/4 character "pixels" in the terminal. It also makes

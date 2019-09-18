@@ -3,6 +3,7 @@ import os
 import threading
 from math import ceil
 
+import terminedia.text
 from terminedia.utils import V2
 from terminedia.terminal import JournalingScreenCommands
 from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, Effects, Directions
@@ -81,6 +82,8 @@ class Screen:
         #: :any:`Drawing` instance at ``Screen.high.draw`` to do 1/4 block pixel
         #: manipulation.
         self.high = HighRes(self)
+
+        self.text = terminedia.text.Text(self)
 
         #: Namespace for low-level Terminal commands, an instance of :any:`JournalingScreenCommands`.
         #: This attribute can be used as a context manager to group

@@ -5,25 +5,29 @@ from terminedia.utils import V2
 class Drawing:
     """Drawing and rendering API
 
-    An instance of this class is attached to :any:`Screen` instances as the :any:`Screen.draw` attribute.
-    All context-related information is kept on the associanted screen instance,
-    the public methods here issue pixel setting and resetting at the Screen -
-    using that Screen's context colors and resolution.
+    An instance of this class is attached to :any:`Screen` and :any:`Shape`
+    instances as the :any:`draw` attribute, and as the `.high.draw`
+    attribute for drawing with 1/4 block characters.
+    All context-related information is kept on the associated screen instance,
+    the public methods here issue pixel setting and resetting at the owner -
+    using that owners's context colors and other attributes.
 
-    That is - the tipical usage for methods here will be ``screen.draw.line((0,0)-(50,20))``
+    That is - the typical usage for methods here will be ``screen.draw.line((0,0)-(50,20))``
     """
 
     def __init__(self, set_fn, reset_fn, size_fn, context):
         """Not intented to be instanced directly -
 
         Args:
-          - set_fn (callable): function to set a pixl
+          - set_fn (callable): function to set a pixel
           - reset_fn (callable): function to reset a pixel
           - size_fn (callable): function to retrieve the width and height of the output
           - context : namespace where screen attributes are set
 
         This takes note of the callback functions for
-        screen-size, pixels set and reset and the drawing context.
+        owner-size, pixels set and reset and the drawing context.
+        This call is made automatically on Screen instantiation, or
+        lazily when the `.draw` attribute is requested on a shape.
         """
         self.set = set_fn
         self.reset = reset_fn
@@ -39,7 +43,7 @@ class Drawing:
 
         Args:
           - pos1 (2-tuple): starting coordinates
-          - pos2 (2-tuple): ending coodinates
+          - pos2 (2-tuple): ending coordinates
           - erase (bool): Whether to draw (set) or erase (reset) pixels.
 
         Public call to draw an arbitrary line using character blocks
@@ -78,7 +82,7 @@ class Drawing:
 
         Public call to draw a rectangle using character blocks
         on the terminal.
-        The color line is defined in the associated's screen context.color
+        The color line is defined in the owner's context.color
         attribute. In the case of high-resolution drawing, the background color
         is also taken from the context.
         """
@@ -122,7 +126,7 @@ class Drawing:
 
         Public call to draw an ellipse using character blocks
         on the terminal.
-        The color line is defined in the associated's screen context.color
+        The color line is defined in the owner's context.color
         attribute. In the case of high-resolution drawing, the background color
         is also taken from the context.
         """

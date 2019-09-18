@@ -84,8 +84,7 @@ for sane text rendering:
     write shape-concatenation method (V)
         use "imp.resource" to read default font data (V)
     create "render text" call returning a shape (V)
-    create "render text and blit at position on screen" call on drawing api
-    fix-paletted-shape-blitting-bug (WIP)
+    create "render text and blit at position on screen" call on drawing api (V)
     read font on demand (WIP - only the first 256 chars are loaded)
     Improve font selection and loading
     Bundle 8x16 UNSCII font to packages
@@ -99,7 +98,7 @@ Imaging capabilities:
 
     create full fledged shape with char, fg, bg, effects (WIP):
         implement FullShape class (v)
-        make text effects work on terminal (WIP)
+        make text effects work on terminal (V)
         Associate a base FullShape class with a Screen
         Add example with terminal text effects
         Add example using FullShape
@@ -117,3 +116,6 @@ Improvements and bugs:
     Text effects are not cached in the terminal journaling-commands (WIP)
     make double-width unicode characters take 2 character cells.
     plot example script prints completly bogus values on the y scale.
+    Fix text rendering into FullShape
+    fix-paletted-shape-blitting-bug (WIP)
+    fix-value-shape-blitting-bug

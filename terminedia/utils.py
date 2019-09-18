@@ -61,3 +61,19 @@ class V2(tuple):
 
     def __repr__(self):
         return f"V2({self.x}, {self.y})"
+
+
+
+class LazyBindProperty:
+    def __init__(self, initializer):
+        self.initializer = initializer
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __get__(self, instance, owner):
+        if not instance:
+            return self
+        if not self.name in instance.__dict__:
+            instance.__dict__[self.name] = self.initializer(instance)
+        return instance.__dict__[self.name]
