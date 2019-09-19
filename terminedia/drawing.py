@@ -1,3 +1,5 @@
+import inspect
+
 from terminedia.values import BlockChars, CONTEXT_COLORS
 from terminedia.utils import V2
 
@@ -28,6 +30,11 @@ class Drawing:
         owner-size, pixels set and reset and the drawing context.
         This call is made automatically on Screen instantiation, or
         lazily when the `.draw` attribute is requested on a shape.
+        The first parameter to both reset_fn and set_fn is a 2D position
+        where it should render a pixel according to the current context.
+        If the callable for `set_fn` accepts 2 parameters, the second
+        one should optionally accept a terminedia.images.Pixel object,
+        and decide how to render it.
         """
         self.set = set_fn
         self.reset = reset_fn
@@ -241,6 +248,7 @@ class Drawing:
         from terminedia.image import Shape, PalettedShape
 
         original_color = self.context.color
+        original_background = self.context.background
         if isinstance(data, (str, list)):
             shape = PalettedShape(data, color_map)
         elif isinstance(data, Shape):
@@ -250,21 +258,38 @@ class Drawing:
 
         pos = V2(pos)
 
+        direct_pix =  len(inspect.signature(self.set).parameters) >= 2
+
         for pixel_pos, pixel in shape:
-            if pixel.capabilities.value_type == bool:
-                pixel_function = self.set if pixel.value else self.reset
-                if not pixel.value and not erase:
-                    continue
+            target_pos = pos + pixel_pos
+            if direct_pix:
+                self.set(target_pos, pixel)
             else:
-                pass
-                # TODO
-                # pixel_function =  self.print_at(...)
-            if pixel.capabilities.has_foreground:
-                if pixel.foreground == CONTEXT_COLORS:
-                    self.context.color = original_color
-                else:
-                    self.context.color = pixel.foreground
-            pixel_function(pos + pixel_pos)
+                if pixel.capabilities.has_foreground:
+                    if pixel.foreground == CONTEXT_COLORS:
+                        self.context.color = original_color
+                    else:
+                        self.context.color = pixel.foreground
+                if pixel.capabilities.has_background:
+                    if pixel.background == CONTEXT_COLORS:
+                        self.context.background = original_background
+                    else:
+                        self.context.background = pixel.background
+
+                should_set = (
+                    pixel.capabilities.value_type == str and (
+                        pixel.value != " " or
+                        pixel.value == "." and pixel.capabilities.translate_dots
+                    )  or
+                    pixel.capabilities.value_type == bool and pixel.value
+                )
+                if should_set:
+                    self.set(target_pos)
+                elif erase:
+                    self.reset(target_pos)
+
+        self.context.color = original_color
+        self.context.background = original_background
 
 
 class HighRes:
@@ -280,9 +305,8 @@ class HighRes:
     on these pixels will "leak" to their block. (Users familiar
     with the vintage 8 bit ZX-Spectrum should feel at home)
 
-    This class should not be instanced or used directly - instead, call the ``Drawing`` methods
-    or the ``get_at``, ``get_size`` and ``print_at`` methods in the ``HighRes`` instance created
-    automatically for a Screen instance.
+    This class should not be instanced or used directly - instead, call the `Drawing` methods
+    in the associated `draw` class as in `screen.high.draw.blit(position, image)`
 
     """
 

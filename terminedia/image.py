@@ -18,7 +18,7 @@ except ImportError:
 
 
 PixelClasses = {}
-pixel_capabilities = namedtuple("pixel_capabilities", "value_type has_foreground has_background has_text_attributes")
+pixel_capabilities = namedtuple("pixel_capabilities", "value_type has_foreground has_background has_text_effects")
 
 
 class Pixel(tuple):
@@ -217,7 +217,7 @@ class Shape:
         return self.data[pos[1] * self.width + pos[0]]
 
     def __getitem__(self, pos):
-        """Values for each pixel are: character, fg_color, bg_color, text_attributes.
+        """Values for each pixel are: character, fg_color, bg_color, text_effects.
         """
         raise NotImplementedError("This is meant as an abstract Shape class")
 
@@ -501,7 +501,7 @@ class PalettedShape(Shape):
         return self.data[pos[1] * self.width + pos[0]]
 
     def __getitem__(self, pos):
-        """Values for each pixel are: character, fg_color, bg_color, text_attributes.
+        """Values for each pixel are: character, fg_color, bg_color, text_effects.
         """
         char = self.get_raw(pos)
 
@@ -562,7 +562,7 @@ class FullShape(Shape):
         )
 
     def __getitem__(self, pos):
-        """Values for each pixel are: character, fg_color, bg_color, text_attributes.
+        """Values for each pixel are: character, fg_color, bg_color, text_effects.
         """
         value = self.get_raw(pos)
 

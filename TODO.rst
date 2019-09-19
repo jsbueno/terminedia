@@ -100,10 +100,13 @@ Imaging capabilities:
         implement FullShape class (v)
         make text effects work on terminal (V)
         Associate a base FullShape class with a Screen
-        Add example with terminal text effects
+        Add example with terminal text effects(V)
         Add example using FullShape
-        enable rendering of pixels with char, fg, bg, effects
+        enable rendering of pixels with char, fg, bg, effects on screen(V)
+        enable rendering of arbitrary pixels on arbitrary shape types
         update blit and other actions on drawing api to use all pixel properties.
+    create a "blit fast path" for value/palette shapes to screen
+        (avoid overhead of pixel introspection)
 
 General Refactoring:
     Add a proper rectangle class

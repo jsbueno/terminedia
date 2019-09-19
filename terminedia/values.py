@@ -56,7 +56,7 @@ class Effects(IntFlag):
 
 
 class BlockChars_:
-    """Used internaly to emulate pixel setting/resetting/reading inside 1/4 block characters
+    """Used internally to emulate pixel setting/resetting/reading inside 1/4 block characters
 
     Contains a listing and other mappings of all block characters used in order, so that
     bits in numbers from 0 to 15 will match the "pixels" on the corresponding block character.

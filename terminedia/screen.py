@@ -137,23 +137,32 @@ class Screen:
                 self.commands.clear()
             self.commands.cursor_hide()
 
-    def set_at(self, pos, color=None):
+    def set_at(self, pos, pixel=None): #, color=None):
         """Sets pixel at given coordinate
 
         Args:
           - pos (2-sequence): pixel coordinate
-          - color (Optional[Color]): sets the context color prior to printing
+          - pixel (Optional[Pixel]): sets the context values according to pixel attributes prior to printing
 
         To be used as a callback to ``.draw.set`` - but there are no drawbacks
         in being called directly.
         """
+        #self.__exit__(False, None, None)
+        #import os; os.system("reset")
+        #breakpoint()
+        if pixel is not None:
+            cap = pixel.capabilities
+            char = pixel.value if issubclass(cap.value_type, str) else self.context.char
+            if issubclass(cap.value_type, bool) and not pixel.value:
+                char = BlockChars.EMPTY  # Plain old space
+            for attr in ("foreground", "background", "text_effects"):
+                if getattr(cap, "has_" + attr):
+                    setattr(self.context, attr if attr != "foreground" else "color", getattr(pixel, attr))
+        else:
+            char = self.context.char
+        #if isinstance(color, Pixel)
 
-        if isinstance(color, Pixel):
-            # TODO: attribute all parameters to cell, according to pixel capabilities and values
-            ...
-        elif color:
-            self.context.color = color
-        self[pos] = self.context.char
+        self[pos] = char
 
     def reset_at(self, pos):
         """Resets pixel at given coordinate
