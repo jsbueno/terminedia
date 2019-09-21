@@ -11,7 +11,8 @@ DEFAULT_BG = 0xfffe
 #: Constant used as color to mean keep the current context colors
 CONTEXT_COLORS = 0xfffd
 #: Constant to mean keep the current value, usd as char, fg, bg or effect
-TRANSPARENT = 0xfffe
+#: TODO: not yet implemented in the rendering machinery
+TRANSPARENT = 0xfffc
 
 
 class Directions(Enum):

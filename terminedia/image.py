@@ -7,7 +7,7 @@ from inspect import signature
 from pathlib import Path
 
 from terminedia.utils import V2, LazyBindProperty
-from terminedia.values import DEFAULT_FG, DEFAULT_BG, TRANSPARENT, Directions, BlockChars, Effects
+from terminedia.values import DEFAULT_FG, DEFAULT_BG, TRANSPARENT, CONTEXT_COLORS, Directions, BlockChars, Effects
 
 logger = logging.getLogger(__name__)
 
@@ -462,11 +462,7 @@ class PalettedShape(Shape):
 
     def __init__(self, data, color_map=None):
         if color_map is None:
-            color_map = {
-                " ": DEFAULT_BG,
-                "#": DEFAULT_FG,
-                BlockChars.FULL_BLOCK: DEFAULT_FG
-            }
+            color_map = {}  # any char != " " or "." paints with current context color
         self.color_map = color_map
         if isinstance(data, (str, list)):
             self.load_paletted(data)
@@ -512,7 +508,7 @@ class PalettedShape(Shape):
         #else:
             #foreground_arg = ()
 
-        foreground_arg = self.color_map.get(char, DEFAULT_FG)
+        foreground_arg = self.color_map.get(char, CONTEXT_COLORS)
         return self.PixelCls(char, foreground_arg)
 
     def __setitem__(self, pos, value):

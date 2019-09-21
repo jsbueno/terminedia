@@ -236,7 +236,7 @@ class Drawing:
           - pos (2-sequence): top-left corner of the image
           - shape (Shape/string/list): Shape object or multi-line string or list of strings with shape to be drawn
           - color_map (Optional mapping): palette mapping chracters in shape to a color
-          - erase (bool): if True white-spaces are erased, instead of being ignored. Default is False.
+          - erase (bool): if True white-spaces are erased, instead of being ignored. Default is False. FIXME: under the Pixel model, erase is always True.
 
         Shapes return specialized Pixel classes when iterated upon -
         what is set on the screen depends on the Pixel returned.
@@ -247,8 +247,14 @@ class Drawing:
         """
         from terminedia.image import Shape, PalettedShape
 
-        original_color = self.context.color
-        original_background = self.context.background
+        if not hasattr(self.context, "color_stack"):
+            self.context.color_stack = []
+        if not hasattr(self.context, "background_stack"):
+            self.context.background_stack = []
+
+        self.context.color_stack.append(self.context.color)
+        self.context.background_stack.append(self.context.background)
+
         if isinstance(data, (str, list)):
             shape = PalettedShape(data, color_map)
         elif isinstance(data, Shape):
@@ -267,12 +273,12 @@ class Drawing:
             else:
                 if pixel.capabilities.has_foreground:
                     if pixel.foreground == CONTEXT_COLORS:
-                        self.context.color = original_color
+                        self.context.color = self.context.color_stack[-1]
                     else:
                         self.context.color = pixel.foreground
                 if pixel.capabilities.has_background:
                     if pixel.background == CONTEXT_COLORS:
-                        self.context.background = original_background
+                        self.context.background = self.context.background_stack[-1]
                     else:
                         self.context.background = pixel.background
 
@@ -288,8 +294,8 @@ class Drawing:
                 elif erase:
                     self.reset(target_pos)
 
-        self.context.color = original_color
-        self.context.background = original_background
+        self.context.color = self.context.color_stack.pop()
+        self.context.background = self.context.background_stack.pop()
 
 
 class HighRes:

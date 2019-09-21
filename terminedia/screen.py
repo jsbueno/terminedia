@@ -6,7 +6,7 @@ from math import ceil
 import terminedia.text
 from terminedia.utils import V2
 from terminedia.terminal import JournalingScreenCommands
-from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, Effects, Directions
+from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, Effects, Directions
 from terminedia.drawing import Drawing, HighRes
 from terminedia.image import Pixel
 
@@ -157,7 +157,14 @@ class Screen:
                 char = BlockChars.EMPTY  # Plain old space
             for attr in ("foreground", "background", "text_effects"):
                 if getattr(cap, "has_" + attr):
-                    setattr(self.context, attr if attr != "foreground" else "color", getattr(pixel, attr))
+                    value = getattr(pixel, attr)
+                    if value == CONTEXT_COLORS:
+                        if attr == "foreground":
+                            value = self.context.color_stack[-1]
+                        elif attr == "background":
+                            value = self.context.background_stack[-1]
+
+                    setattr(self.context, attr if attr != "foreground" else "color", value)
         else:
             char = self.context.char
         #if isinstance(color, Pixel)
