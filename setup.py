@@ -40,6 +40,7 @@ setup(
         terminedia-shapes=terminedia.examples.shapes:main
         terminedia-snake=terminedia.examples.snake:main
         terminedia-effects=terminedia.examples.effects:main
+        terminedia-text=terminedia.examples.text:main
     """,
     classifiers = [
         "Development Status :: 4 - Beta",

@@ -89,7 +89,7 @@ for sane text rendering:
     Improve font selection and loading
     Bundle 8x16 UNSCII font to packages
     Add arbitrary font handling by using PIL to cache rendered chars.
-    write example script using large-text rendering.
+    write example script using large-text rendering (V)
 
 
 Imaging capabilities:
