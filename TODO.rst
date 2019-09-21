@@ -34,7 +34,7 @@ MS-Windows support (colorama/mscrvt/color reducing)
 "business" framed-window api
 Postscriptish/Turtleish drawing api
 Table drawing chars drawing API
-Super-high resolition (Unicode vintage charset and "sextant" blocks)
+Super-high resolution (Unicode vintage charset and "sextant" blocks)
 Mouse event support
 Audio support (pyAudio?)
 Image (shape) transform - (rotate, scale).
@@ -61,11 +61,11 @@ Graph plotting CLI
 gradient fun: functions to apply color gradients
     easily on existing content (shapes)
 
-alpha emulation using brackground and color manipulation
+alpha emulation using background and color manipulation
 
 gaming framework in general:
     sprites
-    physics engine
+    physics engine (minimal, 2D)
     animation support
     main loop
 
@@ -82,7 +82,7 @@ for sane text rendering:
     enable shape drawing (V)
     enable shape blit (V)
     write shape-concatenation method (V)
-        use "imp.resource" to read default font data (V)
+        use "imp.resource" to read default font data (allows terminedia to run from zipped egg) (V)
     create "render text" call returning a shape (V)
     create "render text and blit at position on screen" call on drawing api (V)
     read font on demand (WIP - only the first 256 chars are loaded)
@@ -102,23 +102,29 @@ Imaging capabilities:
         Associate a base FullShape class with a Screen
         Add example with terminal text effects(V)
         Add example using FullShape
-        enable rendering of pixels with char, fg, bg, effects on screen(V)
+        enable rendering of pixels with char, fg, bg, effects on screen (V)
         enable rendering of arbitrary pixels on arbitrary shape types
-        update blit and other actions on drawing api to use all pixel properties.
-    create a "blit fast path" for value/palette shapes to screen
-        (avoid overhead of pixel introspection)
+        update blit and other actions on drawing api to use all pixel properties. (WIP)
+        implement handling of "TRANSPARENT" as FG, BG and Effects keeping attribute.
+    create a "blit fast path" for value/palette shapes to target
+        (avoid overhead of pixel creation)
 
 General Refactoring:
     Add a proper rectangle class
+    create a proper color class
     write a refresh method to redraw a Screen rectangle given internal data
     improve "blit" to allow optional source and destination ROI
     (them proceed to write the different backends.)
 
 Improvements and bugs:
-    CRITICAL: effects refactoring led rendering to be B&W (WIP)
-    Text effects are not cached in the terminal journaling-commands (WIP)
+    CRITICAL: effects refactoring led rendering to be B&W (V)
+    Text effects are not cached in the terminal journaling-commands (V)
     make double-width unicode characters take 2 character cells.
     plot example script prints completly bogus values on the y scale.
     Fix text rendering into FullShape
+    Fix blitting from FullShape
     fix-paletted-shape-blitting-bug (WIP)
     fix-value-shape-blitting-bug
+    fix-highres-shape-bliting color leak
+    refactor bezier-curve and ellipse(empty) adaptive code to use same codebase
+    configure properly and make consistent use of logger

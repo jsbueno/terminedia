@@ -48,10 +48,6 @@ c_map = {
               """)
 @click.option("high", "--high", flag_value=True, help="Use high-resolution 1/4 block pixels")
 def main(shape, high=False):
-    main_(shape, high)
-
-
-def main_(shape, high=False):
     """Quick example to navigate an string-defined shape through
     the terminal using the arrow keys! Press <ESC> to exit.
 
@@ -80,7 +76,7 @@ def main_(shape, high=False):
         y = 0
         while True:
             key = inkey()
-            if key == '\x1b':
+            if key in (K.ESC, "q"):
                 break
 
             with parent_scr.commands:
@@ -96,9 +92,4 @@ def main_(shape, high=False):
 
 
 if __name__ == "__main__":
-    import sys
-    shape = shape2 if "--shape2" in sys.argv else shape1
-    high = True if "--high" in sys.argv else False
-
-    main_(shape, high)
-
+    main()
