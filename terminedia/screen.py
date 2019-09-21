@@ -120,8 +120,8 @@ class Screen:
         called as part of entering the screen context.
 
         """
-        self.data = [" "] * self.width * self.height
-        self.color_data = [(DEFAULT_FG, DEFAULT_BG, Effects.none)] * self.width * self.height
+        self.data = FullShape.new((self.width, self.height))
+        self.data.context = self.context
         self.context.color = DEFAULT_FG
         self.context.background = DEFAULT_BG
         self.context.direction = Directions.RIGHT
@@ -137,7 +137,7 @@ class Screen:
                 self.commands.clear()
             self.commands.cursor_hide()
 
-    def set_at(self, pos, pixel=None): #, color=None):
+    def set_at(self, pos, pixel=None):
         """Sets pixel at given coordinate
 
         Args:
@@ -147,9 +147,6 @@ class Screen:
         To be used as a callback to ``.draw.set`` - but there are no drawbacks
         in being called directly.
         """
-        #self.__exit__(False, None, None)
-        #import os; os.system("reset")
-        #breakpoint()
         if pixel is not None:
             cap = pixel.capabilities
             char = pixel.value if issubclass(cap.value_type, str) else self.context.char
@@ -167,7 +164,6 @@ class Screen:
                     setattr(self.context, attr if attr != "foreground" else "color", value)
         else:
             char = self.context.char
-        #if isinstance(color, Pixel)
 
         self[pos] = char
 
@@ -270,6 +266,10 @@ class Screen:
                 cls.last_effects = self.context.effects
             self.commands.print_at(pos, value)
             self.context.last_pos = V2(pos)
+
+    def update(self, rect=None):
+        # TODO: redraws screen context based on self.data contents full screen or on optional ROI rect.
+        pass
 
 
 class Context:

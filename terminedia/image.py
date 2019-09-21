@@ -562,7 +562,7 @@ class FullShape(Shape):
         """
         value = self.get_raw(pos)
 
-        return self.PixelCls(value, foreground_arg)
+        return self.PixelCls(value)
 
     def __setitem__(self, pos, value):
         """
