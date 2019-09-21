@@ -52,6 +52,7 @@ paint modes to use different characters to denote intensity (back do ascii art):
              gradient, whatever.
              But whatever is done, have ways for it being simpler to
              use than cairo's contexts.'
+replicate text-char effects for big-chars
 
 
 frontend:

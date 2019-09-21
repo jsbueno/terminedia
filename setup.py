@@ -19,6 +19,7 @@ setup(
     # use_scm_version=True,
     setup_requires=['setuptools_scm'],
     include_package_data=True,
+    zip_safe = True,
     test_requires = [],
     install_requires=[
         "click",

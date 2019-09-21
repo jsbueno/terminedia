@@ -570,8 +570,28 @@ class FullShape(Shape):
         taken into account for PalettedShape
         """
         offset = pos[1] * self.width + pos[0]
+        # TODO: move this logic into pixel class itself - to an
+        # "get_values(self, context, capabilities) method
         if isinstance(value, self.PixelCls):
-            value = value.value
+            pixel = value
+            cap = pixel.capabilities
+            value = [
+                pixel.value if cap.value_type == str else self.context.char,
+                pixel.foreground if cap.has_foreground else self.context.color,
+                pixel.background if cap.has_background else self.context.background,
+                pixel.text_effects if cap.has_text_effects else self.context.text_effects
+            ]
+        else:
+
+            value = ([value] if isinstance(value, str) else list(value))
+            value += [
+                self.context.color, self.context.foreground, self.context.brackground, self.context.text_effects,
+            ][len(value) - 1:]
+        if value[0] == CONTEXT_COLORS: value[0] = self.context.color
+        if value[1] == CONTEXT_COLORS: value[1] = self.context.background
+        # FIXME: 'CONTEXT_COLORS' may clash with a text_effects flag combination in the future.
+        if value[2] == CONTEXT_COLORS: value[2] = self.context.effects
+
         for comp, plane in zip(value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)):
             if value is not TRANSPARENT:
                 plane[offset] = value
