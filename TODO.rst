@@ -101,7 +101,7 @@ create full fledged shape with char, fg, bg, effects (WIP):
         class bound as internal storage for screen (V)
         bug: issues with internal data and rendering(V)
         Fix text rendering into FullShape(V)
-        FEATURE: being able to draw in differing planes (value, FG, BG, effects) independent way
+        FEATURE: being able to draw in differing planes (value, FG, BG, effects) independent way(WIP)
         Add example script using FullShape
         write a refresh method to redraw a Screen rectangle given internal data
 

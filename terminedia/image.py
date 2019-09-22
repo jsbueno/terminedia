@@ -634,9 +634,12 @@ class FullShape(Shape):
                 self.context.color, self.context.background, self.context.effects,
             ][len(value) - 1:]
 
-        for comp, plane in zip(value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)):
-            if value is not TRANSPARENT:
-                plane[offset] = comp
+        if self.context.transformer:
+            value = self.context.transformer(pos, value)
+
+        for component, plane in zip(value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)):
+            if component is not TRANSPARENT:
+                plane[offset] = component
 
 
 def shape(data, color_map=None, **kwargs):
@@ -675,6 +678,8 @@ def shape(data, color_map=None, **kwargs):
         cls = PalettedShape
     elif isinstance(data, Shape):
         return data
-    else:
+    elif isinstance(data, tuple) and len(data) == 2:
+        return FullShape.new(data, **kwargs)
+
         raise NotImplementedError("Could not pick a Shape class for given arguments!")
     return cls(data, color_map, **kwargs)

@@ -11,8 +11,11 @@ DEFAULT_BG = 0xfffe
 #: Constant used as color to mean keep the current context colors
 CONTEXT_COLORS = 0xfffd
 #: Constant to mean keep the current value, usd as char, fg, bg or effect
-#: TODO: not yet implemented in the rendering machinery
 TRANSPARENT = 0xfffc
+#: Special value to mean no transformation to a given channel
+#: on context-transforms. (See `terminedia.utils.create_transformer`)
+NOP = object()
+
 
 
 class Directions(Enum):

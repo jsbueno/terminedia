@@ -95,3 +95,63 @@ def init_context_for_thread(context, char=None, color=None, background=None, eff
     context.background = background or DEFAULT_BG
     context.effects = effects or Effects.none
     context.direction = direction or Directions.RIGHT
+    context.transformer = None
+
+
+def create_transformer(context, slots):
+    """Attach a specialized callable to a drawing context to transform pixel values during rendering
+
+    Args:
+      - context (Drawing context namespace): the context
+      - slots (Union[Constant, Callable[pos, values, context]]): a sequence of callables that will perform the transform on each channel.
+
+      The callables passed to "slots" receive the full Pixel values as a sequence
+      (for full capability pixels: char, foreground, background, text effects).
+      Each callable have to return the final constant that will be applied as
+      that component on the drawing target data.
+
+      If one member of "slots" is not callable, it self is used
+      as a constant for that channel. The special value `NOP`
+      (``terminedia.values.NOP`` means no change to that channel.
+
+      Slot callables can return the special  `TRANSPARENT` constant to
+      indicate the target value at the corresponding plane is preserved.
+
+      Having fewer slots than are planes in the drawing context, means the
+      remaining planes are left empty.
+
+      ex. to install a transformer to force all text effects off:
+      ```
+      from terminedia values import create_transformer, NOP, Effects
+      ...
+      create_transformer(shape.context, [NOP, NOP, NOP, Effects.none])
+      ```
+
+      For a transformer that will force all color rendering
+      to be done to the background instead of foreground:
+      ```
+      create_transformer(shape.context, [NOP, TRANSPARENT, lambda pos, values, context: values[1], NOP])
+      ```
+
+      Transfomer to make all printed numbers be printed blinking:
+
+      ```
+      create_transformer(shape.context, [NOP, NOP, NOP, lambda pos, values, context: Effects.blink if values[0].isdigit() else TRANSPARENT])
+      ```
+
+      To uninstall a transformer, just set it to `None`
+      (that is: `shape.context.transformer = None`
+
+
+    """
+    from terminedia.values import NOP
+
+
+    def transformer(pos, values):
+        return [
+            slot(pos, values, context) if callable(slot) else
+            slot if slot is not NOP else
+            values[i]
+                for i, slot in enumerate(slots)
+        ]
+    context.transformer = transformer
