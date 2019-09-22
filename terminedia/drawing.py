@@ -112,6 +112,18 @@ class Drawing:
             self.line(pos1, (x1, y2))
             self.line((x2, y1), pos2)
 
+    def fill(self, color=None):
+        """Fills the associated target with a solid color.
+        Args:
+          - color (Optional[Color]): color to set the context, before filling.
+
+        If color is given, the context color is changed to it before filling.
+        The context color and char are used to fill the target area.
+        """
+        if color:
+            self.context.color = color
+        self.rect((0,0), self.size, fill=True)
+
     def _link_prev(self, pos, i, limits, mask):
         if i < limits[0] - 1:
             for j in range(i, limits[0]):
