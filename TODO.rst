@@ -33,6 +33,7 @@ REPL Environment wit bottom lines for python console and upper screen for image
 MS-Windows support (colorama/mscrvt/color reducing)
 "business" framed-window api
 Postscriptish/Turtleish drawing api
+Basic image transform API: resize, rotate, flip.
 Table drawing chars drawing API
 Super-high resolution (Unicode vintage charset and "sextant" blocks)
 Mouse event support
@@ -100,17 +101,18 @@ Imaging capabilities:
     create full fledged shape with char, fg, bg, effects (WIP):
         implement FullShape class (v)
         make text effects work on terminal (V)
-        Associate a base FullShape class with a Screen
+        Associate a base FullShape class with a Screen (V)
         Add example with terminal text effects(V)
         Add example using FullShape
         enable rendering of pixels with char, fg, bg, effects on screen (V)
-        enable rendering of arbitrary pixels on arbitrary shape types
+        enable rendering of arbitrary pixels on arbitrary shape types (WIP)
         update blit and other actions on drawing api to use all pixel properties. (WIP)
         implement handling of "TRANSPARENT" as FG, BG and Effects keeping attribute.
     create a "blit fast path" for value/palette shapes to target
         (avoid overhead of pixel creation)
 
 General Refactoring:
+    refactor context initialization (V)
     Add a proper rectangle class
     create a proper color class
     write a refresh method to redraw a Screen rectangle given internal data
@@ -121,6 +123,7 @@ General Refactoring:
 Improvements and bugs:
     CRITICAL: effects refactoring led rendering to be B&W (V)
     Text effects are not cached in the terminal journaling-commands (V)
+    Fix tm.text.render into palettedshape: result is mixing spaces and color-constants in data
     make double-width unicode characters take 2 character cells.
     plot example script prints completly bogus values on the y scale.
     Fix text rendering into FullShape
@@ -130,3 +133,5 @@ Improvements and bugs:
     fix-highres-shape-bliting color leak
     refactor bezier-curve and ellipse(empty) adaptive code to use same codebase
     configure properly and make consistent use of logger
+    fix breaking on terminedia-context (context initialization) (V)
+    fix regression on terminedia-context
