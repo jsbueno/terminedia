@@ -302,7 +302,7 @@ class JournalingScreenCommands(ScreenCommands):
         super().__init__()
 
     def __enter__(self):
-        """Enters a context where screen rights are collected together.
+        """Enters a context where screen writes are collected together.
 
         These are yielded to the screen at once.
         This is written in a way that the contexts can be nested,

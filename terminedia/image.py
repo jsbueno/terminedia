@@ -18,7 +18,7 @@ except ImportError:
 
 
 PixelClasses = {}
-pixel_capabilities = namedtuple("pixel_capabilities", "value_type has_foreground has_background has_text_effects")
+pixel_capabilities = namedtuple("pixel_capabilities", "value_type has_foreground has_background has_effects")
 
 
 class Pixel(tuple):
@@ -62,8 +62,8 @@ class Pixel(tuple):
             values.append(self.foreground if cap.has_foreground else context.color)
         if other_capabilities.has_background:
             values.append(self.background if cap.has_foreground else context.backgroung)
-        if other_capabilities.has_text_effects:
-            values.append(self.text_effects if cap.has_text_effects else self.context.text_effects)
+        if other_capabilities.has_effects:
+            values.append(self.effects if cap.has_effects else self.context.effects)
 
         return values
 
@@ -75,7 +75,7 @@ def pixel_factory(
     value_type=str,
     has_foreground=True,
     has_background=False,
-    has_text_effects=False,
+    has_effects=False,
     translate_dots=True,
 ):
     """Returns a custom pixel class with specified capabilities
@@ -84,7 +84,7 @@ def pixel_factory(
         value_type(str or bool): Data type returned by the pixel
         has_foreground (bool): Whether pixel has a foreground color
         has_background (bool): Whether pixel has a background color
-        has_text_effects (bool): Whether pixel has text-attribute flags
+        has_effects (bool): Whether pixel has text-attribute flags
 
     Created pixel classes or instances are not intended to be directly manipulated -
     instead, they are just a way to convey information from internal images/shapes
@@ -92,7 +92,7 @@ def pixel_factory(
     """
     PixelBase = globals()["Pixel"]
 
-    capabilities = pixel_capabilities(value_type, has_foreground, has_background, has_text_effects)
+    capabilities = pixel_capabilities(value_type, has_foreground, has_background, has_effects)
     if capabilities in PixelClasses:
         Pixel = PixelClasses[capabilities]
     else:
@@ -102,7 +102,7 @@ def pixel_factory(
                 ("value",) +
                 (("foreground", ) if has_foreground else ()) +
                 (("background", ) if has_background else ()) +
-                (("text_effects", ) if has_text_effects else ())
+                (("effects", ) if has_effects else ())
             ),
         )
 
@@ -256,12 +256,13 @@ class Shape:
             self.data = []
             for line in data:
                 self.data.extend(list(line))
+        return self.data
 
     def get_raw(self, pos):
         return self.data[pos[1] * self.width + pos[0]]
 
     def __getitem__(self, pos):
-        """Values for each pixel are: character, fg_color, bg_color, text_effects.
+        """Values for each pixel are: character, fg_color, bg_color, effects.
         """
         raise NotImplementedError("This is meant as an abstract Shape class")
 
@@ -500,7 +501,7 @@ class PalettedShape(Shape):
     foreground = True
     background = False
     arbitrary_chars = False
-    text_effects = False  # FUTURE: support for bold, blink, underline...
+    effects = False  # FUTURE: support for bold, blink, underline...
 
     PixelCls = pixel_factory(bool, has_foreground=True)
 
@@ -541,7 +542,7 @@ class PalettedShape(Shape):
         return self.data[pos[1] * self.width + pos[0]]
 
     def __getitem__(self, pos):
-        """Values for each pixel are: character, fg_color, bg_color, text_effects.
+        """Values for each pixel are: character, fg_color, bg_color, effects.
         """
         char = self.get_raw(pos)
 
@@ -574,22 +575,24 @@ class FullShape(Shape):
             representing text effects according to Effects values.
     """
 
-    PixelCls = pixel_factory(str, has_foreground=True, has_background=True, has_text_effects=True, translate_dots=False)
+    PixelCls = pixel_factory(str, has_foreground=True, has_background=True, has_effects=True, translate_dots=False)
 
     @staticmethod
     def _data_func(size):
         return [
             [" " * size.x] * size.y,
-            [DEFAULT_FG * size.x] * size.y,
-            [DEFAULT_BG * size.x] * size.y,
-            [Effects.none * size.x] * size.y,
+            [DEFAULT_FG] * size.x * size.y,
+            [DEFAULT_BG] * size.x * size.y,
+            [Effects.none] * size.x * size.y,
         ]
 
 
     def __init__(self, data):
-        self.value_data, self.fg_data, self.bg_data, self.eff_data = data
-        self.width = len(self.value_data[0])
-        self.height = len(self.value_data)
+        self.width = w = len(data[0][0])
+        self.height = h = len(data[0])
+        self.value_data, self.fg_data, self.bg_data, self.eff_data = (self.load_data(plane, (w,h)) for plane in data)
+        # self.data is created as a side-effect in load_data
+        del self.data
 
 
     def get_raw(self, pos):
@@ -602,11 +605,11 @@ class FullShape(Shape):
         )
 
     def __getitem__(self, pos):
-        """Values for each pixel are: character, fg_color, bg_color, text_effects.
+        """Values for each pixel are: character, fg_color, bg_color, effects.
         """
         value = self.get_raw(pos)
 
-        return self.PixelCls(value)
+        return self.PixelCls(*value)
 
     def __setitem__(self, pos, value):
         """
@@ -619,17 +622,12 @@ class FullShape(Shape):
         else:
             value = ([value] if isinstance(value, str) else list(value))
             value += [
-                self.context.color, self.context.foreground, self.context.brackground, self.context.text_effects,
+                self.context.color, self.context.background, self.context.effects,
             ][len(value) - 1:]
-        if value[0] == CONTEXT_COLORS: value[0] = self.context.color
-        if value[1] == CONTEXT_COLORS: value[1] = self.context.background
-        # FIXME: 'CONTEXT_COLORS' may clash with a text_effects flag combination in the future.
-        if value[2] == CONTEXT_COLORS: value[2] = self.context.effects
-
 
         for comp, plane in zip(value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)):
             if value is not TRANSPARENT:
-                plane[offset] = value
+                plane[offset] = comp
 
 
 def shape(data, color_map=None, **kwargs):

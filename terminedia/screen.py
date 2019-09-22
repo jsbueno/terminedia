@@ -152,7 +152,7 @@ class Screen:
             char = pixel.value if issubclass(cap.value_type, str) else self.context.char
             if issubclass(cap.value_type, bool) and not pixel.value:
                 char = BlockChars.EMPTY  # Plain old space
-            for attr in ("foreground", "background", "text_effects"):
+            for attr in ("foreground", "background", "effects"):
                 if getattr(cap, "has_" + attr):
                     value = getattr(pixel, attr)
                     if value == CONTEXT_COLORS:
@@ -223,6 +223,11 @@ class Screen:
           - pos (2-sequence): coordinate to retrieve data from.
         """
         return self.data[pos].value
+        #if value[0] == CONTEXT_COLORS: value[0] = self.context.color
+        #if value[1] == CONTEXT_COLORS: value[1] = self.context.background
+        ## FIXME: 'CONTEXT_COLORS' may clash with a effects flag combination in the future.
+        #if value[2] == CONTEXT_COLORS: value[2] = self.context.effects
+
 
     def __setitem__(self, pos, value):
         """Writes character data at pos
@@ -242,25 +247,23 @@ class Screen:
         to the terminal.
 
         """
-        index = pos[0] + pos[1] * self.width
-        if index < 0 or index >= len(self.data):
-            return
-        self.data[index] = value
+
 
         cls = self.__class__
         with self.lock:
+
             update_colors = (
                 cls.last_color != self.context.color or
                 cls.last_background != self.context.background or
                 cls.last_effects != self.context.effects
             )
-            colors = self.context.color, self.context.background, self.context.effects
-            self.color_data[index] = colors
             if update_colors:
+                colors = self.context.color, self.context.background, self.context.effects
                 self.commands.set_colors(*colors)
                 cls.last_color = self.context.color
                 cls.last_background = self.context.background
                 cls.last_effects = self.context.effects
+            self.data[pos] = value
             self.commands.print_at(pos, value)
             self.context.last_pos = V2(pos)
 
