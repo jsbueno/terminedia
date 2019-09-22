@@ -25,7 +25,8 @@ def main(image_paths):
     with Screen() as scr:
         for img_path in image_paths:
             img = shape(img_path)
-            scr.draw.blit((0,0), img)
+            with scr.commands:
+                scr.draw.blit((0,0), img)
             scr.context.color = 1, 0, 0
             # scr.print_at((img.width // 2 - len(phrase) // 2, img.height // 2,), phrase)
             pause()

@@ -4,10 +4,12 @@ import time
 import click
 
 from terminedia import Context, inkey, realtime_keyb, Screen
+from terminedia.utils import init_context_for_thread
 
 
 
 def worker(scr, base_x, base_color, num_workers):
+    init_context_for_thread(scr.context)
     scr.context.color = 1, 1, 0
     scr.context.background = 0, 0, 0
     scr.draw.line((base_x, 1), (base_x + 20, 1))

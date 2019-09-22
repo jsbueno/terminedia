@@ -4,7 +4,7 @@ import threading
 from math import ceil
 
 import terminedia.text
-from terminedia.utils import V2
+from terminedia.utils import V2, init_context_for_thread
 from terminedia.terminal import JournalingScreenCommands
 from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, Effects, Directions
 from terminedia.drawing import Drawing, HighRes
@@ -120,13 +120,9 @@ class Screen:
         called as part of entering the screen context.
 
         """
+        init_context_for_thread(self.context)
         self.data = FullShape.new((self.width, self.height))
         self.data.context = self.context
-        self.context.color = DEFAULT_FG
-        self.context.background = DEFAULT_BG
-        self.context.direction = Directions.RIGHT
-        self.context.effects = Effects.none
-        self.context.char = BlockChars.FULL_BLOCK
         self.context.last_pos = V2(0,0)
         self.__class__.last_color = None
         self.__class__.last_background = None

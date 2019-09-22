@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from inspect import signature
 from pathlib import Path
 
-from terminedia.utils import V2, LazyBindProperty
+from terminedia.utils import V2, LazyBindProperty, init_context_for_thread
 from terminedia.values import DEFAULT_FG, DEFAULT_BG, TRANSPARENT, CONTEXT_COLORS, Directions, BlockChars, Effects
 
 logger = logging.getLogger(__name__)
@@ -161,11 +161,7 @@ class Shape:
     @LazyBindProperty
     def context(self):
         context = self.__dict__["context"] = threading.local()
-        context.value = "#"
-        context.color = DEFAULT_FG
-        context.background = DEFAULT_BG
-        context.effects = Effects.none
-        context.direction = Directions.RIGHT
+        init_context_for_thread(context)
         return context
 
     @LazyBindProperty

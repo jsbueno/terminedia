@@ -77,3 +77,17 @@ class LazyBindProperty:
         if not self.name in instance.__dict__:
             instance.__dict__[self.name] = self.initializer(instance)
         return instance.__dict__[self.name]
+
+
+def init_context_for_thread(context, char=None, color=None, background=None, effects=None, direction=None):
+    """Create all expected data inside a context in the current thread.
+
+    Multi-threaded apps should call this to update a Screen or Shape instance
+    before trying to use that instance in a different thread than its originating one.
+    """
+    from terminedia.values import DEFAULT_BG, DEFAULT_FG, BlockChars, Directions, Effects
+    context.char = char or BlockChars.FULL_BLOCK
+    context.color = color or DEFAULT_FG
+    context.background = background or DEFAULT_BG
+    context.effects = effects or Effects.none
+    context.direction = direction or Directions.RIGHT
