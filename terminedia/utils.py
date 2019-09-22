@@ -62,6 +62,10 @@ class V2(tuple):
     def __repr__(self):
         return f"V2({self.x}, {self.y})"
 
+class Color:
+    # TODO: a context sensitive color class
+    # (to stop yielding constant values to be used as RGB tripplets)
+    pass
 
 
 class LazyBindProperty:

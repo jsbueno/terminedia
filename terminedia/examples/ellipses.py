@@ -2,7 +2,7 @@ import time
 
 import click
 
-from terminedia import Screen, realtime_keyb, inkey
+from terminedia import Screen, realtime_keyb, pause, inkey
 
 def test_ellipses(scr):
     import random
@@ -13,8 +13,7 @@ def test_ellipses(scr):
     scr.context.color = 1, 1, 1
     scr.high.draw.ellipse((90, 15), (200, 50), fill=False)
     scr.high.draw.ellipse((5, 3), (85, 60), fill=False)
-    while not inkey():
-        time.sleep(1 / 30)
+    pause()
 
     for i in range(30):
         with scr.commands:
@@ -23,6 +22,7 @@ def test_ellipses(scr):
                     scr.context.color = random.uniform(0, 1), random.uniform(0, 1), random.uniform(0, 1)
                     scr.high.draw.ellipse((x, y), (x + random.randrange(10, 40),  y + random.randrange(5, 20)))
                     inkey()
+        time.sleep(0.2)
 
 @click.command()
 def main():
@@ -30,9 +30,7 @@ def main():
     """
     with realtime_keyb(), Screen() as scr:
         test_ellipses(scr)
-        while True:
-            if inkey() == '\x1b':
-                break
+        pause()
 
 
 

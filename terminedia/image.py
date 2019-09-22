@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from inspect import signature
 from pathlib import Path
 
-from terminedia.utils import V2, LazyBindProperty, init_context_for_thread
+from terminedia.utils import Color, V2, LazyBindProperty, init_context_for_thread
 from terminedia.values import DEFAULT_FG, DEFAULT_BG, TRANSPARENT, CONTEXT_COLORS, Directions, BlockChars, Effects
 
 logger = logging.getLogger(__name__)
@@ -182,8 +182,8 @@ class Shape:
     def _get_drawing(self):
         from terminedia.drawing import Drawing
         return Drawing(
-            set_fn = lambda pos: self.__setitem__(pos, self.context.color),
-            reset_fn = lambda pos: self.__setitem__(pos, self.context.background),
+            set_fn = lambda pos: self.__setitem__(pos, self.context.char),
+            reset_fn = lambda pos: self.__setitem__(pos, BlockChars.EMPTY),
             size_fn = lambda : V2(self.width, self.height),
             context = self.context
         )
@@ -358,7 +358,16 @@ class ValueShape(Shape):
         """
         Values set for each pixel are 3-sequences with an RGB color value
         """
-        self.data[pos[1] * self.width + pos[0]] = value
+        if isinstance(value, Pixel):
+            v, color = value.get_values(self.context, self.PixelCls.capabilities)
+        elif isintance(value, (int, tuple, Color)):
+            color = self.context.color
+            if not value or value == BlockChars.EMPTY:
+                return
+        self._raw_setitem(pos, color)
+
+    def _raw_setitem(self, pos, color):
+        self.data[pos[1] * self.width + pos[0]] = color
 
 
 class PGMShape(ValueShape):
@@ -433,6 +442,12 @@ class ImageShape(ValueShape):
     The internal "data" member is a straighout PIL.Image instance,
     and one is free to use PIL drawing and image manipulation APIs
     to draw on it.
+
+    Important: on instantating  these shapes, Terminedia will
+    try to auto-scale down/resample the image to compensate for
+    the aspect-ratio of text imags. Pass the parameter `auto_scale=False`
+    to `__init__` or `__new__` to preserve the exact size of the
+    PIL Image.
     """
 
     PixelCls = pixel_factory(bool, has_foreground=True)
@@ -476,11 +491,9 @@ class ImageShape(ValueShape):
     def get_raw(self, pos):
         return self.data.getpixel(pos)
 
-    def __setitem__(self, pos, value):
-        """
-        Values set for each pixel are treated by PIL.
-        """
-        self.data.putpixel(pos, value)
+    def _raw_setitem(self, pos, color):
+        self.data.putpixel(pos, color)
+        self.data[pos[1] * self.width + pos[0]] = color
 
 
 class PalettedShape(Shape):

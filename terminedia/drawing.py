@@ -333,11 +333,15 @@ class HighRes:
         Common code to calculate the coordinates and get/reset/query a 1/4 character pixel.
         Call  :any:`HighRes.set_at`, :any:`HighRes.reset_at` or :any:`HighRes.get_at` instead.
         """
+        from terminedia.image import Pixel
+
         p_x = pos[0] // 2
         p_y = pos[1] // 2
         i_x, i_y = pos[0] % 2, pos[1] % 2
         graphics = True
         original = self.parent[p_x, p_y]
+        if isinstance(original, Pixel):
+            original = original.value
         if original not in BlockChars:
             graphics = False
             original = " "

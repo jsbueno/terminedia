@@ -10,7 +10,7 @@ Preliminary CLI (v)
 move examples to CLI-based standalone scripts available to pip-installs (v)
 refactor into full package (v)
 Big Font rendering - using multi-block for large characters composed of multiple pixels. (WIP)
-Bold, blink and underline text support (WIP)
+Bold, blink and underline text support (V)
 raw-data backend (terminal indepent)
 Block-smoothing with half triangle block chars
 
@@ -58,7 +58,7 @@ replicate text-char effects for big-chars
 
 frontend:
 Graph plotting CLI
-    make terminedia avalilable as a matplotlib backend
+    make terminedia available as a matplotlib backend
 
 gradient fun: functions to apply color gradients
     easily on existing content (shapes)
@@ -87,25 +87,33 @@ for sane text rendering:
         use "imp.resource" to read default font data (allows terminedia to run from zipped egg) (V)
     create "render text" call returning a shape (V)
     create "render text and blit at position on screen" call on drawing api (V)
+    write example script using large-text rendering (V)
+
     read font on demand (WIP - only the first 256 chars are loaded)
     Improve font selection and loading
     Bundle 8x16 UNSCII font to packages
     Add arbitrary font handling by using PIL to cache rendered chars.
-    write example script using large-text rendering (V)
+
+
+create full fledged shape with char, fg, bg, effects (WIP):
+    implement FullShape class (WIP):
+        class with internal data planes for each attribute (V)
+        class bound as internal storage for screen (V)
+        bug: issues with internal data and rendering(V)
+        Fix text rendering into FullShape(V)
+        FEATURE: being able to draw in differing planes (value, FG, BG, effects) independent way
+        Add example script using FullShape
+        write a refresh method to redraw a Screen rectangle given internal data
 
 
 Imaging capabilities:
     make "Alpha" value work for value-shapes.
     make "intensity" rendering for values (B&W shapes)
-
-    create full fledged shape with char, fg, bg, effects (WIP):
-        implement FullShape class (v)
         make text effects work on terminal (V)
         Associate a base FullShape class with a Screen (V)
         Add example with terminal text effects(V)
-        Add example using FullShape
         enable rendering of pixels with char, fg, bg, effects on screen (V)
-        enable rendering of arbitrary pixels on arbitrary shape types (WIP)
+        enable rendering of arbitrary pixels on arbitrary shape types (V)
         update blit and other actions on drawing api to use all pixel properties. (WIP)
         implement handling of "TRANSPARENT" as FG, BG and Effects keeping attribute.
     create a "blit fast path" for value/palette shapes to target
@@ -115,7 +123,6 @@ General Refactoring:
     refactor context initialization (V)
     Add a proper rectangle class
     create a proper color class
-    write a refresh method to redraw a Screen rectangle given internal data
     improve "blit" to allow optional source and destination ROI
     (them proceed to write the different backends.)
     Convert directions to specialized V2s, with a nice repr, instead of Enums (they have to be interchangeable with plain V2)
@@ -126,7 +133,6 @@ Improvements and bugs:
     Fix tm.text.render into palettedshape: result is mixing spaces and color-constants in data
     make double-width unicode characters take 2 character cells.
     plot example script prints completly bogus values on the y scale.
-    Fix text rendering into FullShape
     Fix blitting from FullShape
     fix-paletted-shape-blitting-bug (WIP)
     fix-value-shape-blitting-bug
@@ -135,3 +141,5 @@ Improvements and bugs:
     configure properly and make consistent use of logger
     fix breaking on terminedia-context (context initialization) (V)
     fix regression on terminedia-context
+    Improve error messages/or silence/ when attempting to write out of Screen/Shape limits
+
