@@ -8,7 +8,7 @@ from terminedia.utils import V2
 from terminedia.terminal import JournalingScreenCommands
 from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, Effects, Directions
 from terminedia.drawing import Drawing, HighRes
-from terminedia.image import Pixel
+from terminedia.image import Pixel, FullShape
 
 logger = logging.getLogger(__name__)
 
@@ -222,10 +222,7 @@ class Screen:
         Args:
           - pos (2-sequence): coordinate to retrieve data from.
         """
-        index = pos[0] + pos[1] * self.width
-        if index < 0 or index >= len(self.data):
-            return " "
-        return self.data[index]
+        return self.data[pos].value
 
     def __setitem__(self, pos, value):
         """Writes character data at pos

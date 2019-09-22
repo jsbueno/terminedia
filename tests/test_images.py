@@ -67,3 +67,39 @@ def test_valueshape_concat(direction, quantity, exp_width, exp_height, exp_data,
     assert c.width == exp_width
     assert c.height == exp_height
     assert  compare_data == exp_data
+
+
+class Context:
+    def __init__(self, **values):
+        self.__dict__.update(values)
+
+
+def test_create_pixel_bool():
+    PXT1 = IMG.pixel_factory(value_type=bool, has_foreground=False, has_background=False, has_text_effects=False, translate_dots=False)
+    px1 = PXT1(True)
+    assert px1.get_values(capabilities=PXT1.capabilities) == [True,]
+
+
+def test_create_pixel_from_pixel_bool_and_bool():
+    PXT1 = IMG.pixel_factory(value_type=bool, has_foreground=False, has_background=False, has_text_effects=False, translate_dots=False)
+    px1 = PXT1(True)
+    px2 = PXT1(px1)
+    assert px1 == px2
+    assert px2.get_values(capabilities=PXT1.capabilities) == [True,]
+
+
+@pytest.mark.parametrize(["inp", "expect"], [[True, "#"], [False, " "]])
+def test_create_pixel_from_pixel_bool_and_str(inp, expect):
+    PXT1 = IMG.pixel_factory(value_type=bool, has_foreground=False, has_background=False, has_text_effects=False, translate_dots=False)
+    PXT2 = IMG.pixel_factory(value_type=str, has_foreground=False, has_background=False, has_text_effects=False, translate_dots=False)
+    px1 = PXT1(inp)
+    px2 = PXT2(px1, context=Context(char="#"))
+    assert px2.get_values(capabilities=PXT2.capabilities) == [expect]
+
+
+def test_create_pixel_from_pixel_str_bool_pick_color_discard_effect():
+    PXT1 = IMG.pixel_factory(value_type=str, has_foreground=False, has_background=False, has_text_effects=True, translate_dots=False)
+    PXT2 = IMG.pixel_factory(value_type=bool, has_foreground=True, has_background=False, has_text_effects=False, translate_dots=False)
+    px1 = PXT1("#", TM.Effects.underline)
+    px2 = PXT2(px1, context=Context(color=(255, 0, 0)))
+    assert px2.get_values(capabilities=PXT2.capabilities) == [True, (255, 0, 0)]

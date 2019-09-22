@@ -116,6 +116,7 @@ General Refactoring:
     write a refresh method to redraw a Screen rectangle given internal data
     improve "blit" to allow optional source and destination ROI
     (them proceed to write the different backends.)
+    Convert directions to specialized V2s, with a nice repr, instead of Enums (they have to be interchangeable with plain V2)
 
 Improvements and bugs:
     CRITICAL: effects refactoring led rendering to be B&W (V)

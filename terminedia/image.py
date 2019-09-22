@@ -23,6 +23,50 @@ pixel_capabilities = namedtuple("pixel_capabilities", "value_type has_foreground
 
 class Pixel(tuple):
     __slots__ = ()
+    def __new__(cls, *args, context=None):
+        if args and isinstance(args[0], Pixel):
+            args = args[0].get_values(context, cls.capabilities)
+        return super().__new__(cls, *args)
+
+    def get_values(self, context=None, capabilities=None):
+        """Retrieve pixel or context values, according to caller's context and capabilities
+
+        That is, if this pixel provides value as str, fg and bg but no effects,
+        and the target accepts value as boolean, fg, and text effects,
+        a list with those properties set is generated.
+
+        List is choosen in order to allow further processing of values
+        without recreating the container (for example, to replace
+        'CONTEXT_COLORS' for the actual colors.
+
+        Although passing a context is optional, if, for generating the target
+        values any context values are needed, no further tests are done:
+        an AttributeError on the 'None' default context will take place.
+        """
+        other_capabilities = capabilities or pixel_capabilities(str, True, True, True)
+        cap = self.capabilities
+        values = []
+        if other_capabilities.value_type == cap.value_type:
+            values.append(self.value)
+        elif other_capabilities.value_type == bool:
+            if cap.value_type == str:
+                values.append(self.value != ' ')
+            else:
+                # TODO: When implementing alpha colors,
+                # a full transparent color should evaluate to 'False'
+                values.append(bool(self.value))
+        else:
+            values.append(context.char if self.value else " ")
+
+        if other_capabilities.has_foreground:
+            values.append(self.foreground if cap.has_foreground else context.color)
+        if other_capabilities.has_background:
+            values.append(self.background if cap.has_foreground else context.backgroung)
+        if other_capabilities.has_text_effects:
+            values.append(self.text_effects if cap.has_text_effects else self.context.text_effects)
+
+        return values
+
 
 
 full_pixel = namedtuple("Pixel", "char fg bg effects")
@@ -570,19 +614,9 @@ class FullShape(Shape):
         taken into account for PalettedShape
         """
         offset = pos[1] * self.width + pos[0]
-        # TODO: move this logic into pixel class itself - to an
-        # "get_values(self, context, capabilities) method
         if isinstance(value, self.PixelCls):
-            pixel = value
-            cap = pixel.capabilities
-            value = [
-                pixel.value if cap.value_type == str else self.context.char,
-                pixel.foreground if cap.has_foreground else self.context.color,
-                pixel.background if cap.has_background else self.context.background,
-                pixel.text_effects if cap.has_text_effects else self.context.text_effects
-            ]
+            value = value.get_values(self.context, self.PixelCls.capabilities)
         else:
-
             value = ([value] if isinstance(value, str) else list(value))
             value += [
                 self.context.color, self.context.foreground, self.context.brackground, self.context.text_effects,
@@ -591,6 +625,7 @@ class FullShape(Shape):
         if value[1] == CONTEXT_COLORS: value[1] = self.context.background
         # FIXME: 'CONTEXT_COLORS' may clash with a text_effects flag combination in the future.
         if value[2] == CONTEXT_COLORS: value[2] = self.context.effects
+
 
         for comp, plane in zip(value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)):
             if value is not TRANSPARENT:
