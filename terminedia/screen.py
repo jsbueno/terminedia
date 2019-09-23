@@ -247,20 +247,22 @@ class Screen:
 
         cls = self.__class__
         with self.lock:
+            # Force underlying shape machinnery to apply context attributes and transformations:
+            self.data[pos] = value
+            pixel = self.data[pos]
 
             update_colors = (
-                cls.last_color != self.context.color or
-                cls.last_background != self.context.background or
-                cls.last_effects != self.context.effects
+                cls.last_color != pixel.foreground or
+                cls.last_background != pixel.background or
+                cls.last_effects != pixel.effects
             )
             if update_colors:
-                colors = self.context.color, self.context.background, self.context.effects
+                colors = pixel.foreground, pixel.background, pixel.effects
                 self.commands.set_colors(*colors)
-                cls.last_color = self.context.color
-                cls.last_background = self.context.background
-                cls.last_effects = self.context.effects
-            self.data[pos] = value
-            self.commands.print_at(pos, value)
+                cls.last_color = pixel.foreground
+                cls.last_background = pixel.background
+                cls.last_effects = pixel.effects
+            self.commands.print_at(pos, pixel.value)
             self.context.last_pos = V2(pos)
 
     def update(self, rect=None):

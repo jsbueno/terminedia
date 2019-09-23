@@ -98,12 +98,15 @@ def init_context_for_thread(context, char=None, color=None, background=None, eff
     context.transformer = None
 
 
-def create_transformer(context, slots):
+def create_transformer(context, slots, clear=False):
     """Attach a specialized callable to a drawing context to transform pixel values during rendering
 
     Args:
       - context (Drawing context namespace): the context
-      - slots (Union[Constant, Callable[pos, values, context]]): a sequence of callables that will perform the transform on each channel.
+      - slots (Optional[Union[Constant, Callable[pos, values, context]]]): a sequence of callables that will perform the transform on each channel.
+      - clear (bool): if True will replace existing transformers.
+                      if False, the new transformation will be appended to the existing transformations in
+                      the context.
 
       The callables passed to "slots" receive the full Pixel values as a sequence
       (for full capability pixels: char, foreground, background, text effects).
@@ -112,7 +115,7 @@ def create_transformer(context, slots):
 
       If one member of "slots" is not callable, it self is used
       as a constant for that channel. The special value `NOP`
-      (``terminedia.values.NOP`` means no change to that channel.
+      (``terminedia.values.NOP`` means no change to that channel.)
 
       Slot callables can return the special  `TRANSPARENT` constant to
       indicate the target value at the corresponding plane is preserved.
@@ -140,14 +143,24 @@ def create_transformer(context, slots):
       ```
 
       To uninstall a transformer, just set it to `None`
-      (that is: `shape.context.transformer = None`
+      (that is: `shape.context.transformer = None`) or call this with slots=None.
 
+      # TODO -make transformer into a class that allows post-creation introspection and manipulation
 
     """
     from terminedia.values import NOP
 
+    if not slots:
+        context.transformer = None
+        return
+
+    previous_transformer = getattr(context, "transformer", None)
+    if clear:
+        previous_transformer = None
 
     def transformer(pos, values):
+        if previous_transformer:
+            values = previous_transformer(pos, values)
         return [
             slot(pos, values, context) if callable(slot) else
             slot if slot is not NOP else
