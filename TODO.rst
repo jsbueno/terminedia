@@ -29,7 +29,6 @@ multiple backends: (check pygments):
 alpha channel support for images
 Single-write optimization
 support to z-index, and background keeping on blitting ("sprite" api)
-REPL Environment wit bottom lines for python console and upper screen for image
 MS-Windows support (colorama/mscrvt/color reducing)
 "business" framed-window api
 Postscriptish/Turtleish drawing api
@@ -45,6 +44,7 @@ paint modes to use different characters to denote intensity (back do ascii art):
     Classic ASCII # * . etc
     Block-smoothing with half triangle block chars
     (use a context "paint mode" to have this supported on all paint operations?)
+    (use a special "effects" attribute and apply a convolution variant with a transformer?)
 
 "gradients": ways to make easy to create gradually changing colors.
              possibly a "painting context" similar to Cairo's, instead
@@ -53,6 +53,8 @@ paint modes to use different characters to denote intensity (back do ascii art):
              gradient, whatever.
              But whatever is done, have ways for it being simpler to
              use than cairo's contexts.'
+             (Hint: already possible on "user side" by using context-transformers)
+
 replicate text-char effects for big-chars
 
 
@@ -60,20 +62,37 @@ frontend:
 Graph plotting CLI
     make terminedia available as a matplotlib backend
 
-gradient fun: functions to apply color gradients
-    easily on existing content (shapes)
 
 alpha emulation using background and color manipulation
 
 gaming framework in general:
+    (integrate as a backend to "jsbueno/mapengine"?)
     sprites
     physics engine (minimal, 2D)
     animation support
     main loop
 
-space invaders
+space invaders implementation
 
-##############
+
+# virtual terminal server-
+    use advanced
+
+Advanced terminal handling features
+    REPL Environment wit bottom lines for python console and upper screen for image (see posix_openpt)
+    anmating and coloring text output of unware apps, by creating an internal virtual terminal (posix_openpt)
+    handle scrolling capabilities and pre-post buffer
+    terminal agnostic screen commands (terminfo and infocmp to de-hardcode ANSI sequences)
+
+HTML Backend:
+    generate static html files with inline style
+    server/mini app to live update a terminal HTML component
+    Ability to emulate Unix terminal on HTML comonent (posix_openpt)
+    Full-client-side implementation (using brython)
+
+
+Ongoing (0.3dev)
+ ##############
 step by step tasks
 
 for sane text rendering:
