@@ -358,12 +358,13 @@ class ValueShape(Shape):
         """
         Values set for each pixel are 3-sequences with an RGB color value
         """
+        color = value
         if isinstance(value, Pixel):
             v, color = value.get_values(self.context, self.PixelCls.capabilities)
-        elif isintance(value, (int, tuple, Color)):
-            color = self.context.color
-            if not value or value == BlockChars.EMPTY:
-                return
+        elif isinstance(value, (int, tuple, Color)):
+            color = value
+        elif isinstance(value, str):
+            color = self.context.color if value != " " else self.context.background
         self._raw_setitem(pos, color)
 
     def _raw_setitem(self, pos, color):
@@ -493,8 +494,6 @@ class ImageShape(ValueShape):
 
     def _raw_setitem(self, pos, color):
         self.data.putpixel(pos, color)
-        self.data[pos[1] * self.width + pos[0]] = color
-
 
 class PalettedShape(Shape):
     """'Shape' class intended to represent images, using a color-map to map characters to block colors.
