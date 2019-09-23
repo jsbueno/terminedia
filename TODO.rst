@@ -89,6 +89,8 @@ for sane text rendering:
     create "render text and blit at position on screen" call on drawing api (V)
     write example script using large-text rendering (V)
 
+    Add text formatting and flowing primitives into ".text" namespace
+    connect Screen "print" and "print_at" to ".text" namespace.
     read font on demand (WIP - only the first 256 chars are loaded)
     Improve font selection and loading
     Bundle 8x16 UNSCII font to packages
@@ -101,9 +103,9 @@ create full fledged shape with char, fg, bg, effects (WIP):
         class bound as internal storage for screen (V)
         bug: issues with internal data and rendering(V)
         Fix text rendering into FullShape(V)
-        FEATURE: being able to draw in differing planes (value, FG, BG, effects) independent way(WIP)
-        Add example script using FullShape
-        write a refresh method to redraw a Screen rectangle given internal data
+        FEATURE: being able to draw in differing planes (value, FG, BG, effects) independent way(V)
+        write a refresh method to redraw a Screen rectangle - allowing double-buffering drawing (V)
+        Add example script using FullShape and transformers(terminedia-text)
 
 
 Imaging capabilities:
@@ -114,8 +116,8 @@ Imaging capabilities:
         Add example with terminal text effects(V)
         enable rendering of pixels with char, fg, bg, effects on screen (V)
         enable rendering of arbitrary pixels on arbitrary shape types (V)
-        update blit and other actions on drawing api to use all pixel properties. (WIP)
-        implement handling of "TRANSPARENT" as FG, BG and Effects keeping attribute.
+        update blit and other actions on drawing api to use all pixel properties. (V) (via context.transfomer)
+        implement handling of "TRANSPARENT" as FG, BG and Effects keeping attribute (V)
     create a "blit fast path" for value/palette shapes to target
         (avoid overhead of pixel creation)
 
@@ -142,4 +144,5 @@ Improvements and bugs:
     fix breaking on terminedia-context (context initialization) (V)
     fix regression on terminedia-context
     Improve error messages/or silence/ when attempting to write out of Screen/Shape limits
+    FIX DOCUMENTATION GENERATION
 

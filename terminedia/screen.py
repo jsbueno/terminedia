@@ -12,6 +12,7 @@ from terminedia.image import Pixel, FullShape
 
 logger = logging.getLogger(__name__)
 
+_REPLAY = object()
 
 class Screen:
     """Canvas class for terminal drawing.
@@ -244,11 +245,11 @@ class Screen:
 
         """
 
-
         cls = self.__class__
         with self.lock:
             # Force underlying shape machinnery to apply context attributes and transformations:
-            self.data[pos] = value
+            if value != _REPLAY:
+                self.data[pos] = value
             pixel = self.data[pos]
 
             update_colors = (
@@ -265,9 +266,17 @@ class Screen:
             self.commands.print_at(pos, pixel.value)
             self.context.last_pos = V2(pos)
 
-    def update(self, rect=None):
-        # TODO: redraws screen context based on self.data contents full screen or on optional ROI rect.
-        pass
+    def update(self, pos1=None, pos2=None):
+        if pos1 == None:
+            pos1 = (0, 0)
+        if pos2 == None:
+            pos2 = (self.width, self.height)
+        pos1 = V2(pos1)
+        pos2 = V2(pos2)
+        with self.commands:
+            for y in range(pos1.y, pos2.y):
+                for x in range(pos1.x, pos2.x):
+                    self[x, y] = _REPLAY
 
 
 class Context:

@@ -13,6 +13,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('../../terminedia'))
 
 
 # -- Project information -----------------------------------------------------
@@ -22,7 +23,7 @@ copyright = '2019, João S. O. Bueno'
 author = 'João S. O. Bueno'
 
 # The full version, including alpha/beta/rc tags
-release = '0.2.0'
+release = '0.3.0dev0'
 
 
 # -- General configuration ---------------------------------------------------
