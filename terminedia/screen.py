@@ -44,6 +44,12 @@ class Screen:
 
     """
 
+
+    #: Instance contaning a mirror of the screen contents and attributes.
+    #: All Screen drawing attributes are mirrored in it, but it can
+    #: be updated independently and blitted to the terminal
+    #: later by calling Screen.update.
+    data: FullShape
     #: Lock to avoid ANSI sequence mangling if used in multi-threading
     lock = threading.Lock()
 
@@ -235,13 +241,19 @@ class Screen:
 
         This is mostly used internally by all other drawing and printing methods, although
         it can be used directly, by using Python's object-key notation with ``[ ]`` and assignment.
-        The thing to have in mind is that all text or graphics that go to the terminal *are
-        directed through this method* - it is a "single point" where all data is
-        sent, and this enabled keeping an in memory copy of the data that is printed
-        at the terminal, a series of optimizations by not re-issuing color-change
-        commands for each character printed, and finally some block-locking which enables
-        the library to work even in multi-threaded concurrent code drawing at once
-        to the terminal.
+        All text or graphics that go to the terminal *are directed through this method*
+        - it is a "single point" where all data is sent - and any user code that writes to
+        the terminal with a Screen class should use this method.
+        Valus set on Screen are imediately updated on the screen. To issue a command
+        batch that should be updated at once, use the Screen.commands attribute as
+        a context manager:  (`with sc.commands: ...code with lots of drawing calls ... `)
+
+        If it is desired to  draw/write in an in-memory buffer in order
+        to update everything at once, one can issue the drawing class to affect
+        the Screen.data attribute instead of Screen directly. The Screen contents
+        can be updated by calling Screen.update afterwards.  `Screen.data` is a
+        terminedia.FullShape object with a .draw, .high and .text interfaces
+        offering the same APIs available to Screen.
 
         """
 
