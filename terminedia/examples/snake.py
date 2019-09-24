@@ -26,8 +26,8 @@ class Snake:
 
     def update(self, game):
         x, y = self.pos
-        x += self.direction.value[0]
-        y += self.direction.value[1]
+        x += self.direction.x
+        y += self.direction.y
         self.pos = (x, y)
         self.body.append(self.pos)
         while len(self.body) > self.length:

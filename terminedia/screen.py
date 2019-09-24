@@ -194,8 +194,8 @@ class Screen:
             return
         for i, char in zip(range(length), sequence * (ceil(length / len(sequence)))):
             self[x, y] = char
-            x += self.context.direction.value[0]
-            y += self.context.direction.value[1]
+            x += self.context.direction[0]
+            y += self.context.direction[1]
 
     def print_at(self, pos, text):
         """Positions the cursor and prints a text sequence

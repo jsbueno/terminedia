@@ -142,11 +142,11 @@ Imaging capabilities:
 
 General Refactoring:
     refactor context initialization (V)
+    Convert directions to specialized V2s, with a nice repr, instead of Enums (they have to be interchangeable with plain V2) (V)
     Add a proper rectangle class
     create a proper color class
     improve "blit" to allow optional source and destination ROI
     (them proceed to write the different backends.)
-    Convert directions to specialized V2s, with a nice repr, instead of Enums (they have to be interchangeable with plain V2)
 
 Improvements and bugs:
     CRITICAL: effects refactoring led rendering to be B&W (V)
@@ -164,4 +164,14 @@ Improvements and bugs:
     fix regression on terminedia-context
     Improve error messages/or silence/ when attempting to write out of Screen/Shape limits
     FIX DOCUMENTATION GENERATION
+    Bug: current "inkey" is buggy as repeated keystrokes are bundled in the same inkey response. (completly bork at higher repeat rates)
+    improvement: API for  X-session wide key-repeat tunning with "xset r rate".
+            (Maybe, in combination with other features, it is even possible to have keydown/keyup emulation)
+            What is the equivalent API for Win and Mac if any?
+    Make internal FullShape planes (and maybe other Shapes) specialized containers (they are plain lists): enable direct attribute setting on plane (rename  attributes in the process)
+    Improve context transformers to become a friendly, stackable class
+    create a few ready-made, parametrized transformers for effects like: plane select, color gradients, mask blit,
+
+
+
 

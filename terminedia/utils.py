@@ -32,6 +32,19 @@ class V2(tuple):
             x, y = x
         return super().__new__(cls, (x, y))
 
+    def __init__(self, *args, **kw):
+        # "Eat" subclass arguments that would
+        # otherwise hit tuple.__init__ and
+        # cause a fault.
+        return
+        # If composition of this class ever gets more complex, uncomment the
+        # pedantic way to go is:
+
+        #x, y = kw.pop(x, None), kw.pop(y, None)
+        #if not x and not y and len(args) >= 2:
+            #args = args[2:]
+        #super().__init__(*args, **kw)
+
     x = property(lambda self: self[0])
     y = property(lambda self: self[1])
 
@@ -62,6 +75,38 @@ class V2(tuple):
     def __repr__(self):
         return f"V2({self.x}, {self.y})"
 
+
+class NamedV2(V2):
+    """Vector meant to be used as constant, with a string-repr name"""
+
+    def __init__(self, *args, name=None, **kw):
+        """Optional name - if used as a descriptor, name is auto-set"""
+        self.name = name
+        super().__init__(*args, **kw)
+
+    def __set_name__(self, owner, name):
+        self.owner_name = owner.__name__
+        self.name = name
+
+    def __get__(self, instance, owner):
+        return self
+
+    def __repr__(self):
+        return f"{self.owner_name}.{self.name}"
+
+    def __str__(self):
+        return self.name
+
+    # Force operator methods to get these values as pure V2 instances
+    # (so that adding "Directions" results in a normal vector,
+    # not an object with a __dict__)
+    for method in "__add__ __sub__ __mul__ __abs__ as_int".split():
+        locals()[method] = (lambda method: lambda s, *args: getattr(V2, method)(V2(s), *args))(method)
+
+    @property
+    def value(self):
+        """Returns self, keeping compatibility with Python Enums if used as a descriptor"""
+        return self
 
 class Color:
     # TODO: a context sensitive color class

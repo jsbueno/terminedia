@@ -1,6 +1,6 @@
 from enum import Enum, IntFlag
 
-from terminedia.utils import mirror_dict, V2
+from terminedia.utils import mirror_dict, V2, NamedV2
 
 
 #: Constant used as color to mean the default terminal foreground
@@ -18,17 +18,17 @@ NOP = object()
 
 
 
-class Directions(Enum):
+class Directions:
     """Direction vector constants.
 
     These are used directly as text-printing direction on
-    a :any:`Screen` context, but can be used by other applications as
-    well.
+    a :any:`Screen` context, and are free to general use
+    in user applications
     """
-    UP = V2(0, -1)
-    RIGHT = V2(1, 0)
-    DOWN = V2(0, 1)
-    LEFT = V2(-1, 0)
+    UP = NamedV2(0, -1)
+    RIGHT = NamedV2(1, 0)
+    DOWN = NamedV2(0, 1)
+    LEFT = NamedV2(-1, 0)
 
 
 class Effects(IntFlag):
