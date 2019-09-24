@@ -189,13 +189,13 @@ class Screen:
           of aritrary characters or short words. The line directin is taken from the
           context's direction.
         """
-        x, y = pos
+        pos = V2(pos)
         if not sequence:
             return
+        direction = V2(self.context.direction)
         for i, char in zip(range(length), sequence * (ceil(length / len(sequence)))):
-            self[x, y] = char
-            x += self.context.direction[0]
-            y += self.context.direction[1]
+            self[pos.as_int] = char
+            pos += direction
 
     def print_at(self, pos, text):
         """Positions the cursor and prints a text sequence
