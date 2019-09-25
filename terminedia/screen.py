@@ -4,6 +4,7 @@ import threading
 from math import ceil
 
 import terminedia.text
+from terminedia.context import Context
 from terminedia.utils import V2, init_context_for_thread
 from terminedia.terminal import JournalingScreenCommands
 from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, Effects, Directions
@@ -78,7 +79,7 @@ class Screen:
         #: Namespace to configure drawing and printing color and other parameters.
         #: Currently, the attributes that are used from here are
         #: ``color``, ``background``, ``direction``, ``effects`` and ``char``.
-        self.context = threading.local()
+        self.context = Context()
 
         #: Namespace for drawing methods, containing an instance of the :any:`Drawing` class
         self.draw = Drawing(self.set_at, self.reset_at, self.get_size, self.context)
@@ -291,7 +292,7 @@ class Screen:
                     self[x, y] = _REPLAY
 
 
-class Context:
+class LocalContext:
     """Context manager for :any:`Screen` context attributes (Pun not intended)
 
     Args:

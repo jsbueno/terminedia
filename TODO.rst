@@ -110,11 +110,12 @@ for sane text rendering:
 
     Add text formatting and flowing primitives into ".text" namespace
     connect Screen "print" and "print_at" to ".text" namespace.
+    (make text.at work with the @ operator?: `sc.text[4] @ (5,2)("hello!")`?
     read font on demand (WIP - only the first 256 chars are loaded)
     Improve font selection and loading
     Bundle 8x16 UNSCII font to packages
     Add arbitrary font handling by using PIL to cache rendered chars.
-
+    Enable 16 x 8 double and 16 x 16 double width UNSCII fonts.
 
 create full fledged shape with char, fg, bg, effects (WIP):
     implement FullShape class (WIP):
@@ -171,6 +172,7 @@ Improvements and bugs:
     Make internal FullShape planes (and maybe other Shapes) specialized containers (they are plain lists): enable direct attribute setting on plane (rename  attributes in the process)
     Improve context transformers to become a friendly, stackable class
     create a few ready-made, parametrized transformers for effects like: plane select, color gradients, mask blit,
+    Refactor "context" namespace into full class with descriptors.
 
 
 
