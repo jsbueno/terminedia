@@ -172,7 +172,8 @@ Improvements and bugs:
     Make internal FullShape planes (and maybe other Shapes) specialized containers (they are plain lists): enable direct attribute setting on plane (rename  attributes in the process)
     Improve context transformers to become a friendly, stackable class
     create a few ready-made, parametrized transformers for effects like: plane select, color gradients, mask blit,
-    Refactor "context" namespace into full class with descriptors.
+    Refactor "context" namespace into full class with descriptors. (V)
+    Update "Context" to use context-locals (asyn aware) instead of thread-locals
 
 
 

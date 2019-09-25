@@ -5,7 +5,7 @@ from math import ceil
 
 import terminedia.text
 from terminedia.context import Context
-from terminedia.utils import V2, init_context_for_thread
+from terminedia.utils import V2
 from terminedia.terminal import JournalingScreenCommands
 from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, Effects, Directions
 from terminedia.drawing import Drawing, HighRes
@@ -128,7 +128,6 @@ class Screen:
         called as part of entering the screen context.
 
         """
-        init_context_for_thread(self.context)
         self.data = FullShape.new((self.width, self.height))
         self.data.context = self.context
         self.context.last_pos = V2(0,0)
@@ -291,52 +290,3 @@ class Screen:
                 for x in range(pos1.x, pos2.x):
                     self[x, y] = _REPLAY
 
-
-class LocalContext:
-    """Context manager for :any:`Screen` context attributes (Pun not intended)
-
-    Args:
-      - screen (Screen): The screen where to operate
-
-    Kwargs:
-      should contain desired temporary attributes:
-
-      - color: color special value or RGB sequence for foreground color - either int 0-255  or float 0-1 based.
-      - background: color special value or RGB sequence sequence for background color
-      - direction: terminedia.Directions Enum value with writting direction
-      - effects: terminedia.Effects Enum value with combination of text effects
-      - char: Char to be plotted when setting a single color.
-
-    Provides a practical way for a sub-routine to draw things to the screen without messing with the
-    callee's expected drawing context. Otherwise one would have to manually save and restore
-    the context colors for each operation.  When entering this context, the original screen context
-    is returned - changes made to it will be reverted when exiting.
-
-    """
-    SENTINEL = object()
-
-    def __init__(self, screen, **kwargs):
-        """Sets internal attributes"""
-        self.screen = screen
-        self.attrs = kwargs
-
-    def __enter__(self):
-        """Saves current screen context, sets new values and returns the context itself
-
-        The returned context object can be safelly manipulated inside the block
-        """
-        self.original_values = {key:getattr(self.screen.context, key)
-                                    for key in dir(self.screen.context) if not key.startswith("_")}
-        for key, value in self.attrs.items():
-            setattr(self.screen.context, key, value)
-        return self.screen.context
-
-    def __exit__(self, exc_name, traceback, frame):
-        """Restores saved and previously not set context parameters"""
-        for key, value in self.original_values.items():
-            if value is self.SENTINEL:
-                continue
-            setattr(self.screen.context, key, value)
-        for key in dir(self.screen.context):
-            if not key.startswith("_") and key not in self.original_values:
-                delattr(self.screen.context, key)
