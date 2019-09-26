@@ -165,7 +165,7 @@ Improvements and bugs:
     fix regression on terminedia-context
     Improve error messages/or silence/ when attempting to write out of Screen/Shape limits
     FIX DOCUMENTATION GENERATION
-    Bug: current "inkey" is buggy as repeated keystrokes are bundled in the same inkey response. (completly bork at higher repeat rates)
+    Bug: current "inkey" is buggy as repeated keystrokes are bundled in the same inkey response. (completly bork at higher repeat rates)(V)
     improvement: API for  X-session wide key-repeat tunning with "xset r rate".
             (Maybe, in combination with other features, it is even possible to have keydown/keyup emulation)
             What is the equivalent API for Win and Mac if any?
@@ -174,7 +174,4 @@ Improvements and bugs:
     create a few ready-made, parametrized transformers for effects like: plane select, color gradients, mask blit,
     Refactor "context" namespace into full class with descriptors. (V)
     Update "Context" to use context-locals (async aware) instead of thread-locals
-
-
-
 

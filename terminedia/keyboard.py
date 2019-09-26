@@ -9,6 +9,8 @@ import time
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
 
+from terminedia.utils import mirror_dict
+
 
 # Keyboard reading code copied and evolved from
 # https://stackoverflow.com/a/6599441/108205
@@ -58,7 +60,7 @@ def realtime_keyb():
         fcntl.fcntl(fd, fcntl.F_SETFL, flags_save)
 
 
-def inkey(break_=True):
+def inkey(break_=True, clear=True):
     """Return currently pressed key as a string
 
     Args:
@@ -80,13 +82,24 @@ def inkey(break_=True):
 
     """
     keycode = ""
-    while True:
+
+    if clear:
+        c = sys.stdin.read(10000)
+        if c:
+            c = c[c.rfind("\x1b"):] # if \x1b is not found, rfind returns -1, which is the desired value
+    else:
         c = sys.stdin.read(1)  # returns a single character
+
+    while True:
         if not c:
             break
         if c == "\x03" and break_:
             raise KeyboardInterrupt
         keycode += c
+        if (len(keycode) == 1 or keycode in KeyCodes.codes) and keycode != "\x1b":
+            break
+        c = sys.stdin.read(1)
+
     return keycode
 
 def pause(timeout=0):
@@ -154,3 +167,5 @@ class KeyCodes:
     RIGHT = '\x1b[C'
     DOWN = '\x1b[B'
     LEFT = '\x1b[D'
+
+    codes = mirror_dict(locals())
