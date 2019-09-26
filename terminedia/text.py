@@ -125,6 +125,12 @@ class Text:
             raise TypeError("Please select the character plane with `.text[#]` before using this method")
         return self.__dict__["current_plane"]
 
+    def set_ctx(self, key, value):
+        return setattr(self.owner.context, f"text_{self.current_plane}_{key}", value)
+
+    def get_ctx(self, key, default=None):
+        return getattr(self.owner.context, f"text_{self.current_plane}_{key}", default)
+
     @current_plane.setter
     def current_plane(self, value):
         self.__dict__["current_plane"] = value
@@ -172,10 +178,12 @@ class Text:
             self.owner[index] = self.plane["data"][index]
         elif self.current_plane == 4:
             char = render(self.plane["data"][index], font=self.plane["font"])
-            self.owner.high.draw.blit((index[0] * 8, index[1] * 8), char)
+            index = (V2(index) * 8).as_int
+            self.owner.high.draw.blit(index, char)
         elif self.current_plane == 8:
             char = render(self.plane["data"][index], font=self.plane["font"])
-            self.owner.draw.blit((index[0] * 8, index[1] * 8), char)
+            index = (V2(index) * 8).as_int
+            self.owner.draw.blit(index, char)
         else:
             raise ValueError(f"Size {self.current_plane} not implemented for rendering")
 
@@ -184,4 +192,9 @@ class Text:
         for char in text:
             self[pos] = char
             pos += self.owner.context.direction.value
+        self.set_ctx("last_pos", pos)
+
+    def print(self, text):
+        last_pos = self.get_ctx("last_pos", default=(0, 0))
+        self.at(last_pos, text)
 

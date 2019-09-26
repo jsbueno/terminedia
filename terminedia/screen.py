@@ -203,21 +203,35 @@ class Screen:
             self[pos.as_int] = char
             pos += direction
 
-    def print_at(self, pos, text):
+    def print_at(self, pos, text, **kwargs):
         """Positions the cursor and prints a text sequence
 
         Args:
           - pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
-          - txt: Text to render at position
+          - text: Text to render at position
+          - **kwargs: Arguments to be applied to context prior to printing
 
-        Context's direction is respected when printing
+        Context's attributes are respected when printing
         """
-        self.line_at(pos, len(text), sequence=text)
+        with self.context(**kwargs):
+            self.text[1].at(pos, text)
+            last_pos = self.text[1].get_ctx("last_pos")
+        self.text[1].set_ctx("last_pos", last_pos)
 
-    def print(self, text):
+    def print(self, text, **kwargs):
+        """Prints a text sequence following the last character printed
+
+        Args:
+          - text: Text to render at position
+          - **kwargs: Arguments to be applied to context prior to printing
+
+        Context's attributes are respected when printing
+        """
         """Prints text picking at the last position that were printed to."""
-        pos  = self.context.last_pos + self.context.direction.value
-        self.print_at(pos, text)
+        with self.context(**kwargs):
+            self.text[1].print(text)
+            last_pos = self.text[1].get_ctx("last_pos")
+        self.text[1].set_ctx("last_pos", last_pos)
 
     def __getitem__(self, pos):
         """Retrieves character data at pos

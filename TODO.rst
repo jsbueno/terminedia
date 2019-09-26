@@ -108,8 +108,8 @@ for sane text rendering:
     create "render text and blit at position on screen" call on drawing api (V)
     write example script using large-text rendering (V)
 
-    Add text formatting and flowing primitives into ".text" namespace
-    connect Screen "print" and "print_at" to ".text" namespace.
+    Add text formatting and flowing primitives into ".text" namespace(WIP)
+    connect Screen "print" and "print_at" to ".text" namespace.(V)
     (make text.at work with the @ operator?: `sc.text[4] @ (5,2)("hello!")`?
     read font on demand (WIP - only the first 256 chars are loaded)
     Improve font selection and loading
@@ -173,7 +173,7 @@ Improvements and bugs:
     Improve context transformers to become a friendly, stackable class
     create a few ready-made, parametrized transformers for effects like: plane select, color gradients, mask blit,
     Refactor "context" namespace into full class with descriptors. (V)
-    Update "Context" to use context-locals (asyn aware) instead of thread-locals
+    Update "Context" to use context-locals (async aware) instead of thread-locals
 
 
 
