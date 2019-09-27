@@ -108,6 +108,146 @@ class NamedV2(V2):
         """Returns self, keeping compatibility with Python Enums if used as a descriptor"""
         return self
 
+
+class Rectangle:
+    __slots__ = ("_c1", "_c2")
+
+    def __init__(
+        self,
+        left_or_corner1=None,
+        top_or_corner2=None,
+        right=None,
+        bottom=None, *,
+        width_height=None,
+        width=None,
+        height=None,
+        center=None
+    ):
+        if isinstance(left_or_corner1, Rectangle):
+            self.c1 = left_or_corner1.c1
+            self.c2 = left_or_corner1.c2
+            return
+        left = top = c1 = c2 = None
+        if hasattr(left_or_corner1, "__len__"):
+            if len(left_or_corner1) == 4:
+                c1 = V2(left_or_corner1[:2])
+                c2 = V2(left_or_corner1[2:])
+            elif len(left_or_corner1) == 2:
+                c1 = V2(left_or_corner1)
+        else:
+            left = left_or_corner1
+        if hasattr(top_or_corner2, "__len__") and len(top_or_corner2) == 2:
+            c2 = V2(top_or_corner2)
+        else:
+            top = top_or_corner2
+
+        if not width_height and width is not None and height is not None:
+            width_height = width, height
+        self.c1 = c1 if c1 else (left, top) if left is not None and top is not None else (0, 0)
+        self.c2 = c2 if c2 else (right, bottom) if right is not None and bottom is not None else (0, 0)
+        if width_height is not None:
+            self.width_height = width_height
+        if center is not None:
+            self.center = center
+
+    c1 = property(lambda s: s._c1)
+    @c1.setter
+    def c1(self, value):
+        self._c1 = V2(value)
+
+    c2 = property(lambda s: s._c2)
+    @c2.setter
+    def c2(self, value):
+        self._c2 = V2(value)
+
+    @property
+    def width_height(self):
+        return V2(self.width, self.height)
+    @width_height.setter
+    def width_height(self, value):
+        self.width = value[0]
+        self.height = value[1]
+
+    @property
+    def width(self):
+        return self._c2.x - self._c1.x
+    @width.setter
+    def width(self, value):
+        self._c2 = V2(self._c1.x + value, self._c2.y)
+
+    @property
+    def height(self):
+        return self._c2.y - self._c1.y
+    @height.setter
+    def height(self, value):
+        self._c2 = V2(self._c2.x, self._c1.y + value)
+
+    @property
+    def center(self):
+        return (self._c1 + self._c2) * 0.5
+    @center.setter
+    def center(self, value):
+        center = V2(value)
+        w, h = self.width_height
+        w2 = w / 2; h2 = h / 2
+        self._c1 = V2(center.x - w2, center.y - h2)
+        self._c2 = V2(center.x + w2, center.y + h2)
+
+    @property
+    def left(self):
+        return self._c1.x
+    @left.setter
+    def left(self, value):
+        w = self.width
+        self._c1 = V2(value, self._c1.y)
+        self._c2 = V2(value + w, self._c2.y)
+
+    @property
+    def top(self):
+        return self._c1.y
+    @top.setter
+    def top(self, value):
+        h = self.height
+        self._c1 = V2(self._c1.x, value)
+        self._c2 = V2(self._c2.x, value + h)
+
+    @property
+    def right(self):
+        return self._c2.x
+    @right.setter
+    def right(self, value):
+        w = self.width
+        self._c2 = V2(value, self._c2.y)
+        self._c1 = V2(value - w, self._c1.y)
+
+    @property
+    def bottom(self):
+        return self._c2.y
+    @bottom.setter
+    def bottom(self, value):
+        h = self.height
+        self._c2 = V2(self._c2.x, value)
+        self._c1 = V2(self._c1.x, value - h)
+
+    @property
+    def as_int(self):
+        return self.__class__(self._c1.as_int, self._c2.as_int)
+
+    @property
+    def area(self):
+        return self.width * self.height
+
+    def __iter__(self):
+        yield self.c1
+        yield self.c2
+
+    def __len__(self):
+        return 4
+
+    def __repr__(self):
+        return f"Rectangle({tuple(self.c1)}, {tuple(self.c2)})"
+
+
 class Color:
     # TODO: a context sensitive color class
     # (to stop yielding constant values to be used as RGB tripplets)

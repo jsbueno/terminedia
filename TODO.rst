@@ -118,14 +118,14 @@ for sane text rendering:
     Enable 16 x 8 double and 16 x 16 double width UNSCII fonts.
 
 create full fledged shape with char, fg, bg, effects (WIP):
-    implement FullShape class (WIP):
+    implement FullShape class (V):
         class with internal data planes for each attribute (V)
         class bound as internal storage for screen (V)
         bug: issues with internal data and rendering(V)
         Fix text rendering into FullShape(V)
         FEATURE: being able to draw in differing planes (value, FG, BG, effects) independent way(V)
         write a refresh method to redraw a Screen rectangle - allowing double-buffering drawing (V)
-        Add example script using FullShape and transformers(terminedia-text)
+    Add example script using FullShape and transformers(terminedia-text)
 
 
 Imaging capabilities:
@@ -144,7 +144,8 @@ Imaging capabilities:
 General Refactoring:
     refactor context initialization (V)
     Convert directions to specialized V2s, with a nice repr, instead of Enums (they have to be interchangeable with plain V2) (V)
-    Add a proper rectangle class
+    Add a proper rectangle class (V)
+    Refactor APIs to accept Rectangle(WIP)
     create a proper color class
     improve "blit" to allow optional source and destination ROI
     (them proceed to write the different backends.)
@@ -162,7 +163,7 @@ Improvements and bugs:
     refactor bezier-curve and ellipse(empty) adaptive code to use same codebase
     configure properly and make consistent use of logger
     fix breaking on terminedia-context (context initialization) (V)
-    fix regression on terminedia-context
+    fix regression on terminedia-context (V)
     Improve error messages/or silence/ when attempting to write out of Screen/Shape limits
     FIX DOCUMENTATION GENERATION
     Bug: current "inkey" is buggy as repeated keystrokes are bundled in the same inkey response. (completly bork at higher repeat rates)(V)
