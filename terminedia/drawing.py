@@ -148,7 +148,7 @@ class Drawing:
         """
         pos1, pos2 = Rect(pos1, pos2, width_height=rel)
 
-        pos2 = pos2 - (1,1)
+        pos2 -= (1,1)
 
         return self._empty_ellipse(pos1, pos2) if not fill else self._filled_ellipse(pos1, pos2)
 

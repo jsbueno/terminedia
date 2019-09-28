@@ -5,7 +5,7 @@ from math import ceil
 
 import terminedia.text
 from terminedia.context import Context
-from terminedia.utils import V2
+from terminedia.utils import V2, Rect
 from terminedia.terminal import JournalingScreenCommands
 from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, Effects, Directions
 from terminedia.drawing import Drawing, HighRes
@@ -98,6 +98,7 @@ class Screen:
         #: various screen operations in a single block that is rendered at once.
         self.commands = JournalingScreenCommands()
         self.clear_screen = clear_screen
+        self.data = FullShape.new((self.width, self.height))
 
     def __enter__(self):
         """Enters a fresh screen context"""
@@ -128,7 +129,6 @@ class Screen:
         called as part of entering the screen context.
 
         """
-        self.data = FullShape.new((self.width, self.height))
         self.data.context = self.context
         self.context.last_pos = V2(0,0)
         self.__class__.last_color = None
@@ -293,14 +293,11 @@ class Screen:
             self.context.last_pos = V2(pos)
 
     def update(self, pos1=None, pos2=None):
-        if pos1 == None:
-            pos1 = (0, 0)
-        if pos2 == None:
-            pos2 = (self.width, self.height)
-        pos1 = V2(pos1)
-        pos2 = V2(pos2)
+        rect = Rect(pos1, pos2)
+        if rect.c2 == (0, 0):
+            rect.c2 = (self.width, self.height)
         with self.commands:
-            for y in range(pos1.y, pos2.y):
-                for x in range(pos1.x, pos2.x):
+            for y in range(rect.top, rect.bottom):
+                for x in range(rect.left, rect.right):
                     self[x, y] = _REPLAY
 
