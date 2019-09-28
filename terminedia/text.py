@@ -14,16 +14,48 @@ except ImportError:
 
 font_registry = {}
 
-def load_font(font_path, initial=0, last=256, ch1=" ", ch2="#"):
+def _normalize_font_path(font_path):
+    font_is_resource = font_path == "" or not Path(font_path).exists()
+    if font_is_resource:
+        if font_path == "16":
+            font_path = "unscii-16-full.hex"
+        elif  "unscii-8" not in font_path:
+            if font_path in ("", "fantasy", "mcr", "thin"):
+                font_path = f"unscii-8{'-' if font_path else ''}{font_path}.hex"
+    return font_path, font_is_resource
 
-    if font_path == "DEFAULT" and resources:
-        data = list(resources.open_text("terminedia.data", "unscii-8.hex"))
 
-    elif font_path == "DEFAULT":
-        path = Path(__file__).parent / "data" / "unscii-8.hex"
-        data = list(open(path).readlines())
+def list_fonts():
+    """List font-files available with installed terminedia.
 
+        Compliant fonts can be used and rendered if their
+        full-file-path is supplied in target.context.font
+        (current implementation uses human-readable, one glyph per line,
+        hex font files as made available by the UNSCII project).
+
+        Fonts can be used by their aliases: default unscii-8-font is used
+        if font is the empty string  "". unscii-16, if the name includes
+        "16", and unscii 8 variants need only their distinct infix
+        like "fantasy", "mcr" or "thin".
+    """
+    if not resources:
+        path = Path(__file__).parent / "data"
+        files = [str(f) for f in path.iterdir()]
     else:
+        files =  list(resources.contents("terminedia.data"))
+    return [f for f in files if f.endswith(".hex")]
+
+
+def load_font(font_path, font_is_resource, initial=0, last=256, ch1=" ", ch2="#"):
+
+    if font_is_resource and resources:
+        data = list(resources.open_text("terminedia.data", font_path))
+
+    elif font_is_resource and not resources:
+        path = Path(__file__).parent / "data" / font_path
+        data = list(open(path).readlines())
+    else:
+        # TODO: enable more font types
         data = list(open(font_path).readlines())
 
     font = {}
@@ -40,10 +72,11 @@ def load_font(font_path, initial=0, last=256, ch1=" ", ch2="#"):
 
 def render(text, font=None, shape_cls=PalettedShape, direction=Directions.RIGHT):
     if font is None:
-        font = "DEFAULT"
+        font = ""
+    font, is_resource = _normalize_font_path(font)
 
     if font not in font_registry:
-        font_registry[font] = load_font(font)
+        font_registry.setdefault(font, {}).update(load_font(font, is_resource))
 
     font = font_registry[font]
     phrase = [shape_cls(font[chr]) for chr in text]
@@ -106,8 +139,9 @@ class Text:
     normal characters and 8 for characters rendered by block characters
     as pixels, are implemented with the default fonts.
     (as in `screen.text[4].at((3,4), "hello")` )
-    the public methods here issue commands directly to the owner, or
-    to the owner's `draw` and `high.draw` drawing namespaces.
+    the public methods here issue commands directly to the owner's
+    `draw` and `high.draw` drawing namespaces - or the owner's values
+    for the text[1] plane.
     """
 
     def __init__(self, owner):
@@ -147,7 +181,7 @@ class Text:
         plane["width"] = width = self.owner.width // char_width
         plane["height"] = height = self.owner.height // char_height
         plane["data"] = data = CharPlaneData((width, height))
-        plane["font"] = "DEFAULT"
+        plane["font"] = ""
 
     def _checkplane(self, index):
         if not isinstance(index, int):
@@ -175,15 +209,15 @@ class Text:
             target = self.owner
 
         if self.current_plane == 1:
-            self.owner[index] = self.plane["data"][index]
+            target[index] = self.plane["data"][index]
         elif self.current_plane == 4:
-            char = render(self.plane["data"][index], font=self.plane["font"])
+            char = render(self.plane["data"][index], font=target.context.font or self.plane["font"])
             index = (V2(index) * 8).as_int
-            self.owner.high.draw.blit(index, char)
+            target.high.draw.blit(index, char)
         elif self.current_plane == 8:
-            char = render(self.plane["data"][index], font=self.plane["font"])
+            char = render(self.plane["data"][index], font=target.context.font or self.plane["font"])
             index = (V2(index) * 8).as_int
-            self.owner.draw.blit(index, char)
+            target.draw.blit(index, char)
         else:
             raise ValueError(f"Size {self.current_plane} not implemented for rendering")
 

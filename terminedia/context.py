@@ -83,7 +83,7 @@ class Context:
     effects = ContextVar(Effects, Effects.none)
     direction = ContextVar(V2, Directions.RIGHT)
     transformer = ContextVar((Transformer, FunctionType, type(None)), None)
-
+    font = ContextVar(str, "")
 
     def __init__(self, **kw):
         self._locals = threading.local()

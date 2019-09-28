@@ -115,8 +115,9 @@ for sane text rendering:
 
     (make text.at work with the @ operator?: `sc.text[4] @ (5,2)("hello!")`?
     read font on demand (WIP - only the first 256 chars are loaded)
-    Improve font selection and loading
-    Bundle 8x16 UNSCII font to packages
+    Improve font selection and loading (WIP)
+    Bundle 8x16 UNSCII font to packages (whooping 3.5MB)
+    Find proper API do render 8x16 pixel fonts into 8x8 char "high-resolution" 1/4 block.
     Add arbitrary font handling by using PIL to cache rendered chars.
     Enable 16 x 8 double and 16 x 16 double width UNSCII fonts.
 
@@ -148,10 +149,17 @@ General Refactoring:
     refactor context initialization (V)
     Convert directions to specialized V2s, with a nice repr, instead of Enums (they have to be interchangeable with plain V2) (V)
     Add a proper rectangle class (V)
-    Refactor APIs to accept Rectangle(WIP)
-    create a proper color class
+    Refactor APIs to accept Rectangle(V)
     improve "blit" to allow optional source and destination ROI
     (them proceed to write the different backends.)
+    create a proper color class:
+        - Accept 0-255 or 0-1.0 3 [4] sequences for RGB color [Alpha]
+        - Accept internal constants and a have a proper way to check for then
+                 (defaultFG, defaultBG, Transparent, context)
+        - Normalized reading and representation
+        - conversion to 1-byte standard 216 color palette for terminals
+        - make use of 1byte color on terminal.py
+
 
 Improvements and bugs:
     CRITICAL: effects refactoring led rendering to be B&W (V)
