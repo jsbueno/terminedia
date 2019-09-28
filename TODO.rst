@@ -9,7 +9,7 @@ Image File Displaying Support(v)
 Preliminary CLI (v)
 move examples to CLI-based standalone scripts available to pip-installs (v)
 refactor into full package (v)
-Big Font rendering - using multi-block for large characters composed of multiple pixels. (WIP)
+Big Font rendering - using multi-block for large characters composed of multiple pixels. (V)
 Bold, blink and underline text support (V)
 raw-data backend (terminal indepent)
 Block-smoothing with half triangle block chars
@@ -92,7 +92,7 @@ HTML Backend:
 
 
 Ongoing (0.3dev)
- ##############
+###############
 step by step tasks
 
 for sane text rendering:
@@ -107,9 +107,12 @@ for sane text rendering:
     create "render text" call returning a shape (V)
     create "render text and blit at position on screen" call on drawing api (V)
     write example script using large-text rendering (V)
+    connect Screen "print" and "print_at" to ".text" namespace.(V)
 
     Add text formatting and flowing primitives into ".text" namespace(WIP)
-    connect Screen "print" and "print_at" to ".text" namespace.(V)
+    Add scrolling, rectangular text regions and flowing text
+    All-side scrolling and flowing text from one region to the next
+
     (make text.at work with the @ operator?: `sc.text[4] @ (5,2)("hello!")`?
     read font on demand (WIP - only the first 256 chars are loaded)
     Improve font selection and loading

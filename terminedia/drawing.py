@@ -1,7 +1,7 @@
 import inspect
 
 from terminedia.values import BlockChars, CONTEXT_COLORS
-from terminedia.utils import V2
+from terminedia.utils import V2, Rect
 
 
 class Drawing:
@@ -81,9 +81,9 @@ class Drawing:
         """Draws a rectangle
 
         Args:
-          - pos1 (2-tuple): top-left coordinates
-          - pos2 (2-tuple): bottom-right limit coordinates. If not given, pass "rel" instead
-          - rel (2-tuple): (width, height) of rectangle. Ignored if "pos2" is given
+          - pos1 (Union[Rectangle, 2-tuple]): top-left coordinates
+          - pos2 (Optional[2-tuple]): bottom-right limit coordinates. If not given, pass "rel" instead
+          - rel (Optional[2-tuple]): (width, height) of rectangle. Ignored if "pos2" is given
           - fill (bool): Whether fill-in the rectangle, or only draw the outline. Defaults to False.
           - erase (bool): Whether to draw (set) or erase (reset) pixels.
 
@@ -93,12 +93,9 @@ class Drawing:
         attribute. In the case of high-resolution drawing, the background color
         is also taken from the context.
         """
-        if not pos2:
-            if not rel:
-                raise TypeError("Must have either two corners or 'rel' parameter")
-            pos2 = pos1[0] + rel[0], pos1[1] + rel[1]
+        pos1, pos2 = Rect(pos1, pos2, width_height=rel)
         # Ending interval is open, just as Python works with intervals.
-        pos2 = V2(pos2) - (1,1)
+        pos2 -= (1,1)
 
         x1, y1 = pos1
         x2, y2 = pos2
@@ -138,9 +135,9 @@ class Drawing:
         """Draws an ellipse
 
         Args:
-          - pos1 (2-tuple): top-left coordinates of rectangle conataining ellipse
-          - pos2 (2-tuple): bottom-right limit coordinates. If not given, pass "rel" instead
-          - rel (2-tuple): (width, height) of rectangle. Ignored if "pos2" is given
+          - pos1 (Union[Rectangle, 2-tuple]): top-left coordinates
+          - pos2 (Optional[2-tuple]): bottom-right limit coordinates. If not given, pass "rel" instead
+          - rel (Optional[2-tuple]): (width, height) of rectangle. Ignored if "pos2" is given
           - fill (bool): Whether fill-in the rectangle, or only draw the outline. Defaults to False.
 
         Public call to draw an ellipse using character blocks
@@ -149,11 +146,9 @@ class Drawing:
         attribute. In the case of high-resolution drawing, the background color
         is also taken from the context.
         """
-        if not pos2:
-            if not rel:
-                raise TypeError("Must have either two corners or 'rel' parameter")
-            pos2 = pos1[0] + rel[0], pos1[1] + rel[1]
-        pos2 = V2(pos2) - (1,1)
+        pos1, pos2 = Rect(pos1, pos2, width_height=rel)
+
+        pos2 = pos2 - (1,1)
 
         return self._empty_ellipse(pos1, pos2) if not fill else self._filled_ellipse(pos1, pos2)
 

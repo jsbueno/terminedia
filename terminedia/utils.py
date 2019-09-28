@@ -109,7 +109,7 @@ class NamedV2(V2):
         return self
 
 
-class Rectangle:
+class Rect:
     __slots__ = ("_c1", "_c2")
 
     def __init__(
@@ -123,7 +123,7 @@ class Rectangle:
         height=None,
         center=None
     ):
-        if isinstance(left_or_corner1, Rectangle):
+        if isinstance(left_or_corner1, Rect):
             self.c1 = left_or_corner1.c1
             self.c2 = left_or_corner1.c2
             return
@@ -145,9 +145,9 @@ class Rectangle:
             width_height = width, height
         self.c1 = c1 if c1 else (left, top) if left is not None and top is not None else (0, 0)
         self.c2 = c2 if c2 else (right, bottom) if right is not None and bottom is not None else (0, 0)
-        if width_height is not None:
+        if width_height:
             self.width_height = width_height
-        if center is not None:
+        if center:
             self.center = center
 
     c1 = property(lambda s: s._c1)
@@ -245,7 +245,7 @@ class Rectangle:
         return 4
 
     def __repr__(self):
-        return f"Rectangle({tuple(self.c1)}, {tuple(self.c2)})"
+        return f"{self.__class__.__name__}({tuple(self.c1)}, {tuple(self.c2)})"
 
 
 class Color:
