@@ -1,12 +1,13 @@
 import logging
 import sys
+from abc import ABC, abstractmethod
 from collections import namedtuple
 from collections.abc import Sequence
 from inspect import signature
 from pathlib import Path
 
 from terminedia.context import Context
-from terminedia.utils import Color, V2, LazyBindProperty
+from terminedia.utils import Color, Rect, V2, LazyBindProperty
 from terminedia.values import DEFAULT_FG, DEFAULT_BG, TRANSPARENT, CONTEXT_COLORS, Directions, BlockChars, Effects
 
 logger = logging.getLogger(__name__)
@@ -134,8 +135,7 @@ def pixel_factory(
     return Pixel
 
 
-
-class Shape:
+class Shape(ABC):
     """'Shape' is intended to represent blocks of colors/backgrounds and characters
     to be applied in a rectangular area of the terminal. In this sense, it is
     more complicated than an "Image" that just care about a foreground color
@@ -155,6 +155,7 @@ class Shape:
 
     PixelCls = pixel_factory(bool)
 
+    @abstractmethod
     def __init__(self, data, color_map=None):
         raise NotImplementedError("This is meant as an abstract Shape class")
 
@@ -256,11 +257,19 @@ class Shape:
     def get_raw(self, pos):
         return self.data[pos[1] * self.width + pos[0]]
 
+    @abstractmethod
     def __getitem__(self, pos):
         """Values for each pixel are: character, fg_color, bg_color, effects.
         """
-        raise NotImplementedError("This is meant as an abstract Shape class")
+        if isinstance(pos, Rect):
+            roi = Rect
+        elif isinstance(pos, tuple) and isinstance(pos[0], slice):
+            roi = Rect(pos)
+        else:
+            return None
+        return ShapeView(self, roi)
 
+    @abstractmethod
     def __setitem__(self, pos, value):
         """
 
@@ -327,6 +336,47 @@ class Shape:
         return new_shape
 
 
+# "Virtualsubclassing" - 2 days after I wrote there were no
+# practical uses for it.
+# With if, "ShapeView" can have "__slots__"
+@Shape.register
+class ShapeView:
+    __slots__ = ("roi", "original")
+    def __init__(self, original, roi):
+        self.original = original
+        self.roi = Rect(roi)
+
+    width = property(lambda s: s.roi.width)
+    height = property(lambda s: s.roi.height)
+    size = property(lambda s: s.roi.width_height)
+
+    def __getitem__(self, index):
+        roi = self.roi
+        if isinstance(index, Rect):
+            return ShapeView(self.original, Rect(
+                V2.max(roi.c1, (roi.c1 + index.c1)), V2.min((roi.c1 + index.c2), roi.c2)
+            ))
+        if not 0 <= index[0] < roi.width or not 0 <= index[1] < roi.bottom:
+            raise IndexError(f"Value out of limits f{roi.width_height}")
+        return self.original[roi.c1 + index]
+
+    def __setitem__(self, index, value):
+        roi = self.roi
+        if not 0 <= index[0] < roi.width or not 0 <= index[1] < roi.bottom:
+            raise IndexError(f"Value out of limits {roi.width_height}")
+        self.original[roi.c1 + index] = value
+
+    __iter__ = Shape.__iter__
+
+    def __getattribute__(self, attr):
+        if attr in {"roi", "original", "width", "height", "size"}:
+            return super().__getattribute__(attr)
+        return getattr(self.original, attr)
+
+    def __repr__(self):
+        return f"View {self.roi} of {self.original}"
+
+
 class ValueShape(Shape):
 
     PixelCls = pixel_factory(bool, has_foreground=True)
@@ -349,6 +399,10 @@ class ValueShape(Shape):
     def __getitem__(self, pos):
         """Composes a Pixel object for the given coordinates.
         """
+        v = super().__getitem__(pos)
+        if v:
+            return v
+
         color = self.get_raw(pos)
 
         return self.PixelCls(True, color)
@@ -551,6 +605,9 @@ class PalettedShape(Shape):
     def __getitem__(self, pos):
         """Values for each pixel are: character, fg_color, bg_color, effects.
         """
+        v = super().__getitem__(pos)
+        if v:
+            return v
         char = self.get_raw(pos)
 
         # TODO: Legacy: when this class doubled as "BooleanShape".
@@ -614,6 +671,10 @@ class FullShape(Shape):
     def __getitem__(self, pos):
         """Values for each pixel are: character, fg_color, bg_color, effects.
         """
+        v = super().__getitem__(pos)
+        if v:
+            return v
+
         value = self.get_raw(pos)
 
         return self.PixelCls(*value)

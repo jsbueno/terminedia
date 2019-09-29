@@ -150,7 +150,7 @@ General Refactoring:
     Convert directions to specialized V2s, with a nice repr, instead of Enums (they have to be interchangeable with plain V2) (V)
     Add a proper rectangle class (V)
     Refactor APIs to accept Rectangle(V)
-    improve "blit" to allow optional source and destination ROI
+    improve "blit" to allow optional source and destination ROI (WIP)
     (them proceed to write the different backends.)
     create a proper color class:
         - Accept 0-255 or 0-1.0 3 [4] sequences for RGB color [Alpha]
@@ -167,8 +167,8 @@ Improvements and bugs:
     Fix tm.text.render into palettedshape: result is mixing spaces and color-constants in data
     make double-width unicode characters take 2 character cells.
     plot example script prints completly bogus values on the y scale.
-    Fix blitting from FullShape
-    fix-paletted-shape-blitting-bug (WIP)
+    Fix blitting from FullShape (V)
+    fix-paletted-shape-blitting-bug
     fix-value-shape-blitting-bug
     fix-highres-shape-bliting color leak
     refactor bezier-curve and ellipse(empty) adaptive code to use same codebase

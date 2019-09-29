@@ -75,6 +75,12 @@ class V2(tuple):
     def __repr__(self):
         return f"V2({self.x}, {self.y})"
 
+    def max(self, other):
+        return V2(max(self.x, other[0]), max(self.y, other[1]))
+
+    def min(self, other):
+        return V2(min(self.x, other[0]), min(self.y, other[1]))
+
 
 class NamedV2(V2):
     """Vector meant to be used as constant, with a string-repr name"""
@@ -134,6 +140,13 @@ class Rect:
                 c2 = V2(left_or_corner1[2:])
             elif len(left_or_corner1) == 2:
                 c1 = V2(left_or_corner1)
+        elif isinstance(left_or_corner1, slice) or isinstance(top_or_corner2, slice):
+
+            left = left_or_corner1.start if isinstance(left_or_corner1, slice) else left_or_corner1
+            right = left_or_corner1.stop if isinstance(left_or_corner1, slice) else left_or_corner1 + 1
+            top = top_or_corner2.start if isinstance(top_or_corner2, slice) else top_or_corner2
+            bottom = top_or_corner2.stop if isinstance(top_or_corner2, slice) else top_or_corner2 + 1
+
         else:
             left = left_or_corner1
         if hasattr(top_or_corner2, "__len__") and len(top_or_corner2) == 2:
@@ -236,6 +249,22 @@ class Rect:
     @property
     def area(self):
         return self.width * self.height
+
+    def __eq__(self, other):
+        if not isinstance(other, Rect):
+            other = Rect(other)
+        return other.c1 == self.c1 and other.c2 == self.c2
+
+    def __contains__(self, other):
+        """Verify if a point or rectangle is contained in 'self'.
+
+        Python's convention of open-intervals on the upper boundaries applies:
+        a point on the right or bottom values of the rectangle is not
+        considered to be inside.
+        """
+        if isnstance(other, Rect):
+            return other.c1 in self and other.c2 in self
+        return self.left <= other[0] < self.right and self.top <= other[1] < other.bottom
 
     def __iter__(self):
         yield self.c1
