@@ -254,7 +254,7 @@ class Drawing:
         support for other Pixel capabilities is not yet implemented.
 
         """
-        from terminedia.image import Shape, PalettedShape
+        from terminedia.image import Shape, PalettedShape, SKIP_LINE
 
         if not hasattr(self.context, "color_stack"):
             self.context.color_stack = []
@@ -281,9 +281,14 @@ class Drawing:
 
         direct_pix =  len(inspect.signature(self.set).parameters) >= 2
 
-        for pixel_pos, pixel in shape:
+        ishape = iter(shape)
+        while True:
+            pixel_pos, pixel = next(ishape, (None, None))
+            if pixel_pos is None:
+                break
             target_pos = pos + pixel_pos
             if extent and (target_pos.x >= extent.x or target_pos.y >= extent.y):
+                ishape.send(SKIP_LINE)
                 continue
             if direct_pix:
                 self.set(target_pos, pixel)

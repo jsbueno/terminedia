@@ -199,7 +199,6 @@ Improvements and bugs:
     Update "Context" to use context-locals (async aware) instead of thread-locals
     Add a "clear" draw method to empty-up a target.
     Drawing APIs not respecting ShapeView limits (V)
-    Optimize extent-limted blitting to skip fast to next shape line
-           (by sending a next-line sentinel to shape-iterator)
+    Optimize extent-limted blitting to skip fast to next shape line (by sending a next-line sentinel to shape-iterator) (V)
 
 

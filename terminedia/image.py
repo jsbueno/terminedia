@@ -17,6 +17,7 @@ try:
 except ImportError:
     PILImage = None
 
+SKIP_LINE = object()
 
 PixelClasses = {}
 pixel_capabilities = namedtuple("pixel_capabilities", "value_type has_foreground has_background has_effects")
@@ -291,10 +292,13 @@ class Shape(ABC, ShapeApiMixin):
         For each pixel in the image, returns its position,
         its value, the foreground color, background color, and character_effects byte
         """
-        for x in range(self.width):
-            for y in range(self.height):
+        for y in range(self.height):
+            for x in range(self.width):
                 pos = V2(x, y)
-                yield (pos, self[pos])
+                token = yield (pos, self[pos])
+                if token is SKIP_LINE:
+                    yield None
+                    break
 
     def concat(self, *others, direction=Directions.RIGHT, **kwargs):
         """Concatenates two given shapes side by side into a larger shape.
