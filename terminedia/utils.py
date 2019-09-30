@@ -146,12 +146,12 @@ class Rect:
             right = left_or_corner1.stop if isinstance(left_or_corner1, slice) else left_or_corner1 + 1
             top = top_or_corner2.start if isinstance(top_or_corner2, slice) else top_or_corner2
             bottom = top_or_corner2.stop if isinstance(top_or_corner2, slice) else top_or_corner2 + 1
-
         else:
             left = left_or_corner1
+
         if hasattr(top_or_corner2, "__len__") and len(top_or_corner2) == 2:
             c2 = V2(top_or_corner2)
-        else:
+        elif top is None:
             top = top_or_corner2
 
         if not width_height and width is not None and height is not None:
@@ -291,8 +291,15 @@ class LazyBindProperty:
         self.name = name
 
     def __get__(self, instance, owner):
+        from terminedia.image import ShapeView
         if not instance:
             return self
+        if isinstance(instance, ShapeView):
+            namespace = getattr(instance, '_' + self.name, None)
+            if not namespace:
+                namespace = self.initializer(instance)
+                setattr(instance, '_' + self.name, namespace)
+            return namespace
         if not self.name in instance.__dict__:
             instance.__dict__[self.name] = self.initializer(instance)
         return instance.__dict__[self.name]

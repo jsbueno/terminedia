@@ -135,29 +135,8 @@ def pixel_factory(
     return Pixel
 
 
-class Shape(ABC):
-    """'Shape' is intended to represent blocks of colors/backgrounds and characters
-    to be applied in a rectangular area of the terminal. In this sense, it is
-    more complicated than an "Image" that just care about a foreground color
-    and alpha value for each pixel position.
-
-    As internal data and rendering intents vary accross desired capabilities,
-    there are subclasses to represent each intended use.
-
-    """
-
-    # this data is to be found into the PixelCls.capabilities
-
-    # foreground = False
-    # background = False
-    # arbitrary_chars = False
-    # effects = False  # support for bold, blink, underline...
-
-    PixelCls = pixel_factory(bool)
-
-    @abstractmethod
-    def __init__(self, data, color_map=None):
-        raise NotImplementedError("This is meant as an abstract Shape class")
+class ShapeApiMixin:
+    __slots__ = ()
 
     @LazyBindProperty
     def context(self):
@@ -181,9 +160,11 @@ class Shape(ABC):
 
     def _get_drawing(self):
         from terminedia.drawing import Drawing
+        # The 'type(self).__setitem__` pattern ensures __setitem__ is called on the proxy,
+        # not on the proxied object.
         return Drawing(
-            set_fn = lambda pos: self.__setitem__(pos, self.context.char),
-            reset_fn = lambda pos: self.__setitem__(pos, BlockChars.EMPTY),
+            set_fn = lambda pos: type(self).__setitem__(self, pos, self.context.char),
+            reset_fn = lambda pos: type(self).__setitem__(self, pos, BlockChars.EMPTY),
             size_fn = lambda : V2(self.width, self.height),
             context = self.context
         )
@@ -195,6 +176,31 @@ class Shape(ABC):
     def _get_text(self):
         from terminedia.text import Text
         return Text(self)
+
+
+class Shape(ABC, ShapeApiMixin):
+    """'Shape' is intended to represent blocks of colors/backgrounds and characters
+    to be applied in a rectangular area of the terminal. In this sense, it is
+    more complicated than an "Image" that just care about a foreground color
+    and alpha value for each pixel position.
+
+    As internal data and rendering intents vary accross desired capabilities,
+    there are subclasses to represent each intended use.
+
+    """
+
+    # this data is to be found into the PixelCls.capabilities
+
+    # foreground = False
+    # background = False
+    # arbitrary_chars = False
+    # effects = False  # support for bold, blink, underline...
+
+    PixelCls = pixel_factory(bool)
+
+    @abstractmethod
+    def __init__(self, data, color_map=None):
+        raise NotImplementedError("This is meant as an abstract Shape class")
 
     @classmethod
     def new(cls, size, **kwargs):
@@ -262,9 +268,11 @@ class Shape(ABC):
         """Values for each pixel are: character, fg_color, bg_color, effects.
         """
         if isinstance(pos, Rect):
-            roi = Rect
+            roi = pos
         elif isinstance(pos, tuple) and isinstance(pos[0], slice):
-            roi = Rect(pos)
+            if any(pos[i].step not in (None, 1) for i in (0,1)):
+                raise NotImplementedError("Slice stepping not implemented for shapes")
+            roi = Rect(*pos)
         else:
             return None
         return ShapeView(self, roi)
@@ -340,8 +348,8 @@ class Shape(ABC):
 # practical uses for it.
 # With if, "ShapeView" can have "__slots__"
 @Shape.register
-class ShapeView:
-    __slots__ = ("roi", "original")
+class ShapeView(ShapeApiMixin):
+    __slots__ = ("roi", "original", "_draw", "_high", "_text")
     def __init__(self, original, roi):
         self.original = original
         self.roi = Rect(roi)
@@ -369,7 +377,12 @@ class ShapeView:
     __iter__ = Shape.__iter__
 
     def __getattribute__(self, attr):
-        if attr in {"roi", "original", "width", "height", "size"}:
+        if attr in {
+            "roi", "original", "width", "height", "size",
+            "draw", "high", "text",
+            "_draw", "_high", "_text",
+            "_get_drawing", "_get_highres", "_get_text",
+        }:
             return super().__getattribute__(attr)
         return getattr(self.original, attr)
 

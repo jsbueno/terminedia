@@ -236,12 +236,14 @@ class Drawing:
             self.set((round(x), round(y)))
             t += step
 
-    def blit(self, pos, data, color_map=None, erase=False):
+    def blit(self, pos, data, *, roi=None, color_map=None, erase=False):
         """Blits a blocky image in the associated screen at POS
 
         Args:
-          - pos (2-sequence): top-left corner of the image
+          - pos (Union[2-sequence, Rectangle]): top-left corner of where to blit, or a rectangle with extents to be blitted.
           - shape (Shape/string/list): Shape object or multi-line string or list of strings with shape to be drawn
+          - roi (Optional[Rect]): (Region of interest) delimiting rectangle in source image(data) to be blitted.
+                                 Defaults to whole image.
           - color_map (Optional mapping): palette mapping chracters in shape to a color
           - erase (bool): if True white-spaces are erased, instead of being ignored. Default is False. FIXME: under the Pixel model, erase is always True.
 
@@ -269,12 +271,20 @@ class Drawing:
         else:
             raise TypeError(f"Unknown data argument passed to blit: {type(data)} instance")
 
-        pos = V2(pos)
+        pos, extent = Rect(pos)
+        if extent == (0, 0):
+            extent = None
+
+        if roi is not None:
+            roi = Rect(roi)
+            shape = shape[roi]
 
         direct_pix =  len(inspect.signature(self.set).parameters) >= 2
 
         for pixel_pos, pixel in shape:
             target_pos = pos + pixel_pos
+            if extent and (target_pos.x >= extent.x or target_pos.y >= extent.y):
+                continue
             if direct_pix:
                 self.set(target_pos, pixel)
             else:

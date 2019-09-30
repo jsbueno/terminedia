@@ -24,7 +24,19 @@ multiple backends: (check pygments):
     image backend (pixels are simple color-only boring, image pixels)
     postscript backend
     .rtf backend
+    pdf backend
     Fallback terminal to 1-byte color setting for up to 216 colors + 24 grayscale
+
+new "resolution modes": half character and double-character, with square aspect ratio:
+    (currently we have full-char and 1/4 char)
+unicode latin-effected characters as character effects:
+    (like digits and letters inside squares and circles, combining stroke, underline, slash, and so on)
+    (should use the "Effects" space currently marking terminal-wise text effects,
+     and be applied only at rendering time - "value_data" structures should retain page-0 range latin text)
+convolution-dependant effects, to smooth-out corners, use unicode circles and squares to denote intensity
+    (should use transformers, and be applied at painting time)
+"page" abstraction expanding the "shape": including text regions, layers and animation effects
+easy way to pick unicode emojis and glyphs
 
 alpha channel support for images
 Single-write optimization
@@ -33,7 +45,7 @@ MS-Windows support (colorama/mscrvt/color reducing)
 "business" framed-window api
 Postscriptish/Turtleish drawing api
 Basic image transform API: resize, rotate, flip.
-Table drawing chars drawing API
+Table drawing chars drawing API (maybe convert chars with a convolution after block-line art?)
 Super-high resolution (Unicode vintage charset and "sextant" blocks)
 Mouse event support
 Audio support (pyAudio?)
@@ -57,11 +69,9 @@ paint modes to use different characters to denote intensity (back do ascii art):
 
 replicate text-char effects for big-chars
 
-
 frontend:
 Graph plotting CLI
     make terminedia available as a matplotlib backend
-
 
 alpha emulation using background and color manipulation
 
@@ -72,7 +82,7 @@ gaming framework in general:
     animation support
     main loop
 
-space invaders implementation
+space invaders implementation (hint: it would be already feasible - but it is still a "landmark" of the roadmap)
 
 
 # virtual terminal server-
@@ -109,14 +119,14 @@ for sane text rendering:
     write example script using large-text rendering (V)
     connect Screen "print" and "print_at" to ".text" namespace.(V)
 
-    Add text formatting and flowing primitives into ".text" namespace(WIP)
+    Add text formatting and flowing primitives into ".text" namespace
     Add scrolling, rectangular text regions and flowing text
     All-side scrolling and flowing text from one region to the next
 
-    (make text.at work with the @ operator?: `sc.text[4] @ (5,2)("hello!")`?
-    read font on demand (WIP - only the first 256 chars are loaded)
-    Improve font selection and loading (WIP)
-    Bundle 8x16 UNSCII font to packages (whooping 3.5MB)
+    (make text.at work with the @ operator?: `sc.text[4] @ (5,2)("hello!")(?)
+    read font "planes" on demand (WIP - only the first 256 chars are loaded)
+    Improve font selection and loading (V)
+    Bundle 8x16 UNSCII font to packages (whooping 3.5MB) (V)
     Find proper API do render 8x16 pixel fonts into 8x8 char "high-resolution" 1/4 block.
     Add arbitrary font handling by using PIL to cache rendered chars.
     Enable 16 x 8 double and 16 x 16 double width UNSCII fonts.
@@ -150,6 +160,7 @@ General Refactoring:
     Convert directions to specialized V2s, with a nice repr, instead of Enums (they have to be interchangeable with plain V2) (V)
     Add a proper rectangle class (V)
     Refactor APIs to accept Rectangle(V)
+    Introduce "Shape view" so that shape-slices work like a rectangular view with no data-copying (V)
     improve "blit" to allow optional source and destination ROI (WIP)
     (them proceed to write the different backends.)
     create a proper color class:
@@ -181,9 +192,14 @@ Improvements and bugs:
     improvement: API for  X-session wide key-repeat tunning with "xset r rate".
             (Maybe, in combination with other features, it is even possible to have keydown/keyup emulation)
             What is the equivalent API for Win and Mac if any?
-    Make internal FullShape planes (and maybe other Shapes) specialized containers (they are plain lists): enable direct attribute setting on plane (rename  attributes in the process)
+    Make internal FullShape planes (and maybe other Shapes) specialized containers (they are plain lists): enable direct attribute setting on plane (rename  attributes in the process) (maybe trim further down shape class, and make internal planes for shapes, shapes as well?)
     Improve context transformers to become a friendly, stackable class
     create a few ready-made, parametrized transformers for effects like: plane select, color gradients, mask blit,
     Refactor "context" namespace into full class with descriptors. (V)
     Update "Context" to use context-locals (async aware) instead of thread-locals
+    Add a "clear" draw method to empty-up a target.
+    Drawing APIs not respecting ShapeView limits (V)
+    Optimize extent-limted blitting to skip fast to next shape line
+           (by sending a next-line sentinel to shape-iterator)
+
 
