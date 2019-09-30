@@ -225,7 +225,7 @@ class Text:
         pos = V2(pos)
         for char in text:
             self[pos] = char
-            pos += self.owner.context.direction.value
+            pos += self.owner.context.direction
         self.set_ctx("last_pos", pos)
 
     def print(self, text):

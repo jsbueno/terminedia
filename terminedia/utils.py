@@ -262,9 +262,9 @@ class Rect:
         a point on the right or bottom values of the rectangle is not
         considered to be inside.
         """
-        if isnstance(other, Rect):
+        if isinstance(other, Rect):
             return other.c1 in self and other.c2 in self
-        return self.left <= other[0] < self.right and self.top <= other[1] < other.bottom
+        return self.left <= other[0] < self.right and self.top <= other[1] < self.bottom
 
     def __iter__(self):
         yield self.c1
