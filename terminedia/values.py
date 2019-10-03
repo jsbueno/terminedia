@@ -58,11 +58,12 @@ class Effects(IntFlag):
     overlined = 4096
     fraktur = 8192
     squared = 16384
+    negative_squared = 32768
 
 
 # Effects that are rendered by character translation / unicode combining
 # rather than by ANSI terminal sequences
-unicode_effects = {Effects.encircled, Effects.squared}
+unicode_effects = {Effects.encircled, Effects.squared, Effects.negative_squared}
 
 # (encircled is actually defined as an ANSI effect, but no terminal
 # support for it was found at encoding time.)
