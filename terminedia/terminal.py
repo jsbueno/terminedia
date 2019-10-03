@@ -2,14 +2,15 @@ import time
 import sys
 from functools import lru_cache
 
-from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects
+from terminedia.unicode_transforms import translate_chars
+from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects, ESC
 
 
 E = Effects
 
 #: Inner mappings with actual ANSI codes to turn on and off text effects.
 #: These are defined on module escope to avoid
-#: re-parsing of the dict bodies at each invocatin
+#: re-parsing of the dict bodies at each invocation
 #: of ``set_effects``
 effect_on_map = {
     E.bold: 1,
@@ -54,6 +55,7 @@ effect_double_off = {
     E.fast_blink: {E.blink},
     E.double_underline: {E.underline},
     E.framed: {E.encircled},
+    E.encircled: {E.framed},
     E.fraktur: {E.italic}
 }
 
@@ -70,6 +72,7 @@ class ScreenCommands:
     last_pos = None
 
     def __init__(self):
+        self.active_unicode_effects = set()
         self.__class__.last_pos = None
 
     def print(self, *args, sep='', end='', flush=True, count=0):
@@ -159,6 +162,9 @@ class ScreenCommands:
         self.CSI(f'{y + 1};{x + 1}H')
         self.__class__.last_pos = list(pos)
 
+    def apply_unicode_effects(self, txt):
+        return translate_chars(txt, self.active_unicode_effects)
+
     def print_at(self, pos, txt):
         """Positions the cursor and prints a text sequence
 
@@ -170,9 +176,11 @@ class ScreenCommands:
         cursor-positioning ANSI sequences for repeated
         calls of this function - this uses a class
         attribute so that different Screen instances won't clash,
-        but might yield concurrency problems if apropriate
+        but might yield concurrency problems if appropriate
         locks are not in place in concurrent code.
         """
+        if txt[0] != ESC and self.active_unicode_effects:
+            txt = self.apply_unicode_effects(txt)
 
         self.moveto(pos)
         self.print(txt)
@@ -251,8 +259,14 @@ class ScreenCommands:
 
         effect_map = effect_off_map if turn_off else effect_on_map
 
+
+        active_unicode_effects = set()
         for effect_enum in Effects:
             if effect_enum is Effects.none:
+                continue
+            if effect_enum in unicode_effects:
+                if effect_enum & effects:
+                    active_unicode_effects.add(effect_enum)
                 continue
             if effect_enum & effects:
                 sgr_codes.append(effect_map[effect_enum])
@@ -260,6 +274,7 @@ class ScreenCommands:
                             not any(e & effects for e in effect_double_off[effect_enum])):
                 sgr_codes.append(effect_off_map[effect_enum])
 
+        self.active_unicode_effects = active_unicode_effects
         self.SGR(*sgr_codes)
 
 
@@ -403,6 +418,9 @@ class JournalingScreenCommands(ScreenCommands):
 
         All characters are logged into he journal if inside a managed block.
         """
+        if txt[0] != ESC and self.active_unicode_effects:
+            txt = self.apply_unicode_effects(txt)
+
         if not self.in_block:
             return super().print_at(pos, txt)
         for x, char in enumerate(txt, pos[0]):

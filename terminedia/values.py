@@ -58,6 +58,17 @@ class Effects(IntFlag):
     overlined = 4096
     fraktur = 8192
 
+# Effects that are rendered by character translation / unicode combining
+# rather than by ANSI terminal sequences
+unicode_effects = {Effects.encircled}
+
+# (encircled is actually defined as an ANSI effect, but no terminal
+# support for it was found at encoding time.)
+
+
+ESC = "\x1b"
+
+# braille base code = 10240.
 
 class BlockChars_:
     """Used internally to emulate pixel setting/resetting/reading inside 1/4 block characters

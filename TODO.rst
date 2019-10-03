@@ -27,12 +27,21 @@ multiple backends: (check pygments):
     pdf backend
     Fallback terminal to 1-byte color setting for up to 216 colors + 24 grayscale
 
-new "resolution modes": half character and double-character, with square aspect ratio:
-    (currently we have full-char and 1/4 char)
+new "resolution modes":
+    - half character (1/2 block - square aspect ratio)
+    - double-character (2 blocks - square aspect ratio)
+    - braille-block (1/8 block)
+    - sextant (1/6 block) (depends on unicode 12 with vintage charset), with square aspect ratio:
+    - indexed-name-space based resolution, as we have for ".text[size]"
+    - 1 block width x 1 block height at arbitrary 1/8 block height position. (use "LOWER ONE EIGHTH BLOCK" and friends)
+    - 1 block width x 1 block height at arbitrary 1/8 block width position.
+
 unicode latin-effected characters as character effects:
     (like digits and letters inside squares and circles, combining stroke, underline, slash, and so on)
     (should use the "Effects" space currently marking terminal-wise text effects,
      and be applied only at rendering time - "value_data" structures should retain page-0 range latin text)
+     - encircled chars(V)
+
 convolution-dependant effects, to smooth-out corners, use unicode circles and squares to denote intensity
     (should use transformers, and be applied at painting time)
 "page" abstraction expanding the "shape": including text regions, layers and animation effects
