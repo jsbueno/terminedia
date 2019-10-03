@@ -17,6 +17,12 @@ def text_to_circled(text, convert=True):
     it is a plain function that can be called directly just
     for the translation.
     """
+    return _name_based_translation(text, convert, "CIRCLED", False, r"[A-Za-z0-9]")
+
+
+def _name_based_translation(text, convert, prefix, convert_lower=True, match=r"[A-Z]"):
+    """Internal generic code to transform characters using unicode-name strategy
+    """
     result = ""
     combining = ""
     for char in text:
@@ -25,14 +31,17 @@ def text_to_circled(text, convert=True):
             new_char = unicodedata.normalize("NFKD", new_char)
             new_char, combining = new_char if len(new_char) == 2 else (new_char, "")
 
-        if re.match(r"[A-Za-z0-9]", new_char):
-            char = combining + f"\\N{{CIRCLED {unicodedata.name(new_char)}}}".encode().decode("UNICODE_ESCAPE")
+            if convert_lower and re.match(r"[a-z]", new_char):
+                new_char = new_char.upper()
+        if re.match(match, new_char):
+            char = combining + f"\\N{{{prefix} {unicodedata.name(new_char)}}}".encode().decode("UNICODE_ESCAPE")
         result += char
+
     return result
 
 
 def text_to_squared(text, convert=True):
-    """Convert ASCII letters and digits in a string to unicode "encircled" character variants
+    """Convert ASCII letters and digits in a string to unicode "squared" character variants
 
       Args:
         - text(str): Text to convert.
@@ -45,21 +54,7 @@ def text_to_squared(text, convert=True):
     it is a plain function that can be called directly just
     for the translation.
     """
-    result = ""
-    combining = ""
-    for char in text:
-        new_char = char
-        if convert:
-            new_char = unicodedata.normalize("NFKD", new_char)
-            new_char, combining = new_char if len(new_char) == 2 else (new_char, "")
-
-            if re.match(r"[a-z]", new_char):
-                new_char = new_char.upper()
-        if re.match(r"[A-Z]", new_char):
-            char = combining + f"\\N{{SQUARED {unicodedata.name(new_char)}}}".encode().decode("UNICODE_ESCAPE")
-        result += char
-
-    return result
+    return _name_based_translation(text, convert, "SQUARED")
 
 
 _nop_effect = lambda t, c: t

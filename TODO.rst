@@ -44,7 +44,11 @@ unicode latin-effected characters as character effects:
      - squared chars(V)
      - Reversed squared chars(WIP)
      - Small (combining?) chars
+     - Update "text-effects" example
      - Fix internal data and cursor positioning for non-single width characters
+            (detect konsole and force repositioning? (gnome-terminal enforces
+            singlewidth for squared and circled unicode chars. konsole uses
+            variable width for both))
 
 
 convolution-dependant effects, to smooth-out corners, use unicode circles and squares to denote intensity
