@@ -41,6 +41,11 @@ unicode latin-effected characters as character effects:
     (should use the "Effects" space currently marking terminal-wise text effects,
      and be applied only at rendering time - "value_data" structures should retain page-0 range latin text)
      - encircled chars(V)
+     - squared chars(V)
+     - Reversed squared chars(WIP)
+     - Small (combining?) chars
+     - Fix internal data and cursor positioning for non-single width characters
+
 
 convolution-dependant effects, to smooth-out corners, use unicode circles and squares to denote intensity
     (should use transformers, and be applied at painting time)
