@@ -149,7 +149,3 @@ def translate_chars(text, unicode_effects, convert=True):
         text = effect_dict.get(effect, _nop_effect)(text, convert)
     return text
 
-
-def char_width(char):
-    v = unicodedata.east_asian_width(char)
-    return 1 if v in ("N", "Na", "A") else 2

@@ -11,7 +11,7 @@ move examples to CLI-based standalone scripts available to pip-installs (v)
 refactor into full package (v)
 Big Font rendering - using multi-block for large characters composed of multiple pixels. (V)
 Bold, blink and underline text support (V)
-raw-data backend (terminal indepent)
+raw-data backend (terminal independent)
 Block-smoothing with half triangle block chars
 
 
@@ -48,7 +48,7 @@ unicode latin-effected characters as character effects:
      - Fix internal data and cursor positioning for non-single width characters
             (detect konsole and force repositioning? (gnome-terminal enforces
             singlewidth for squared and circled unicode chars. konsole uses
-            variable width for both))
+            variable width for both))(WIP)
 
 
 convolution-dependant effects, to smooth-out corners, use unicode circles and squares to denote intensity
@@ -194,7 +194,16 @@ Improvements and bugs:
     CRITICAL: effects refactoring led rendering to be B&W (V)
     Text effects are not cached in the terminal journaling-commands (V)
     Fix tm.text.render into palettedshape: result is mixing spaces and color-constants in data
-    make double-width unicode characters take 2 character cells.
+    make double-width unicode characters take 2 character cells. (WIP):
+        - create way to check char width and constant (V)
+        - implement fix at FullShape.__setitem__, __getitem__ (WIP)
+        - implement fix at drawing.blit
+        - implement fix at text[1].at
+        - implement fix at Screen.__setitem__
+        - implement fix at terminal.Commands.print(?)
+        - [future]:
+            - check double width chars at UNSCII 16 for proper use at other text scales
+            - if needed implement the logic above at text[4], [8], etc...
     plot example script prints completly bogus values on the y scale.
     Fix blitting from FullShape (V)
     fix-paletted-shape-blitting-bug
@@ -218,5 +227,6 @@ Improvements and bugs:
     Add a "clear" draw method to empty-up a target.
     Drawing APIs not respecting ShapeView limits (V)
     Optimize extent-limted blitting to skip fast to next shape line (by sending a next-line sentinel to shape-iterator) (V)
+    bug: unicode_effects not being applied on direct "screen.print" call.
 
 
