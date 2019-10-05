@@ -3,6 +3,7 @@ import sys
 from functools import lru_cache
 
 from terminedia.unicode_transforms import translate_chars
+from terminedia.utils import char_width, V2
 from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects, ESC
 
 
@@ -156,11 +157,12 @@ class ScreenCommands:
         while in this project, coordinates start at 0 to conform
         to graphic display expected behaviors
         """
-        if list(pos) == self.__class__.last_pos:
+        pos = V2(pos)
+        if pos != (0, 0) and pos == self.__class__.last_pos:
             return
-        x, y = pos
-        self.CSI(f'{y + 1};{x + 1}H')
-        self.__class__.last_pos = list(pos)
+        # x, y = pos
+        self.CSI(f'{pos.y + 1};{pos.x + 1}H')
+        self.__class__.last_pos = V2(pos)
 
     def apply_unicode_effects(self, txt):
         return translate_chars(txt, self.active_unicode_effects)
@@ -184,7 +186,11 @@ class ScreenCommands:
 
         self.moveto(pos)
         self.print(txt)
-        self.__class__.last_pos[0] += len(txt)
+
+        # (double width chars are ignored on purpose - as the repositioning
+        # skipping one char to the left on the higher level classes will
+        # re be reissued instead of skipped)
+        self.__class__.last_pos += (len(txt), 0)
 
     @lru_cache()
     def _normalize_color(self, color):
@@ -337,7 +343,7 @@ class JournalingScreenCommands(ScreenCommands):
         """Internal function
 
         Args:
-          - pos (2-sequence): coordinate where setting
+          - pos (V2): coordinate where setting
           - char (strig of lenght 1): character to set
 
         Inside a managed context this is called to anotate the current color and position
@@ -346,7 +352,8 @@ class JournalingScreenCommands(ScreenCommands):
         if not self.in_block:
             raise RuntimeError("Journal not open")
         self.journal.setdefault(pos, []).append(
-            (self.tick, char, self.current_color, self.current_background, self.current_effect))
+            (self.tick, char, self.current_color, self.current_background, self.current_effect)
+        )
         self.tick += 1
 
     def __exit__(self, exc_name, traceback, frame):
@@ -383,6 +390,11 @@ class JournalingScreenCommands(ScreenCommands):
         for pos in sorted(self.journal, key=lambda pos: (pos[1], pos[0])):
             tick, char, color, bg, effect = self.journal[pos][-1]
             call = []
+
+            if pos != last_pos:
+                last_pos = pos
+                call.append((self.moveto, pos))
+
             if color != last_color:
                 last_color = color
                 call.append((self.set_fg_color, color))
@@ -395,10 +407,6 @@ class JournalingScreenCommands(ScreenCommands):
                 last_effect = effect
                 call.append((self.set_effects, effect))
 
-            if pos != last_pos:
-                last_pos = pos
-                call.append((self.moveto, pos))
-
             if call:
                 if buffer:
                     self.print(buffer)
@@ -406,7 +414,7 @@ class JournalingScreenCommands(ScreenCommands):
                 for func, arg in call:
                     func(arg)
             buffer += char
-            last_pos = pos[0] + 1, pos[1]
+            last_pos += (1, 0)
 
         if buffer:
             self.print(buffer)
@@ -418,15 +426,18 @@ class JournalingScreenCommands(ScreenCommands):
           - pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
           - txt: Text to render at position
 
-        All characters are logged into he journal if inside a managed block.
+        All characters are logged into the journal if inside a managed block.
         """
-        if txt[0] != ESC and self.active_unicode_effects:
-            txt = self.apply_unicode_effects(txt)
 
         if not self.in_block:
             return super().print_at(pos, txt)
+
+        # pre-transform characters, we bypass super().print_at
+        if txt[0] != ESC and self.active_unicode_effects:
+            txt = self.apply_unicode_effects(txt)
+
         for x, char in enumerate(txt, pos[0]):
-            self._set((x, pos[1]), char)
+            self._set(V2(x, pos[1]), char)
 
     def set_fg_color(self, color):
         """Writes ANSI sequence to set the foreground color

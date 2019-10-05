@@ -56,8 +56,11 @@ convolution-dependant effects, to smooth-out corners, use unicode circles and sq
 "page" abstraction expanding the "shape": including text regions, layers and animation effects
 easy way to pick unicode emojis and glyphs
 
-alpha channel support for images
-Single-write optimization
+alpha channel support for images:
+    plot with spaces (" ") instead of full-block char, and compose color using background
+Single-write optimization:
+    pass a "buffer" parameter around on the method-chain calls for screen rendering in the classes in Terminal.py
+    have an option to export the rendered buffer as a single block of bytes: a screenshot snapshot with built-in ANSI sequences.
 support to z-index, and background keeping on blitting ("sprite" api)
 MS-Windows support (colorama/mscrvt/color reducing)
 "business" framed-window api
@@ -240,9 +243,9 @@ Bugs:
     bug: CRITICAL: effects refactoring led rendering to be B&W (V)
     bug: unicode_effects not being applied on direct "screen.print" call.(V)
     Bug: current "inkey" is buggy as repeated keystrokes are bundled in the same inkey response. (completly bork at higher repeat rates)(V)
+    bug: re-entering a screen context and blitting  is not rendering the char at [0,0] (V)
     bug: plot example script prints completly bogus values on the y scale.
     bug:fix printing of colored double-width characters . (b0rk on konsole) (WIP)
-    bug: re-entering a screen context and blitting  is not rendering the char at [0,0] (WIP)
 
 
 
