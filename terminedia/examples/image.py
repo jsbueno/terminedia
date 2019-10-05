@@ -2,14 +2,14 @@ from pathlib import Path
 
 import click
 
-from terminedia import shape, Screen, pause
+from terminedia import shape, Screen, pause, Effects
 
 
 basepath = Path(__file__).parent
 default_image = basepath / "moon_bin_bw.pgm"
 
 
-phrase = "TERMINEDIA EXAMPLE"
+phrase = "Text!"
 
 
 
@@ -29,6 +29,8 @@ def main(image_paths):
                 scr.draw.blit((0,0), img)
             scr.context.color = 1, 0, 0
             # scr.print_at((img.width // 2 - len(phrase) // 2, img.height // 2,), phrase)
+            scr.text[8].at((0, 1), phrase)
+            scr.context.color = 1, 0, 1
             pause()
             scr.clear()
 

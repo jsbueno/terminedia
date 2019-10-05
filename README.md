@@ -8,19 +8,26 @@ apps.
 
 The "noveau" factor is that it uses Unicode quarter-character block combinations
 to effectivelly enable 1/4 character "pixels" in the terminal. It also makes
-use of 24bit "true" color for text, not limitng itself to the 80's
+use of 24bit "true" color for text, not limiting itself to the 80's
 8 color palette for the terminal.
 
-While at that, it does offer a great deal of flexibility to display
-and interface in a text-terminal, and may become an enabler of
-rich-interfaces for terminal based applications - think about a
-Python-only, modernized Curses library.
+The development version allows loading image files and displaying those
+as colored block chars on the terminal, several terminal-font text effects,
+and rendering big-text, 4 or 8 characters tall, by rendering
+built-in fonts as images using block characters.
 
-The idea is to keep this as a lightweight install - with no, or
+It is designed as a library, providing a discoverable and easy to
+use API for drawing, and upon install a few example scripts
+will be imediately available as stand-alone scripts
+with the "terminedia-" prefix.
+
+The idea is to keep this as a lightweight install - with
 as little dependencies as possible.
+
 
 ![Messy screenshot with current capabilities](docs/screenshot_01.png)
 ![Graph plot output example](docs/screenshot_02.png)
+![Image rendering and big-text](docs/screenshot_04.png)
 
 Documentation
 --------------
@@ -28,8 +35,16 @@ Documentation
 Check the full documentation at:
     https://terminedia.readthedocs.io/en/stable/
 
+(nb. that documentation is currently for the 0.2 version,
+available from pypi. The project's capabilities
+evolved far beyond whats is in there, but docs are
+still missing - the "TODO.rst" file lists implemented
+features or fixes (marked with a "V") and a loose roadmap.
+Although for useage and documentation one has to rely
+on the doc-strings)
+
 Also, the ``examples`` folder have concrete snippets and
-some stress-testing code. Prior to version 0.3, the examples
+some stress-testing code. The examples
 were moved into the main package code, and granted stand-alone
 scripts status when the package is pip-installed.
 

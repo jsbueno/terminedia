@@ -1,15 +1,18 @@
+from itertools import cycle
+
 import click
 
 import terminedia as TM
 
 @click.command()
 @click.argument("phrases", required=False, nargs=-1)
-def main(phrases):
+@click.option("clear", "--clear", "-l", flag_value=False, help="Prevents clearing the screen")
+def main(phrases, clear):
     if not phrases:
-        phrases = ["Hello World!"] * len(TM.Effects)
+        phrases = ["Hello World!"]
 
-    with TM.Screen() as sc:
-        for line, (phrase, effect) in enumerate(zip(phrases, TM.Effects)):
+    with TM.Screen(clear_screen=clear) as sc:
+        for line, (phrase, effect) in enumerate(zip(cycle(phrases), TM.Effects)):
             sc.context.effects = TM.Effects.none
 
             sc.print_at((0, line), f"{effect.name}: ")
