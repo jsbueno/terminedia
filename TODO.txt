@@ -204,6 +204,7 @@ Improvements and bugs:
         - implement fix at terminal.Commands.print (N/A - 'CONTINUATION' constant never reaches terminal functions)
         - fix example snake game - second half of apple should be edible.(V)
         - fix regression in high-res shape drawing(V)
+        - fix printing of colored double-width characters . (b0rk)
         - [future]:
             - check double width chars at UNSCII 16 for proper use at other text scales
             - if needed implement the logic above at text[4], [8], etc...
@@ -231,5 +232,6 @@ Improvements and bugs:
     Drawing APIs not respecting ShapeView limits (V)
     Optimize extent-limted blitting to skip fast to next shape line (by sending a next-line sentinel to shape-iterator) (V)
     bug: unicode_effects not being applied on direct "screen.print" call.(V)
+
 
 

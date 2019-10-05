@@ -38,7 +38,7 @@ Check the full documentation at:
 (nb. that documentation is currently for the 0.2 version,
 available from pypi. The project's capabilities
 evolved far beyond whats is in there, but docs are
-still missing - the "TODO.rst" file lists implemented
+still missing - the "TODO.txt" file lists implemented
 features or fixes (marked with a "V") and a loose roadmap.
 Although for useage and documentation one has to rely
 on the doc-strings)
