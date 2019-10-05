@@ -298,6 +298,10 @@ class Screen:
                 self.commands.print_at(pos, pixel.value)
                 self.context.last_pos = V2(pos)
 
+    def blit(self, position, shape, **kwargs):
+        with self.commands:
+            self.draw.blit(position, shape, kwargs)
+
     def update(self, pos1=None, pos2=None):
         rect = Rect(pos1, pos2)
         if rect.c2 == (0, 0):

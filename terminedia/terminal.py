@@ -1,6 +1,7 @@
 import time
 import sys
 from functools import lru_cache
+from io import StringIO
 
 from terminedia.unicode_transforms import translate_chars
 from terminedia.utils import char_width, V2
@@ -76,7 +77,7 @@ class ScreenCommands:
         self.active_unicode_effects = set()
         self.__class__.last_pos = None
 
-    def print(self, *args, sep='', end='', flush=True, count=0):
+    def print(self, *args, sep='', end='', flush=True, file=None, count=0):
         """Inner print method
 
         Args:
@@ -92,23 +93,25 @@ class ScreenCommands:
         Also, takes care of eventual blocking in stdout due to excess data -
         and implements a retry mechanism to mitigate that.
         """
+        if file is None:
+            file = sys.stdout
         try:
             for arg in args:
-                sys.stdout.write(arg)
+                file.write(arg)
                 if sep:
-                    sys.stdout.write(sep)
+                    file.write(sep)
             if end:
-                sys.stdout.write(end)
+                file.write(end)
             if flush:
-                sys.stdout.flush()
+                file.flush()
         except BlockingIOError:
             if count > 10:
                 print("arrrrghhhh - stdout clogged out!!!", file=sys.stderr)
                 raise
             time.sleep(0.002 * 2 ** count)
-            self.print(*args, sep=sep, end=end, flush=flush, count=count + 1)
+            self.print(*args, sep=sep, end=end, flush=flush, file=file, count=count + 1)
 
-    def CSI(self, *args):
+    def CSI(self, *args, file=None):
         """Writes a CSI command to the terminal
 
         Args:
@@ -122,9 +125,9 @@ class ScreenCommands:
         """
         command = args[-1]
         args = ';'.join(str(arg) for arg in args[:-1]) if args else ''
-        self.print("\x1b[", args, command)
+        self.print("\x1b[", args, command, file=file)
 
-    def SGR(self, *args):
+    def SGR(self, *args, file=None):
         """Writes a SGR command (Select Graphic Rendition)
 
         Args:
@@ -133,21 +136,21 @@ class ScreenCommands:
         This function calls .CSI with the command fixed as "m"
           which is "SGR".
         """
-        self.CSI(*args, 'm')
+        self.CSI(*args, 'm', file=file)
 
-    def clear(self):
+    def clear(self, file=None):
         """Writes ANSI Sequence to clear the screen"""
-        self.CSI(2, 'J')
+        self.CSI(2, 'J', file=file)
 
-    def cursor_hide(self):
+    def cursor_hide(self, file=None):
         """Writes ANSI Sequence to hide the text cursor"""
-        self.CSI('?25', 'l')
+        self.CSI('?25', 'l', file=file)
 
-    def cursor_show(self):
+    def cursor_show(self, file=None):
         """Writes ANSI Sequence to show the text cursor"""
-        self.CSI('?25', 'h')
+        self.CSI('?25', 'h', file=file)
 
-    def moveto(self, pos):
+    def moveto(self, pos, file=None):
         """Writes ANSI Sequence to position the text cursor
 
         Args:
@@ -161,13 +164,13 @@ class ScreenCommands:
         if pos != (0, 0) and pos == self.__class__.last_pos:
             return
         # x, y = pos
-        self.CSI(f'{pos.y + 1};{pos.x + 1}H')
+        self.CSI(f'{pos.y + 1};{pos.x + 1}H', file=file)
         self.__class__.last_pos = V2(pos)
 
     def apply_unicode_effects(self, txt):
         return translate_chars(txt, self.active_unicode_effects)
 
-    def print_at(self, pos, txt):
+    def print_at(self, pos, txt, file=None):
         """Positions the cursor and prints a text sequence
 
         Args:
@@ -184,8 +187,8 @@ class ScreenCommands:
         if txt[0] != ESC and self.active_unicode_effects:
             txt = self.apply_unicode_effects(txt)
 
-        self.moveto(pos)
-        self.print(txt)
+        self.moveto(pos, file=file)
+        self.print(txt, file=file)
 
         # (double width chars are ignored on purpose - as the repositioning
         # skipping one char to the left on the higher level classes will
@@ -209,40 +212,40 @@ class ScreenCommands:
             color = tuple(int(c * 255) for c in color)
         return color
 
-    def reset_colors(self):
+    def reset_colors(self, file=None):
         """Writes ANSI sequence to reset terminal colors to the default"""
-        self.SGR(0)
+        self.SGR(0, file=file)
 
-    def set_colors(self, foreground, background, effects=Effects.none):
+    def set_colors(self, foreground, background, effects=Effects.none, file=None):
         """Sets foreground and background colors on the terminal
         foreground: the foreground color
         background: the background color
         """
-        self.set_fg_color(foreground)
-        self.set_bg_color(background)
-        self.set_effects(effects)
+        self.set_fg_color(foreground, file=file)
+        self.set_bg_color(background, file=file)
+        self.set_effects(effects, file=file)
 
-    def set_fg_color(self, color):
+    def set_fg_color(self, color, file=None):
         """Writes ANSI sequence to set the foreground color
         color: RGB  3-sequence (0.0-1.0 or 0-255 range) or color constant
         """
         if color == DEFAULT_FG:
-            self.SGR(39)
+            self.SGR(39, file=file)
         else:
             color = self._normalize_color(color)
-            self.SGR(38, 2, *color)
+            self.SGR(38, 2, *color, file=file)
 
-    def set_bg_color(self, color):
+    def set_bg_color(self, color, file=None):
         """Writes ANSI sequence to set the background color
         color: RGB  3-sequence (0.0-1.0 or 0-255 range) or color constant
         """
         if color == DEFAULT_BG:
-            self.SGR(49)
+            self.SGR(49, file=file)
         else:
             color = self._normalize_color(color)
-            self.SGR(48, 2, *color)
+            self.SGR(48, 2, *color, file=file)
 
-    def set_effects(self, effects, *, reset=True, turn_off=False, update_active_only=False):
+    def set_effects(self, effects, *, reset=True, turn_off=False, update_active_only=False, file=None):
         """Writes ANSI sequence to set text effects (bold, blink, etc...)
 
         When using the high-level drawing functions, each time a text-effect
@@ -267,8 +270,6 @@ class ScreenCommands:
         sgr_codes = []
 
         effect_map = effect_off_map if turn_off else effect_on_map
-
-
         active_unicode_effects = set()
         for effect_enum in Effects:
             if effect_enum is Effects.none:
@@ -285,7 +286,7 @@ class ScreenCommands:
 
         self.active_unicode_effects = active_unicode_effects
         if not update_active_only:
-            self.SGR(*sgr_codes)
+            self.SGR(*sgr_codes, file=file)
 
 
 class JournalingScreenCommands(ScreenCommands):
@@ -370,8 +371,10 @@ class JournalingScreenCommands(ScreenCommands):
         if self.in_block == 0:
             self.replay()
 
-    def replay(self):
+    def replay(self, file=None):
         """Renders the commands recorded to the terminal screen.
+          Args:
+            - file (Optional[TextIO]): Optional file to render command-content to.
 
         This collects the last-writting in each screen position,
         groups same-color in consecutive left-to-right characters to avoid
@@ -381,11 +384,22 @@ class JournalingScreenCommands(ScreenCommands):
         but can be called manually to render partially whatever commands
         are recorded so far. The journal is not touched and
         can be further used inside the same context.
+
+        If optional `file` is passed, all contents are written  in as a
+        text sequence in an optmized top-left to bottom-right stream with ANSI commands
+        to position the cursor (and set colors, etc...).
+        (note it should be a text-file, if any of the characters to be rendered
+        is not valid in the file inner encoding, it will rase an UnicodeEncode error).
+        If file is not passed, the contents are rendered to the terminal using
+        sys.stdout.
+
         """
         last_color = last_bg = None
         last_effect = Effects.none
         last_pos = None
-        buffer = ""
+        # buffer = ""
+        original_file = file
+        file = StringIO() if not original_file else original_file
 
         for pos in sorted(self.journal, key=lambda pos: (pos[1], pos[0])):
             tick, char, color, bg, effect = self.journal[pos][-1]
@@ -408,29 +422,30 @@ class JournalingScreenCommands(ScreenCommands):
                 call.append((self.set_effects, effect))
 
             if call:
-                if buffer:
-                    self.print(buffer)
-                    buffer = ""
+                #if buffer:
+                #    self.print(buffer)
+                #    buffer = ""
                 for func, arg in call:
-                    func(arg)
-            buffer += char
+                    func(arg, file=file)
+            file.write(char) #buffer += char
             last_pos += (1, 0)
 
-        if buffer:
-            self.print(buffer)
+        if not original_file:  # we actually write to the terminal
+            self.print(file.getvalue())
 
-    def print_at(self, pos, txt):
+    def print_at(self, pos, txt, file=None):
         """Positions the cursor and prints a text sequence
 
         Args:
           - pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
           - txt: Text to render at position
+          - file: Alternative file file to be used in final output, rather than sys.stdout
 
         All characters are logged into the journal if inside a managed block.
         """
 
         if not self.in_block:
-            return super().print_at(pos, txt)
+            return super().print_at(pos, txt, file=file)
 
         # pre-transform characters, we bypass super().print_at
         if txt[0] != ESC and self.active_unicode_effects:
@@ -439,26 +454,26 @@ class JournalingScreenCommands(ScreenCommands):
         for x, char in enumerate(txt, pos[0]):
             self._set(V2(x, pos[1]), char)
 
-    def set_fg_color(self, color):
+    def set_fg_color(self, color, file=None):
         """Writes ANSI sequence to set the foreground color
 
         Args:
           - color (constant or 3-sequence): RGB color (0.0-1.0 or 0-255 range) or constant to set as fg color
         """
         if not self.in_block:
-            super().set_fg_color(color)
+            super().set_fg_color(color, file=file)
         self.current_color = color
 
-    def set_bg_color(self, color):
+    def set_bg_color(self, color, file=None):
         """Writes ANSI sequence to set the background color
 
         Args:
           - color (constant or 3-sequence): RGB color (0.0-1.0 or 0-255 range) or constant to set as fg color
         """
         if not self.in_block:
-            super().set_bg_color(color)
+            super().set_bg_color(color, file=file)
         self.current_background = color
 
-    def set_effects(self, effects):
-        super().set_effects(effects, update_active_only = self.in_block)
+    def set_effects(self, effects, file=None):
+        super().set_effects(effects, update_active_only = self.in_block, file=file)
         self.current_effect = effects
