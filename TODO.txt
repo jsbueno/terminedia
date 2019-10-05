@@ -104,13 +104,14 @@ space invaders implementation (hint: it would be already feasible - but it is st
 
 
 # virtual terminal server-
-    use advanced
 
 Advanced terminal handling features
     REPL Environment wit bottom lines for python console and upper screen for image (see posix_openpt)
     anmating and coloring text output of unware apps, by creating an internal virtual terminal (posix_openpt)
     handle scrolling capabilities and pre-post buffer
     terminal agnostic screen commands (terminfo and infocmp to de-hardcode ANSI sequences)
+    implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change
+        check if there is a ms-windows equivalent
 
 HTML Backend:
     generate static html files with inline style
@@ -121,9 +122,8 @@ HTML Backend:
 
 Ongoing (0.3dev)
 ###############
-step by step tasks
 
-for sane text rendering:
+Text and big-text capabilities:
 
     enable new blank shape with given size (V)
     sanitizing load from data for shapes(V)
@@ -137,7 +137,10 @@ for sane text rendering:
     write example script using large-text rendering (V)
     connect Screen "print" and "print_at" to ".text" namespace.(V)
 
-    Add text formatting and flowing primitives into ".text" namespace
+    Add text formatting and flowing primitives into ".text" namespace:
+        method to allow text insertion and flowing inside a shape or ROI
+        allow center/left/right/justify alignments
+
     Add scrolling, rectangular text regions and flowing text
     All-side scrolling and flowing text from one region to the next
 
@@ -149,29 +152,31 @@ for sane text rendering:
     Add arbitrary font handling by using PIL to cache rendered chars.
     Enable 16 x 8 double and 16 x 16 double width UNSCII fonts.
 
-create full fledged shape with char, fg, bg, effects (WIP):
-    implement FullShape class (V):
+shape and page capabilities:
+    create full fledged shape with char, fg, bg, effects (WIP - only missing example script):
+        implement FullShape class (V):
         class with internal data planes for each attribute (V)
         class bound as internal storage for screen (V)
         bug: issues with internal data and rendering(V)
         Fix text rendering into FullShape(V)
         FEATURE: being able to draw in differing planes (value, FG, BG, effects) independent way(V)
         write a refresh method to redraw a Screen rectangle - allowing double-buffering drawing (V)
-    Add example script using FullShape and transformers(terminedia-text)
+        Add example script using FullShape and transformers(terminedia-text)
+    Add "render" method or other API for early implementation of other backends (not terminal)
+    create "Page" class: contaning several z-ordered shape or ROIs for text layout
 
 
 Imaging capabilities:
+    make text effects work on terminal (V)
+    Associate a base FullShape class with a Screen (V)
+    Add example with terminal text effects(V)
+    enable rendering of pixels with char, fg, bg, effects on screen (V)
+    enable rendering of arbitrary pixels on arbitrary shape types (V)
+    update blit and other actions on drawing api to use all pixel properties. (V) (via context.transfomer)
+    implement handling of "TRANSPARENT" as FG, BG and Effects keeping attribute (V)
+    create a "blit fast path" for value/palette shapes to target (avoid overhead of pixel creation)
     make "Alpha" value work for value-shapes.
     make "intensity" rendering for values (B&W shapes)
-        make text effects work on terminal (V)
-        Associate a base FullShape class with a Screen (V)
-        Add example with terminal text effects(V)
-        enable rendering of pixels with char, fg, bg, effects on screen (V)
-        enable rendering of arbitrary pixels on arbitrary shape types (V)
-        update blit and other actions on drawing api to use all pixel properties. (V) (via context.transfomer)
-        implement handling of "TRANSPARENT" as FG, BG and Effects keeping attribute (V)
-    create a "blit fast path" for value/palette shapes to target
-        (avoid overhead of pixel creation)
 
 General Refactoring:
     refactor context initialization (V)
@@ -190,8 +195,7 @@ General Refactoring:
         - make use of 1byte color on terminal.py
 
 
-Improvements and bugs:
-    CRITICAL: effects refactoring led rendering to be B&W (V)
+Improvements and small features:
     Text effects are not cached in the terminal journaling-commands (V)
     Fix tm.text.render into palettedshape: result is mixing spaces and color-constants in data
     make double-width unicode characters take 2 character cells. (V):
@@ -204,11 +208,9 @@ Improvements and bugs:
         - implement fix at terminal.Commands.print (N/A - 'CONTINUATION' constant never reaches terminal functions)
         - fix example snake game - second half of apple should be edible.(V)
         - fix regression in high-res shape drawing(V)
-        - fix printing of colored double-width characters . (b0rk)
         - [future]:
             - check double width chars at UNSCII 16 for proper use at other text scales
             - if needed implement the logic above at text[4], [8], etc...
-    plot example script prints completly bogus values on the y scale.
     Fix blitting from FullShape (V)
     fix-paletted-shape-blitting-bug
     fix-value-shape-blitting-bug
@@ -219,7 +221,6 @@ Improvements and bugs:
     fix regression on terminedia-context (V)
     Improve error messages/or silence/ when attempting to write out of Screen/Shape limits
     FIX DOCUMENTATION GENERATION
-    Bug: current "inkey" is buggy as repeated keystrokes are bundled in the same inkey response. (completly bork at higher repeat rates)(V)
     improvement: API for  X-session wide key-repeat tunning with "xset r rate".
             (Maybe, in combination with other features, it is even possible to have keydown/keyup emulation)
             What is the equivalent API for Win and Mac if any?
@@ -231,7 +232,18 @@ Improvements and bugs:
     Add a "clear" draw method to empty-up a target.
     Drawing APIs not respecting ShapeView limits (V)
     Optimize extent-limted blitting to skip fast to next shape line (by sending a next-line sentinel to shape-iterator) (V)
+    add "callback" or early event system so that context parameters can be changed after printing a character, or other event.
+    set up internal state on which terminal program is running, basd on env-vars (so that terminal behaviors bugs can be work-around)
+    improvement: Screen.set_at should pass a pixel straight to __setitem__ and not set the context and pass only th value
+
+Bugs:
+    bug: CRITICAL: effects refactoring led rendering to be B&W (V)
     bug: unicode_effects not being applied on direct "screen.print" call.(V)
+    Bug: current "inkey" is buggy as repeated keystrokes are bundled in the same inkey response. (completly bork at higher repeat rates)(V)
+    bug: plot example script prints completly bogus values on the y scale.
+    bug:fix printing of colored double-width characters . (b0rk on konsole) (WIP)
+    bug: re-entering a screen context and blitting  is not rendering the char at [0,0] (WIP)
+
 
 
 
