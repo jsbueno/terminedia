@@ -1,3 +1,4 @@
+import re
 import time
 import sys
 from functools import lru_cache
@@ -96,6 +97,11 @@ class ScreenCommands:
         if file is None:
             file = sys.stdout
         try:
+            if len(args) == 1 and "\x1b" in args[0] and file is sys.stdout:
+                # Separate a long sequence in one write operation for each
+                # ANSI command
+                sep = end = ''
+                args = re.split("(?=\x1b)", args[0])
             for arg in args:
                 file.write(arg)
                 if sep:
