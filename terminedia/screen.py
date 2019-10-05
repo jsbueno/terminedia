@@ -7,7 +7,7 @@ import terminedia.text
 from terminedia.context import Context
 from terminedia.utils import V2, Rect
 from terminedia.terminal import JournalingScreenCommands
-from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, Effects, Directions
+from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, Effects, Directions, CONTINUATION
 from terminedia.drawing import Drawing, HighRes
 from terminedia.image import Pixel, FullShape
 
@@ -99,6 +99,8 @@ class Screen:
         self.commands = JournalingScreenCommands()
         self.clear_screen = clear_screen
         self.data = FullShape.new((self.width, self.height))
+        # Synchronize context for data and screen painting.
+        self.data.context = self.context
 
     def __enter__(self):
         """Enters a fresh screen context"""
@@ -129,7 +131,7 @@ class Screen:
         called as part of entering the screen context.
 
         """
-        self.data.context = self.context
+        # self.data.context = self.context
         self.context.last_pos = V2(0,0)
         self.__class__.last_color = None
         self.__class__.last_background = None
@@ -181,6 +183,9 @@ class Screen:
         """
 
         self[pos] = " "
+        pos = V2(pos)
+        if self[pos + (1,0)] == CONTINUATION:
+            self[pos + (1, 0)] = " "
 
     def line_at(self, pos, length, sequence=BlockChars.FULL_BLOCK):
         """Renders a repeating character sequence of given length respecting the context.direction
@@ -289,8 +294,9 @@ class Screen:
                 cls.last_color = pixel.foreground
                 cls.last_background = pixel.background
                 cls.last_effects = pixel.effects
-            self.commands.print_at(pos, pixel.value)
-            self.context.last_pos = V2(pos)
+            if pixel.value != CONTINUATION:
+                self.commands.print_at(pos, pixel.value)
+                self.context.last_pos = V2(pos)
 
     def update(self, pos1=None, pos2=None):
         rect = Rect(pos1, pos2)

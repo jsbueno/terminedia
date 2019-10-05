@@ -7,8 +7,9 @@ from inspect import signature
 from pathlib import Path
 
 from terminedia.context import Context
-from terminedia.utils import Color, Rect, V2, LazyBindProperty
-from terminedia.values import DEFAULT_FG, DEFAULT_BG, TRANSPARENT, CONTEXT_COLORS, Directions, BlockChars, Effects
+from terminedia.utils import Color, Rect, V2, LazyBindProperty, char_width
+from terminedia.unicode_transforms import translate_chars
+from terminedia.values import DEFAULT_FG, DEFAULT_BG, TRANSPARENT, CONTEXT_COLORS, Directions, BlockChars, Effects, CONTINUATION, UNICODE_EFFECTS
 
 logger = logging.getLogger(__name__)
 
@@ -713,10 +714,39 @@ class FullShape(Shape):
         if self.context.transformer:
             value = self.context.transformer(pos, value)
 
+        ############
+        # Check final width (have to apply transformation effect)
+        ###########
+        effects = value[3] if value[3] != TRANSPARENT else self.eff_data[offset]
+        transform_effects = effects & UNICODE_EFFECTS
+        final_char = value[0]
+        if final_char == CONTINUATION:
+            if self.value_data[offset] == CONTINUATION:
+                # we are likely being blitted from a source with matching parameters.
+                # attributes are already set in this cell from
+                # previous character setting
+                return
+
+        if final_char not in (TRANSPARENT, CONTINUATION):
+            if transform_effects:
+                final_char = translate_chars(value[0], transform_effects)
+            double_width = char_width(final_char) == 2
+            if double_width:
+                if pos[0] == self.width - 1:  # Right shape edge
+                    width = 1
+                    double_width = False
+                else:
+                    offset2 = offset + 1
+        else:
+            double_width = False
+        # /check width
         for component, plane in zip(value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)):
             if component is not TRANSPARENT:
                 plane[offset] = component
-
+            if double_width:
+                plane[offset2] = component if plane is not self.value_data else CONTINUATION
+        # set information so higher level users can partake char width (text, blit)
+        self.context.shape_lastchar_was_double = double_width
 
 def shape(data, color_map=None, **kwargs):
     """Factory for shape objects

@@ -278,8 +278,6 @@ class ScreenCommands:
         self.SGR(*sgr_codes)
 
 
-
-
 class JournalingScreenCommands(ScreenCommands):
     """Internal use class to write ANSI-Sequence commands to the terminal
 

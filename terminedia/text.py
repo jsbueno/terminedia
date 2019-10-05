@@ -209,6 +209,7 @@ class Text:
             target = self.owner
 
         if self.current_plane == 1:
+            # self.context.shape_lastchar_was_double is set in this operation.
             target[index] = self.plane["data"][index]
         elif self.current_plane == 4:
             char = render(self.plane["data"][index], font=target.context.font or self.plane["font"])
@@ -226,6 +227,17 @@ class Text:
         for char in text:
             self[pos] = char
             pos += self.owner.context.direction
+            # FIXME: handle char-width guessing standalone here
+            # That will enable double width detection for other text planes than 1,
+            # and fix ltr case properly.
+            if getattr(self.owner.context, "shape_lastchar_was_double", False):
+                if 0 < self.owner.context.direction[0] < 2:
+                    pos += (1, 0)
+                elif -2 < self.owner.context.direction[0] < 0:
+                    # FIXME: not perfect, as next char might not be double width.
+                    # will handle common case of rtl with double-width chars string, tough.
+                    pos -= (1, 0)
+
         self.set_ctx("last_pos", pos)
 
     def print(self, text):

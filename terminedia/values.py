@@ -14,9 +14,10 @@ CONTEXT_COLORS = 0xfffd
 TRANSPARENT = 0xfffc
 #: Special value to mean no transformation to a given channel
 #: on context-transforms. (See `terminedia.utils.create_transformer`)
-NOP = object()
-
-
+NOP = "NOP"
+#: Special value used in character data maps to indicate
+#: the cell continues a double width character to the left
+CONTINUATION = "CONT"
 
 class Directions:
     """Direction vector constants.
@@ -42,6 +43,12 @@ class Effects(IntFlag):
     The somewhat arbitrary order tries to put first
     the most supported/most useful attributes.
     """
+    def __iter__(self):
+        """much hacky. very smart: composed flags are now iterable!"""
+        for element in self.__class__:
+            if self & element:
+                yield element
+
     none = 0
     bold = 1
     italic = 2
@@ -70,6 +77,7 @@ unicode_effects = {
     Effects.encircled, Effects.squared, Effects.negative_squared,
     Effects.negative_circled, Effects.parenthesized, Effects.fullwidth
 }
+UNICODE_EFFECTS = Effects(sum(effect for effect in Effects if effect in unicode_effects))
 
 # (encircled is actually defined as an ANSI effect, but no terminal
 # support for it was found at encoding time.)
@@ -116,6 +124,7 @@ class BlockChars_:
     block_chars_to_name = mirror_dict(block_chars_by_name)
     blocks_in_order = {i: value for i, value in enumerate(block_chars_by_name.values())}
     block_to_order = mirror_dict(blocks_in_order)
+    block_chars = set(block_chars_by_name.values())
 
     def __contains__(self, char):
         """True if a char is a "pixel representing" block char"""
