@@ -732,8 +732,9 @@ class FullShape(Shape):
                 final_char = translate_chars(value[0], transform_effects)
             double_width = char_width(final_char) == 2
             if double_width:
-                if pos[0] == self.width - 1:
+                if pos[0] == self.width - 1:  # Right shape edge
                     width = 1
+                    double_width = False
                 else:
                     offset2 = offset + 1
         else:

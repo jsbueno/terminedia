@@ -395,5 +395,10 @@ def create_transformer(context, slots, clear=False):
 
 
 def char_width(char):
+    from terminedia.values import BlockChars
+    if char in BlockChars.block_chars:
+        return 1
+    if len(char) > 1:
+        return max(char_width(combining) for combining in char)
     v = unicodedata.east_asian_width(char)
     return 1 if v in ("N", "Na") else 2   # (?) include "A" as single width?

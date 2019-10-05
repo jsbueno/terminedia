@@ -194,13 +194,16 @@ Improvements and bugs:
     CRITICAL: effects refactoring led rendering to be B&W (V)
     Text effects are not cached in the terminal journaling-commands (V)
     Fix tm.text.render into palettedshape: result is mixing spaces and color-constants in data
-    make double-width unicode characters take 2 character cells. (WIP):
+    make double-width unicode characters take 2 character cells. (V):
         - create way to check char width and constant (V)
-        - implement fix at FullShape.__setitem__, __getitem__ (WIP)
-        - implement fix at drawing.blit
-        - implement fix at text[1].at
-        - implement fix at Screen.__setitem__
-        - implement fix at terminal.Commands.print(?)
+        - refactor text effects flags to be iterable (V)
+        - implement fix at FullShape.__setitem__, __getitem__ (V)
+        - implement fix at drawing.blit (N/A - blit simply copies CONTINUATION constant normally)
+        - implement fix at text[1].at (V)
+        - implement fix at Screen.__setitem__ (V)
+        - implement fix at terminal.Commands.print (N/A - 'CONTINUATION' constant never reaches terminal functions)
+        - fix example snake game - second half of apple should be edible.(V)
+        - fix regression in high-res shape drawing(V)
         - [future]:
             - check double width chars at UNSCII 16 for proper use at other text scales
             - if needed implement the logic above at text[4], [8], etc...
@@ -208,7 +211,7 @@ Improvements and bugs:
     Fix blitting from FullShape (V)
     fix-paletted-shape-blitting-bug
     fix-value-shape-blitting-bug
-    fix-highres-shape-bliting color leak
+    fix-highres-shape-bliting color leak (V)
     refactor bezier-curve and ellipse(empty) adaptive code to use same codebase
     configure properly and make consistent use of logger
     fix breaking on terminedia-context (context initialization) (V)

@@ -124,6 +124,7 @@ class BlockChars_:
     block_chars_to_name = mirror_dict(block_chars_by_name)
     blocks_in_order = {i: value for i, value in enumerate(block_chars_by_name.values())}
     block_to_order = mirror_dict(blocks_in_order)
+    block_chars = set(block_chars_by_name.values())
 
     def __contains__(self, char):
         """True if a char is a "pixel representing" block char"""

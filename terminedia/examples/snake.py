@@ -39,8 +39,12 @@ class Snake:
         x, y = self.pos
         x //= 2
         y //= 2
-        if (x, y) in game.items:
-            game.eat_item((x, y))
+        # The apple emoji is a double width character
+        for rx in (x, x - 1):
+            if rx < 0:
+                continue
+            if (rx, y) in game.items:
+                game.eat_item((rx, y))
 
 
     def check_dead(self, game):
@@ -144,6 +148,7 @@ class Game:
 
     def eat_item(self, pos):
         item = self.items.pop(pos, None)
+        self.scr.reset_at(pos)
         if not item:
             return
         self.snake.length += self.snake.length_step
