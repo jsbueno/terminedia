@@ -236,7 +236,7 @@ class ScreenCommands:
             color = self._normalize_color(color)
             self.SGR(48, 2, *color)
 
-    def set_effects(self, effects, *, reset=True, turn_off=False):
+    def set_effects(self, effects, *, reset=True, turn_off=False, update_active_only=False):
         """Writes ANSI sequence to set text effects (bold, blink, etc...)
 
         When using the high-level drawing functions, each time a text-effect
@@ -253,6 +253,9 @@ class ScreenCommands:
                         underline terminal property will be affected by this call
           turn_off (bool): Only used when "reset" is False: meant to indicate
                            the specified effects should be turnned off instead of on.
+          update_active_only (bool): if set, won't issue any commands to terminal, just
+                            modify internal state so that effetcs that trigger character
+                            translations are activated.
         """
 
         sgr_codes = []
@@ -275,7 +278,8 @@ class ScreenCommands:
                 sgr_codes.append(effect_off_map[effect_enum])
 
         self.active_unicode_effects = active_unicode_effects
-        self.SGR(*sgr_codes)
+        if not update_active_only:
+            self.SGR(*sgr_codes)
 
 
 class JournalingScreenCommands(ScreenCommands):
@@ -445,6 +449,5 @@ class JournalingScreenCommands(ScreenCommands):
         self.current_background = color
 
     def set_effects(self, effects):
-        if not self.in_block:
-            super().set_effects(effects)
+        super().set_effects(effects, update_active_only = self.in_block)
         self.current_effect = effects

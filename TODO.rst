@@ -230,6 +230,6 @@ Improvements and bugs:
     Add a "clear" draw method to empty-up a target.
     Drawing APIs not respecting ShapeView limits (V)
     Optimize extent-limted blitting to skip fast to next shape line (by sending a next-line sentinel to shape-iterator) (V)
-    bug: unicode_effects not being applied on direct "screen.print" call.
+    bug: unicode_effects not being applied on direct "screen.print" call.(V)
 
 
