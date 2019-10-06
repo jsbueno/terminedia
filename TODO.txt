@@ -43,14 +43,13 @@ unicode latin-effected characters as character effects:
      and be applied only at rendering time - "value_data" structures should retain page-0 range latin text)
      - encircled chars(V)
      - squared chars(V)
-     - Reversed squared chars(WIP)
+     - Reversed squared chars(V)
+     - Refactor char translation engine to enable auto-generation of more unicode-alphabet families (WIP)
+     - mathematical sans-serif bold italic (WIP - missing digits, think on refactoring)
      - Small (combining?) chars
-     - Update "text-effects" example
-     - Fix internal data and cursor positioning for non-single width characters
-            (detect konsole and force repositioning? (gnome-terminal enforces
-            singlewidth for squared and circled unicode chars. konsole uses
-            variable width for both))(WIP)
-
+     - Update "text-effects" example to fit more effects to come.
+     - Fix internal data and cursor positioning for non-single width characters(V)
+     - Allow manual selection of double-width chars (the "math-bold-italic" unicode group is listed as "single width", but does not look nice, would be better as double-width)
 
 convolution-dependant effects, to smooth-out corners, use unicode circles and squares to denote intensity
     (should use transformers, and be applied at painting time)
