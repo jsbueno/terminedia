@@ -19,6 +19,7 @@ Future
 ========
 
 multiple backends: (check pygments):
+    ANSI backend (file or text string) (V)
     HTML backend
     Image 'screenshot' backend
     image backend (pixels are simple color-only boring, image pixels)

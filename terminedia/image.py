@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from collections import namedtuple
 from collections.abc import Sequence
 from inspect import signature
+from io import StringIO
 from pathlib import Path
 
 from terminedia.context import Context
@@ -348,10 +349,51 @@ class Shape(ABC, ShapeApiMixin):
 
         return new_shape
 
+    def render(self, backend="ANSI", output=None):
+        """Renders shape contents into a text-output.
+          Args:
+            - backend (str): currently implemented "ANSI" - output type
+            - output(Optional[Union[TextIO, BytesIO]])
+          Output:
+            ->Optional[Union[str, bytes]]
+
+            Renders shape contents into content that can reprsent the image
+            outside terminedia library. That is, if the shape is rendered with "ANSI",
+            a text body, with the ESC encoded ANSI sequences for cursor positioning
+            embeded will be generated. If this body is subsequnetly printed, the
+            image in the Shape is reproduced on the terminal.
+
+            If output is given, it should be a file-like object to which the contents
+            of the shape will be written. Binary backends require a binary file. thenmethod returns None.
+            If no output is given, the rendered contents are returned.
+        """
+        if backend == "ANSI":
+            return self._render_ansi(output)
+        else:
+             raise ValueError(f"Output type {backend!r} not implemented")
+
+    def _render_ansi(self, output):
+        from terminedia.screen import Screen
+        if output is None:
+            file = StringIO()
+        else:
+            file = output
+        sc = Screen(size=V2(self.width, self.height))
+        # Starts recording all image operations on the internal journal
+        sc.commands.__enter__()
+        sc.blit((0,0), self)
+        # Ends journal-recording, but without calling __exit__
+        # which does not allow passing an external file.
+        sc.commands.stop_journal()
+        # Renders all graphic ops as ANSI sequences + unicode into file:
+        sc.commands.replay(file)
+        if output is None:
+            return file.getvalue()
+
 
 # "Virtualsubclassing" - 2 days after I wrote there were no
 # practical uses for it.
-# With if, "ShapeView" can have "__slots__"
+# With it, "ShapeView" can have "__slots__"
 @Shape.register
 class ShapeView(ShapeApiMixin):
     __slots__ = ("roi", "original", "_draw", "_high", "_text")

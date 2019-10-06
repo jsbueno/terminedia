@@ -377,6 +377,10 @@ class JournalingScreenCommands(ScreenCommands):
         if self.in_block == 0:
             self.replay()
 
+    def stop_journal(self):
+        """Manually stops journalling so that recorded contents can be replayed"""
+        self.in_block = 0
+
     def replay(self, file=None):
         """Renders the commands recorded to the terminal screen.
           Args:
