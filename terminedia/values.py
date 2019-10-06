@@ -69,7 +69,9 @@ class Effects(IntFlag):
     negative_circled = 65536
     parenthesized = 2 ** 17
     fullwidth = 2 ** 18
-    math_bold_italic = 2 ** 19
+    math_bold = 2 ** 19
+    math_bold_italic = 2 ** 20
+    super_bold = 2 ** 21
 
 
 # Effects that are rendered by character translation / unicode combining
@@ -77,7 +79,7 @@ class Effects(IntFlag):
 unicode_effects = {
     Effects.encircled, Effects.squared, Effects.negative_squared,
     Effects.negative_circled, Effects.parenthesized, Effects.fullwidth,
-    Effects.math_bold_italic
+    Effects.math_bold, Effects.math_bold_italic, Effects.super_bold
 }
 UNICODE_EFFECTS = Effects(sum(effect for effect in Effects if effect in unicode_effects))
 
