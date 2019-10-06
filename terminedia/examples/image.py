@@ -27,12 +27,7 @@ def main(image_paths):
             img = shape(img_path)
             with scr.commands:
                 scr.draw.blit((0,0), img)
-            scr.context.color = 1, 0, 0
-            # scr.print_at((img.width // 2 - len(phrase) // 2, img.height // 2,), phrase)
-            scr.text[8].at((0, 1), phrase)
-            scr.context.color = 1, 0, 1
-            pause()
-            scr.clear()
+        pause()
 
 
 if __name__ == "__main__":
