@@ -131,7 +131,7 @@ class Drawing:
                 self.set((pos[0] + j, pos[1]))
                 mask[j] = True
 
-    def ellipse(self, pos1, pos2, *, rel=(), fill=False):
+    def ellipse(self, pos1, pos2=(), *, rel=(), fill=False):
         """Draws an ellipse
 
         Args:

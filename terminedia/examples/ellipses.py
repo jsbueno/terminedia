@@ -4,7 +4,7 @@ import click
 
 from terminedia import Screen, realtime_keyb, pause, inkey
 
-def test_ellipses(scr):
+def test_ellipses(scr, sleep=0.2):
     import random
     # scr.draw.ellipse((0, 0), (40, 20))
     scr.context.color = 0.5, 0, 1
@@ -22,14 +22,15 @@ def test_ellipses(scr):
                     scr.context.color = random.uniform(0, 1), random.uniform(0, 1), random.uniform(0, 1)
                     scr.high.draw.ellipse((x, y), (x + random.randrange(10, 40),  y + random.randrange(5, 20)))
                     inkey()
-        time.sleep(0.2)
+        time.sleep(sleep)
 
 @click.command()
-def main():
+@click.option("sleep", "--sleep", "-s", default=0.2, help="Seconds to pause after each dran frame")
+def main(sleep=0.2):
     """Example and benchmark tests for the drawing API using ellipses
     """
     with realtime_keyb(), Screen() as scr:
-        test_ellipses(scr)
+        test_ellipses(scr, sleep)
         pause()
 
 

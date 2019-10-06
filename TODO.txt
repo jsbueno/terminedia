@@ -19,6 +19,7 @@ Future
 ========
 
 multiple backends: (check pygments):
+    ANSI backend (file or text string) (V)
     HTML backend
     Image 'screenshot' backend
     image backend (pixels are simple color-only boring, image pixels)
@@ -58,9 +59,10 @@ easy way to pick unicode emojis and glyphs
 
 alpha channel support for images:
     plot with spaces (" ") instead of full-block char, and compose color using background
-Single-write optimization:
-    pass a "buffer" parameter around on the method-chain calls for screen rendering in the classes in Terminal.py
+Single-write optimization:(WIP)
+    pass a "buffer" parameter around on the method-chain calls for screen rendering in the classes in Terminal.py (WIP)
     have an option to export the rendered buffer as a single block of bytes: a screenshot snapshot with built-in ANSI sequences.
+    Add an optional parameter to Screen.update (maybe rename the method to 'render'?) to draw to a string buffer instead of the terminal.
 support to z-index, and background keeping on blitting ("sprite" api)
 MS-Windows support (colorama/mscrvt/color reducing)
 "business" framed-window api
