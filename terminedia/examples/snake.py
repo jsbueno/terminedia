@@ -4,6 +4,7 @@ import time
 import click
 
 import terminedia
+from terminedia import Effects
 
 K = terminedia.KeyCodes
 D = terminedia.Directions
@@ -128,9 +129,7 @@ class Game:
         width, height = self.scr.get_size()
         center = width // 2
         score_str = f"{self.score:<6d}"
-        self.scr.context.color = 1, .5, 0
-        self.scr.print_at((center - 3, height - 1), score_str)
-        self.scr.context.color = terminedia.DEFAULT_FG
+        self.scr.print_at((center - 3, height - 1), score_str, color=(1, .5, 0), effects=Effects.fullwidth)
         self.last_score = self.score
 
     def maybe_create_item(self):

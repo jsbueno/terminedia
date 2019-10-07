@@ -51,6 +51,10 @@ unicode latin-effected characters as character effects:
      - Fix internal data and cursor positioning for non-single width characters(V)
      - Allow manual selection of double-width chars (the "math-bold-italic" unicode group is listed as "single width", but does not look nice, would be better as double-width)
 
+Find a way to find witch unicode-glyphs are available in system-wide fonts
+    - suggest font-installation
+    - (or) download free-fonts to terminedia data folder (but how to make the host terminal use them?)
+
 convolution-dependant effects, to smooth-out corners, use unicode circles and squares to denote intensity
     (should use transformers, and be applied at painting time)
 "page" abstraction expanding the "shape": including text regions, layers and animation effects

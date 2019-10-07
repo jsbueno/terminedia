@@ -8,6 +8,12 @@ def mirror_dict(dct):
     return {value: key for key, value in dct.items()}
 
 
+class FrozenDict(dict):
+    __slots__ = ()
+    __setitem__ = None
+    def __hash__(self):
+        return hash(tuple(self.items()))
+
 class V2(tuple):
     """2-component Vector class to ease drawing
 
