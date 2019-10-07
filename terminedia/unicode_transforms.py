@@ -71,11 +71,11 @@ def text_to_negative_circled(text, convert=True):
 
 
 def text_to_squared(text, convert=True):
-    return _name_based_translation(text, convert, "SQUARED")
+    return _name_based_translation(text, convert, "SQUARED", r"[A-Za-z0]", convert_lower=True)
 
 
 def text_to_negative_squared(text, convert=True):
-    return _name_based_translation(text, convert, "NEGATIVE SQUARED")
+    return _name_based_translation(text, convert, "NEGATIVE SQUARED", r"[A-Za-z0]", convert_lower=True)
 
 
 def text_to_parenthesized(text, convert=True):
