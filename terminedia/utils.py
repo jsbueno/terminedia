@@ -402,7 +402,7 @@ def create_transformer(context, slots, clear=False):
 
 def char_width(char):
     from terminedia.subpixels import BlockChars
-    if char in BlockChars.block_chars:
+    if char in BlockChars.chars:
         return 1
     if len(char) > 1:
         return max(char_width(combining) for combining in char)
