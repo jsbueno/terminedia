@@ -8,6 +8,7 @@ from io import StringIO
 from pathlib import Path
 
 from terminedia.context import Context
+from terminedia.subpixels import BrailleChars
 from terminedia.utils import Color, Rect, V2, LazyBindProperty, char_width
 from terminedia.unicode_transforms import translate_chars
 from terminedia.values import DEFAULT_FG, DEFAULT_BG, TRANSPARENT, CONTEXT_COLORS, Directions, Effects, CONTINUATION, EMPTY, UNICODE_EFFECTS
@@ -158,6 +159,10 @@ class ShapeApiMixin:
     def high(self):
         return self._get_highres()
 
+    @LazyBindProperty
+    def braille(self):
+        return self._get_highres(block_class=BrailleChars, block_height=4)
+
     _data_func = staticmethod(lambda size: [EMPTY * size.x] * size.y)
 
     def _get_drawing(self):
@@ -171,9 +176,9 @@ class ShapeApiMixin:
             context = self.context
         )
 
-    def _get_highres(self):
+    def _get_highres(self, **kw):
         from terminedia.drawing import HighRes
-        return HighRes(self)
+        return HighRes(self, **kw)
 
     def _get_text(self):
         from terminedia.text import Text

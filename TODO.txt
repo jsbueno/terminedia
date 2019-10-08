@@ -34,8 +34,9 @@ new "resolution modes":
     - braille-block (1/8 block)(WIP):
         - refactor "HighRes" class splittin a base class sub-pixel resolution agnostic (V)
         - refactor "BlockChars" to have a usefull superclass (V)
-        - add equivalent class using Braille characters as 2x4 pixel blocks (WIP)
-        - Add a provisional namespace for super-resolution ("superhigh"? "high2"? "hiper"?)
+        - add equivalent class using Braille characters as 2x4 pixel blocks (V)
+        - Add a provisional namespace "braille" for super-resolution (V)
+        - Add a Text[2] plane using braille chars(WIP)
         - create a solution equivalent to the ".text[4]" plane selection for resolutions
     - sextant (1/6 block) (depends on unicode 12 with vintage charset), with square aspect ratio:
     - 1 block width x 1 block height at arbitrary 1/8 block height position. (use "LOWER ONE EIGHTH BLOCK" and friends)

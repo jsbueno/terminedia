@@ -6,6 +6,7 @@ from math import ceil
 import terminedia.text
 from terminedia.context import Context
 from terminedia.utils import V2, Rect
+from terminedia.subpixels import BrailleChars
 from terminedia.terminal import JournalingScreenCommands
 from terminedia.values import CONTINUATION, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, Directions, EMPTY, Effects, FULL_BLOCK
 from terminedia.drawing import Drawing, HighRes
@@ -90,6 +91,7 @@ class Screen:
         #: :any:`Drawing` instance at ``Screen.high.draw`` to do 1/4 block pixel
         #: manipulation.
         self.high = HighRes(self)
+        self.braille = HighRes(self, block_class=BrailleChars, block_width=2, block_height=4)
 
         self.text = terminedia.text.Text(self)
 

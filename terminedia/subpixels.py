@@ -1,3 +1,5 @@
+import unicodedata
+
 from  terminedia import values
 from terminedia.utils import mirror_dict
 
@@ -118,6 +120,29 @@ class BlockChars_(SubPixels):
 
 #: :any:`BlockChars_` single instance: enables ``__contains__``:
 BlockChars = BlockChars_()
+
+
+class BrailleChars_(SubPixels):
+    """Used internally to emulate pixel setting/resetting/reading inside 1/8 Unicode Braille characters"""
+
+    block_width = 2
+    block_height = 4
+
+    EMPTY = values.EMPTY
+
+    for codepoint in range(0x2801, 0x2900):
+        char = chr(codepoint)
+        locals()[unicodedata.name(char)] = char
+    del codepoint, char
+
+    @classmethod
+    def _op(cls, pos, data, operation):
+        number = cls.chars_to_order[data]
+        index = (2 ** (pos[1] + 3 * pos[0])) if pos[1] <= 2 else (2 ** (6 + pos[0]))
+        return operation(number, index)
+
+
+BrailleChars = BrailleChars_()
 
 # draft chars to look at later:
 # Future chars to acomodate in extended drawing modes:

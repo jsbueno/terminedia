@@ -321,20 +321,28 @@ class Drawing:
         self.context.background = self.context.background_stack.pop()
 
 
-class HighResBase:
+class HighRes:
     """ Provides a seamless mechanism to draw using unicode special characters as pixels.
 
     This is used as a base to have the method used for drawing using 1/4 block characters,
     Braile characters, vintage "sextant" 1/6 blocks and possibly others to come.
 
+    Keep in mind that while it is possible to emulate the higher resolution
+    pixels, screen colors are limited to character positions, so color
+    on these pixels will "leak" to their block. (Users familiar
+    with the vintage 8 bit ZX-Spectrum should feel at home)
+
+    This class should not be instanced or used directly - instead, call the `Drawing` methods
+    in the associated `draw` class as in `screen.high.draw.blit(position, image)`
+
     """
 
-    block_class: type
-    block_width: int
-    block_height: int
-
-    def __init__(self, parent):
+    def __init__(self, parent, block_class=BlockChars, block_width=2, block_height=2):
         """Sets instance attributes"""
+        self.block_class = block_class
+        self.block_width = block_width
+        self.block_height = block_height
+
         self.parent = parent
         self.draw = Drawing(self.set_at, self.reset_at, self.get_size, self.parent.context)
         self.context = parent.context
@@ -435,25 +443,3 @@ class HighResBase:
         """
         self.parent.print_at(self.at_parent(pos), text)
 
-
-class HighRes(HighResBase):
-    """ Provides a seamless mechanism to draw with 1/4 character block "pixels".
-
-    This class is meant to be used as an instance associated to an :any:`Screen` instance,
-    at the :any:`Screen.high` namespace. It further associates a :any:`Drawing` instance
-    as ``screen.high.draw`` which exposes drawing primitives that will use
-    the 1/4 character pixel as a unit.
-
-    Keep in mind that while it is possible to emulate the higher resolution
-    pixels, screen colors are limited to character positions, so color
-    on these pixels will "leak" to their block. (Users familiar
-    with the vintage 8 bit ZX-Spectrum should feel at home)
-
-    This class should not be instanced or used directly - instead, call the `Drawing` methods
-    in the associated `draw` class as in `screen.high.draw.blit(position, image)`
-
-    """
-
-    block_class = BlockChars
-    block_width = 2
-    block_height = 2
