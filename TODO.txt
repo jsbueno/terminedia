@@ -41,6 +41,7 @@ new "resolution modes":
     - sextant (1/6 block) (depends on unicode 12 with vintage charset), with square aspect ratio:
     - 1 block width x 1 block height at arbitrary 1/8 block height position. (use "LOWER ONE EIGHTH BLOCK" and friends)
     - 1 block width x 1 block height at arbitrary 1/8 block width position.
+    - refactor image loading to be able to use super-resolutions for B&W, while keeping color resolution low (Speccy way)
 
 unicode latin-effected characters as character effects:
     (like digits and letters inside squares and circles, combining stroke, underline, slash, and so on)

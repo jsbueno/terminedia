@@ -211,13 +211,15 @@ class Text:
         if self.current_plane == 1:
             # self.context.shape_lastchar_was_double is set in this operation.
             target[index] = self.plane["data"][index]
+            return
+
+        char = render(self.plane["data"][index], font=target.context.font or self.plane["font"])
+        index = (V2(index) * 8).as_int
+        if self.current_plane == 2:
+            target.braille.draw.blit(index, char)
         elif self.current_plane == 4:
-            char = render(self.plane["data"][index], font=target.context.font or self.plane["font"])
-            index = (V2(index) * 8).as_int
             target.high.draw.blit(index, char)
         elif self.current_plane == 8:
-            char = render(self.plane["data"][index], font=target.context.font or self.plane["font"])
-            index = (V2(index) * 8).as_int
             target.draw.blit(index, char)
         else:
             raise ValueError(f"Size {self.current_plane} not implemented for rendering")
