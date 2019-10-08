@@ -1,6 +1,7 @@
 import inspect
 
-from terminedia.values import BlockChars, CONTEXT_COLORS
+from terminedia.subpixels import BlockChars
+from terminedia.values import CONTEXT_COLORS, EMPTY
 from terminedia.utils import V2, Rect
 
 
@@ -306,7 +307,7 @@ class Drawing:
 
                 should_set = (
                     pixel.capabilities.value_type == str and (
-                        pixel.value != " " or
+                        pixel.value != EMPTY or
                         pixel.value == "." and pixel.capabilities.translate_dots
                     )  or
                     pixel.capabilities.value_type == bool and pixel.value
@@ -360,7 +361,7 @@ class HighResBase:
             original = original.value
         if original not in self.block_class:
             graphics = False
-            original = " "
+            original = EMPTY
         new_block = operation((i_x, i_y), original)
         return graphics, (p_x, p_y), new_block
 
@@ -373,7 +374,7 @@ class HighResBase:
         To be used as a callback to ``.draw.set`` - but there are no drawbacks
         in being called directly.
         """
-        _, gross_pos, new_block = self.operate(pos, BlockChars.set)
+        _, gross_pos, new_block = self.operate(pos, self.block_class.set)
         self.parent[gross_pos] = new_block
 
     def reset_at(self, pos):

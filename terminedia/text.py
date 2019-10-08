@@ -4,7 +4,7 @@ from pathlib import Path
 
 from terminedia.image import Shape, PalettedShape
 from terminedia.utils import V2
-from terminedia.values import Directions
+from terminedia.values import Directions, EMPTY
 try:
     # This is the only Py 3.7+ specific thing in the project
     from importlib import resources
@@ -46,7 +46,7 @@ def list_fonts():
     return [f for f in files if f.endswith(".hex")]
 
 
-def load_font(font_path, font_is_resource, initial=0, last=256, ch1=" ", ch2="#"):
+def load_font(font_path, font_is_resource, initial=0, last=256, ch1=EMPTY, ch2="#"):
 
     if font_is_resource and resources:
         data = list(resources.open_text("terminedia.data", font_path))
@@ -117,7 +117,7 @@ class CharPlaneData(dict):
     def __getitem__(self, pos):
         if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):
             raise ValueError(f"Text position out of range - {self.size}")
-        return super().get(pos, " ")
+        return super().get(pos, EMPTY)
 
     def __setitem__(self, pos, value):
         if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):

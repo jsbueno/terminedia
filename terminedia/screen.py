@@ -7,7 +7,7 @@ import terminedia.text
 from terminedia.context import Context
 from terminedia.utils import V2, Rect
 from terminedia.terminal import JournalingScreenCommands
-from terminedia.values import BlockChars, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, Effects, Directions, CONTINUATION
+from terminedia.values import CONTINUATION, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, Directions, EMPTY, Effects, FULL_BLOCK
 from terminedia.drawing import Drawing, HighRes
 from terminedia.image import Pixel, FullShape
 
@@ -131,12 +131,9 @@ class Screen:
         called as part of entering the screen context.
 
         """
-        # self.data.context = self.context
         self.context.last_pos = V2(0,0)
         self.__class__.last_color = None
         self.__class__.last_background = None
-        # To use when we allow custom chars along with blocks:
-        # self.char_data = " " * self.width * self.height
         with self.lock:
             if wet_run:
                 self.commands.clear()
@@ -156,7 +153,7 @@ class Screen:
             cap = pixel.capabilities
             char = pixel.value if issubclass(cap.value_type, str) else self.context.char
             if issubclass(cap.value_type, bool) and not pixel.value:
-                char = BlockChars.EMPTY  # Plain old space
+                char = EMPTY
             for attr in ("foreground", "background", "effects"):
                 if getattr(cap, "has_" + attr):
                     value = getattr(pixel, attr)
@@ -182,12 +179,12 @@ class Screen:
         in being called directly.
         """
 
-        self[pos] = " "
+        self[pos] = EMPTY
         pos = V2(pos)
         if self[pos + (1,0)] == CONTINUATION:
-            self[pos + (1, 0)] = " "
+            self[pos + (1, 0)] = EMPTY
 
-    def line_at(self, pos, length, sequence=BlockChars.FULL_BLOCK):
+    def line_at(self, pos, length, sequence=FULL_BLOCK):
         """Renders a repeating character sequence of given length respecting the context.direction
 
         Args:

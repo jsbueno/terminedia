@@ -319,8 +319,8 @@ def init_context_for_thread(context, char=None, color=None, background=None, eff
     Multi-threaded apps should call this to update a Screen or Shape instance
     before trying to use that instance in a different thread than its originating one.
     """
-    from terminedia.values import DEFAULT_BG, DEFAULT_FG, BlockChars, Directions, Effects
-    context.char = char or BlockChars.FULL_BLOCK
+    from terminedia.values import DEFAULT_BG, DEFAULT_FG, FULL_BLOCK, Directions, Effects
+    context.char = char or FULL_BLOCK
     context.color = color or DEFAULT_FG
     context.background = background or DEFAULT_BG
     context.effects = effects or Effects.none
@@ -401,7 +401,7 @@ def create_transformer(context, slots, clear=False):
 
 
 def char_width(char):
-    from terminedia.values import BlockChars
+    from terminedia.subpixels import BlockChars
     if char in BlockChars.block_chars:
         return 1
     if len(char) > 1:

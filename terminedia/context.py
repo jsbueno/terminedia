@@ -5,7 +5,9 @@ from copy import copy
 from types import FunctionType
 
 from terminedia.utils import Color, V2
-from terminedia.values import DEFAULT_BG, DEFAULT_FG, BlockChars, Directions, Effects
+from terminedia.subpixels import BlockChars
+from terminedia.values import DEFAULT_BG, DEFAULT_FG, Directions, Effects
+
 
 
 _sentinel = object()
