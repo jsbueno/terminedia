@@ -23,8 +23,9 @@ def main(image_paths):
     if not image_paths:
         image_paths = (default_image,)
     with Screen() as scr:
+        scr.clear()
         for img_path in image_paths:
-            img = shape(img_path)
+            img = shape(img_path, screen=scr)
             with scr.commands:
                 scr.draw.blit((0,0), img)
         pause()

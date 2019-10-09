@@ -243,6 +243,11 @@ Improvements and small features:
     add "callback" or early event system so that context parameters can be changed after printing a character, or other event.
     set up internal state on which terminal program is running, basd on env-vars (so that terminal behaviors bugs can be work-around)
     improvement: Screen.set_at should pass a pixel straight to __setitem__ and not set the context and pass only th value
+    work on special methods to allow pickle serialization of shapes and maybe screens.
+    have an ".update" method for .text and ".text[plane]" that will re-blit the contents into its .owner.data
+    .text rendering should be transparent on unused pixels by default
+    terminedia-image should resize to full screen-size when loading image (V))
+    add an --output parameter to terminedia image to render output as ansi-laden txt file
 
 Bugs:
     bug: CRITICAL: effects refactoring led rendering to be B&W (V)
@@ -251,6 +256,7 @@ Bugs:
     bug: re-entering a screen context and blitting  is not rendering the char at [0,0] (V)
     bug: plot example script prints completly bogus values on the y scale.
     bug:fix printing of colored double-width characters . (b0rk on konsole) (WIP)
+    bug: colors in the 0-255 range are not working as terminedia-text value for color option
 
 
 

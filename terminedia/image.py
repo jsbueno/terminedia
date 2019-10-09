@@ -582,7 +582,7 @@ class ImageShape(ValueShape):
             scr = self.kwargs.get("screen", None)
             pixel_ratio = self.kwargs.get("pixel_ratio", 2)
 
-            size = V2(scr.get_size() if scr else (80, 12))
+            size = V2(scr.get_size() - (1, 1) if scr else (80, 12))
             img_size = V2(img.width, img.height)
             if size.x < img_size.x or size.y < img_size.y:
                 ratio_x = size.x / img_size.x
