@@ -588,7 +588,7 @@ class ImageShape(ValueShape):
                 ratio_x = size.x / img_size.x
                 ratio_y = (size.y / img_size.y) * pixel_ratio
                 if ratio_x > ratio_y:
-                    size = V2(size.x, img_size.y * ratio_x / pixel_ratio)
+                    size = V2(size.x, min((img_size.y * ratio_x / pixel_ratio), size.y - 1))
                 else:
                     size = V2(img_size * ratio_y, size.y / pixel_ratio)
 

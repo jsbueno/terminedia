@@ -247,7 +247,7 @@ Improvements and small features:
     have an ".update" method for .text and ".text[plane]" that will re-blit the contents into its .owner.data
     .text rendering should be transparent on unused pixels by default
     terminedia-image should resize to full screen-size when loading image (V))
-    add an --output parameter to terminedia image to render output as ansi-laden txt file
+    add an --output parameter to terminedia image to render output as ansi-laden txt file(V)
 
 Bugs:
     bug: CRITICAL: effects refactoring led rendering to be B&W (V)
