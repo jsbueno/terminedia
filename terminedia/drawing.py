@@ -394,7 +394,7 @@ class HighRes:
         To be used as a callback to ``.draw.reset`` - but there are no drawbacks
         in being called directly.
         """
-        _, gross_pos, new_block = self.operate(pos, BlockChars.reset)
+        _, gross_pos, new_block = self.operate(pos, self.block_class.reset)
         self.parent[gross_pos] = new_block
 
     def get_at(self, pos):
@@ -409,7 +409,7 @@ class HighRes:
            - None: Character on Screen at given coordinates is not a block character of the class
                 used as pixel-characters for this instance.
         """
-        graphics, _, is_set = self.operate(pos, BlockChars.get_at)
+        graphics, _, is_set = self.operate(pos, self.block_class.get_at)
         return is_set if graphics else None
 
 
