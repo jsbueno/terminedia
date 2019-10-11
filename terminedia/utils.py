@@ -31,6 +31,8 @@ class V2(tuple):
       - abs (``__abs__``): Returns vector length
     """
 
+    __slots__ = ()
+
     def __new__(cls, x=0, y=0):
         """Accepts two coordinates as two parameters for x and y"""
         # Enable working with values defined in Enums

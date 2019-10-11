@@ -257,7 +257,11 @@ Bugs:
     bug: plot example script prints completly bogus values on the y scale.
     bug:fix printing of colored double-width characters . (b0rk on konsole) (WIP)
     bug: colors in the 0-255 range are not working as terminedia-text value for color option
+    bug: when apple shows up over snake body, it is erased from screen (snake.py) (easy) (external) (hacktober)
 
+Bugs-external (report issue):
+
+    Pypy3 regular expressions'split does not work with forward look-ahead (used in terminal rendering to slice a string at ESCape sequences)
 
 
 
