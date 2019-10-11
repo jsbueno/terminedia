@@ -68,5 +68,6 @@ Terminedia
 ===========
 .. automodule:: terminedia
    :members:
+   :imported-members:
    :undoc-members:
    :special-members: __init__,__enter__,__exit__,__contains__
