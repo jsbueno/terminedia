@@ -22,6 +22,7 @@ class SubPixels:
 
     block_width: int
     block_height: int
+    bit_size: int = 0b1111
 
     def __init_subclass__(cls):
         # This depends on Python 3.6+ ordered behavior for local namespaces and dicts:
@@ -64,7 +65,7 @@ class SubPixels:
             (0,0) is top-left corner, and so on)
           - data: initial character to be composed with the bit to be reset.
         """
-        op = lambda n, index: n & (0xf - index)
+        op = lambda n, index: n & (cls.bit_size - index)
         return cls.chars_in_order[cls._op(pos, data, op)]
 
     @classmethod
@@ -127,6 +128,7 @@ class BrailleChars_(SubPixels):
 
     block_width = 2
     block_height = 4
+    bit_size: int = 0b11111111
 
     EMPTY = values.EMPTY
 
@@ -138,7 +140,7 @@ class BrailleChars_(SubPixels):
     @classmethod
     def _op(cls, pos, data, operation):
         number = cls.chars_to_order[data]
-        index = (2 ** (pos[1] + 3 * pos[0])) if pos[1] <= 2 else (2 ** (6 + pos[0]))
+        index = (2 ** (pos[1] + 3 * pos[0])) if pos[1] < 3 else (2 ** (6 + pos[0]))
         return operation(number, index)
 
 
