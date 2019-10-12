@@ -47,7 +47,8 @@ c_map = {
               Pad all sides with spaces for best results
               """)
 @click.option("high", "--high", flag_value=True, help="Use high-resolution 1/4 block pixels")
-def main(shape, high=False):
+@click.option("braille", "--braille", flag_value=True, help="Use braille characters as high-resolution 1/8 block pixels")
+def main(shape, high=False, braille=False):
     """Quick example to navigate an string-defined shape through
     the terminal using the arrow keys! Press <ESC> to exit.
 
@@ -70,6 +71,9 @@ def main(shape, high=False):
         parent_scr = scr
         if high:
             scr = scr.high
+            factor = 2
+        elif braille:
+            scr = scr.braille
             factor = 2
 
         x = scr.get_size()[0] // 2 - 6

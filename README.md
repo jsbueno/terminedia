@@ -71,6 +71,11 @@ on ANSI scape sequences for all terminal manipulation. It should work
 in most Linux and Mac OS terminal applications (including non-X11,
 "native" terminals on Linux)
 
+The output result will vary according to the terminal
+and font used - a nice experience can be achieved
+with the "Terminus" font, specially if one is using
+the Braille characters for drawing.
+
 
 License
 --------
