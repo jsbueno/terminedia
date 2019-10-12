@@ -8,9 +8,10 @@ from io import StringIO
 from pathlib import Path
 
 from terminedia.context import Context
+from terminedia.subpixels import BrailleChars
 from terminedia.utils import Color, Rect, V2, LazyBindProperty, char_width
 from terminedia.unicode_transforms import translate_chars
-from terminedia.values import DEFAULT_FG, DEFAULT_BG, TRANSPARENT, CONTEXT_COLORS, Directions, BlockChars, Effects, CONTINUATION, UNICODE_EFFECTS
+from terminedia.values import DEFAULT_FG, DEFAULT_BG, TRANSPARENT, CONTEXT_COLORS, Directions, Effects, CONTINUATION, EMPTY, UNICODE_EFFECTS
 
 logger = logging.getLogger(__name__)
 
@@ -54,13 +55,13 @@ class Pixel(tuple):
             values.append(self.value)
         elif other_capabilities.value_type == bool:
             if cap.value_type == str:
-                values.append(self.value != ' ')
+                values.append(self.value != EMPTY)
             else:
                 # TODO: When implementing alpha colors,
                 # a full transparent color should evaluate to 'False'
                 values.append(bool(self.value))
         else:
-            values.append(context.char if self.value else " ")
+            values.append(context.char if self.value else EMPTY)
 
         if other_capabilities.has_foreground:
             values.append(self.foreground if cap.has_foreground else context.color)
@@ -158,8 +159,11 @@ class ShapeApiMixin:
     def high(self):
         return self._get_highres()
 
-    #: For most shape classes, "empty" is whitespace chars:
-    _data_func = staticmethod(lambda size: [" " * size.x] * size.y)
+    @LazyBindProperty
+    def braille(self):
+        return self._get_highres(block_class=BrailleChars, block_height=4)
+
+    _data_func = staticmethod(lambda size: [EMPTY * size.x] * size.y)
 
     def _get_drawing(self):
         from terminedia.drawing import Drawing
@@ -167,14 +171,14 @@ class ShapeApiMixin:
         # not on the proxied object.
         return Drawing(
             set_fn = lambda pos: type(self).__setitem__(self, pos, self.context.char),
-            reset_fn = lambda pos: type(self).__setitem__(self, pos, BlockChars.EMPTY),
+            reset_fn = lambda pos: type(self).__setitem__(self, pos, EMPTY),
             size_fn = lambda : V2(self.width, self.height),
             context = self.context
         )
 
-    def _get_highres(self):
+    def _get_highres(self, **kw):
         from terminedia.drawing import HighRes
-        return HighRes(self)
+        return HighRes(self, **kw)
 
     def _get_text(self):
         from terminedia.text import Text
@@ -477,7 +481,7 @@ class ValueShape(Shape):
         elif isinstance(value, (int, tuple, Color)):
             color = value
         elif isinstance(value, str):
-            color = self.context.color if value != " " else self.context.background
+            color = self.context.color if value != EMPTY else self.context.background
         self._raw_setitem(pos, color)
 
     def _raw_setitem(self, pos, color):
@@ -628,7 +632,7 @@ class PalettedShape(Shape):
 
     def __init__(self, data, color_map=None):
         if color_map is None:
-            color_map = {}  # any char != " " or "." paints with current context color
+            color_map = {}  # any char != EMPTY or "." paints with current context color
         self.color_map = color_map
         if isinstance(data, (str, list)):
             self.load_paletted(data)
@@ -655,7 +659,7 @@ class PalettedShape(Shape):
             # as whitespace - this allows multiline
             # strings defining shapes that otherwise would
             # be distorted by program editor trailing space removal.
-            new_data.append(f"{{line:<{width}s}}".format(line=line).replace(".", " "))
+            new_data.append(f"{{line:<{width}s}}".format(line=line).replace(".", EMPTY))
 
         self.load_data(new_data, V2(width, height))
 
@@ -704,7 +708,7 @@ class FullShape(Shape):
     @staticmethod
     def _data_func(size):
         return [
-            [" " * size.x] * size.y,
+            [EMPTY * size.x] * size.y,
             [DEFAULT_FG] * size.x * size.y,
             [DEFAULT_BG] * size.x * size.y,
             [Effects.none] * size.x * size.y,

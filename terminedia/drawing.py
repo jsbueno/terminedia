@@ -1,6 +1,7 @@
 import inspect
 
-from terminedia.values import BlockChars, CONTEXT_COLORS
+from terminedia.subpixels import BlockChars
+from terminedia.values import CONTEXT_COLORS, EMPTY
 from terminedia.utils import V2, Rect
 
 
@@ -306,7 +307,7 @@ class Drawing:
 
                 should_set = (
                     pixel.capabilities.value_type == str and (
-                        pixel.value != " " or
+                        pixel.value != EMPTY or
                         pixel.value == "." and pixel.capabilities.translate_dots
                     )  or
                     pixel.capabilities.value_type == bool and pixel.value
@@ -321,12 +322,10 @@ class Drawing:
 
 
 class HighRes:
-    """ Provides a seamless mechanism to draw with 1/4 character block "pixels".
+    """ Provides a seamless mechanism to draw using unicode special characters as pixels.
 
-    This class is meant to be used as an instance associated to an :any:`Screen` instance,
-    at the :any:`Screen.high` namespace. It further associates a :any:`Drawing` instance
-    as ``screen.high.draw`` which exposes drawing primitives that will use
-    the 1/4 character pixel as a unit.
+    This is used as a base to have the method used for drawing using 1/4 block characters,
+    Braile characters, vintage "sextant" 1/6 blocks and possibly others to come.
 
     Keep in mind that while it is possible to emulate the higher resolution
     pixels, screen colors are limited to character positions, so color
@@ -338,8 +337,12 @@ class HighRes:
 
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, block_class=BlockChars, block_width=2, block_height=2):
         """Sets instance attributes"""
+        self.block_class = block_class
+        self.block_width = block_width
+        self.block_height = block_height
+
         self.parent = parent
         self.draw = Drawing(self.set_at, self.reset_at, self.get_size, self.parent.context)
         self.context = parent.context
@@ -347,7 +350,7 @@ class HighRes:
     def get_size(self):
         """Returns the width and height available at high-resolution based on parent's Screen size"""
         w, h = self.parent.get_size()
-        return V2(w * 2, h * 2)
+        return V2(w * self.block_width, h * self.block_height)
 
     def operate(self, pos, operation):
         """Internal -
@@ -357,16 +360,16 @@ class HighRes:
         """
         from terminedia.image import Pixel
 
-        p_x = pos[0] // 2
-        p_y = pos[1] // 2
-        i_x, i_y = pos[0] % 2, pos[1] % 2
+        p_x = pos[0] // self.block_width
+        p_y = pos[1] // self.block_height
+        i_x, i_y = pos[0] % self.block_width, pos[1] % self.block_height
         graphics = True
         original = self.parent[p_x, p_y]
         if isinstance(original, Pixel):
             original = original.value
-        if original not in BlockChars:
+        if original not in self.block_class:
             graphics = False
-            original = " "
+            original = EMPTY
         new_block = operation((i_x, i_y), original)
         return graphics, (p_x, p_y), new_block
 
@@ -379,7 +382,7 @@ class HighRes:
         To be used as a callback to ``.draw.set`` - but there are no drawbacks
         in being called directly.
         """
-        _, gross_pos, new_block = self.operate(pos, BlockChars.set)
+        _, gross_pos, new_block = self.operate(pos, self.block_class.set)
         self.parent[gross_pos] = new_block
 
     def reset_at(self, pos):
@@ -391,7 +394,7 @@ class HighRes:
         To be used as a callback to ``.draw.reset`` - but there are no drawbacks
         in being called directly.
         """
-        _, gross_pos, new_block = self.operate(pos, BlockChars.reset)
+        _, gross_pos, new_block = self.operate(pos, self.block_class.reset)
         self.parent[gross_pos] = new_block
 
     def get_at(self, pos):
@@ -403,14 +406,30 @@ class HighRes:
         Returns:
            - True: pixel is set
            - False: pixel is not set
-           - None: Character on Screen at given coordinates is not a block character and can't be
-               mapped to 1/4 character pixels.
+           - None: Character on Screen at given coordinates is not a block character of the class
+                used as pixel-characters for this instance.
         """
-        graphics, _, is_set = self.operate(pos, BlockChars.get_at)
+        graphics, _, is_set = self.operate(pos, self.block_class.get_at)
         return is_set if graphics else None
+
+
+    def at_parent(self, pos):
+        """Get the equivalent, rounded down, coordinates, at the parent object.
+
+        Args:
+          - pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
+
+        Returns:
+          - V2 object with the equivalent object at the parent space.
+        """
+        return V2(pos[0] // self.block_width, pos[1] // self.block_height)
+
 
     def print_at(self, pos, text):
         """Positions the cursor and prints a text sequence
+
+        [DEPRECATED] - use "at_parent" to get parent coordinates and other meansh to
+            render text there.
 
         Args:
           - pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
@@ -422,5 +441,5 @@ class HighRes:
 
         Context's direction is respected when printing
         """
-        pos = pos[0] // 2, pos[1] // 2
-        self.parent.print_at(pos, text)
+        self.parent.print_at(self.at_parent(pos), text)
+

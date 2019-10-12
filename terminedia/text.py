@@ -4,7 +4,7 @@ from pathlib import Path
 
 from terminedia.image import Shape, PalettedShape
 from terminedia.utils import V2
-from terminedia.values import Directions
+from terminedia.values import Directions, EMPTY
 try:
     # This is the only Py 3.7+ specific thing in the project
     from importlib import resources
@@ -46,7 +46,7 @@ def list_fonts():
     return [f for f in files if f.endswith(".hex")]
 
 
-def load_font(font_path, font_is_resource, initial=0, last=256, ch1=" ", ch2="#"):
+def load_font(font_path, font_is_resource, initial=0, last=256, ch1=EMPTY, ch2="#"):
 
     if font_is_resource and resources:
         data = list(resources.open_text("terminedia.data", font_path))
@@ -117,7 +117,7 @@ class CharPlaneData(dict):
     def __getitem__(self, pos):
         if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):
             raise ValueError(f"Text position out of range - {self.size}")
-        return super().get(pos, " ")
+        return super().get(pos, EMPTY)
 
     def __setitem__(self, pos, value):
         if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):
@@ -211,13 +211,15 @@ class Text:
         if self.current_plane == 1:
             # self.context.shape_lastchar_was_double is set in this operation.
             target[index] = self.plane["data"][index]
+            return
+
+        char = render(self.plane["data"][index], font=target.context.font or self.plane["font"])
+        index = (V2(index) * 8).as_int
+        if self.current_plane == 2:
+            target.braille.draw.blit(index, char)
         elif self.current_plane == 4:
-            char = render(self.plane["data"][index], font=target.context.font or self.plane["font"])
-            index = (V2(index) * 8).as_int
             target.high.draw.blit(index, char)
         elif self.current_plane == 8:
-            char = render(self.plane["data"][index], font=target.context.font or self.plane["font"])
-            index = (V2(index) * 8).as_int
             target.draw.blit(index, char)
         else:
             raise ValueError(f"Size {self.current_plane} not implemented for rendering")
