@@ -8,7 +8,7 @@ from terminedia.unicode_transforms import translate_chars
 from terminedia.utils import char_width, V2
 from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects, ESC
 
-is_pypy = hasattr(sys, "subversion") and sys.subversion[0] == "PyPy"
+use_re_split = sys.version_info >= (3, 7)
 
 E = Effects
 
@@ -102,8 +102,8 @@ class ScreenCommands:
                 # Separate a long sequence in one write operation for each
                 # ANSI command
                 sep = end = ''
-                if not is_pypy:
-                    # There is a bug in pypy3 regarding lookahead group in a split:
+                if use_re_split:
+                    # This is new in Python 3.7
                     args = re.split("(?=\x1b)", args[0]) 
                 else:
                     args = [("\x1b" if i else "") + arg for i, arg in enumerate(args[0].split("\x1b"))] 
