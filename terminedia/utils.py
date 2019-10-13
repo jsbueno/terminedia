@@ -410,3 +410,36 @@ def char_width(char):
         return max(char_width(combining) for combining in char)
     v = unicodedata.east_asian_width(char)
     return 1 if v in ("N", "Na") else 2   # (?) include "A" as single width?
+
+
+class Color:
+    def __init__(self, components=None, html=None):
+        if html and not components:
+            html = html.strip("#;")
+            if len(html) == 3:
+                components = tuple((int(comp[i], 16) << 8) + int(comp[i], 16) for i in (0,1,2))
+            elif len(html == 6):
+                components = tuple(int(comp[2 * i: 2 * i + 2], 16) for i in (0,1,2))
+        self.components = self._normalize_color(components)
+
+
+    @classmethod
+    def _normalize_color(cls, color):
+        """Converts RGB colors to use 0-255 integers.
+
+        Args:
+          - color: Either a color constant or a 3-sequence,
+              with float components on the range 0.0-1.0, or integer components
+              in the 0-255 range.
+
+        returns: Color constant, or 3-sequence normalized to 0-255 range.
+        """
+        # FIXME: check ho to deal with special constants such as default_fg
+        if isinstance(color, int):
+            return color
+        if 0 <= color[0] < 1.0 or color[0] == 1.0 and all(c <= 1.0 for c in color[1:]):
+            color = tuple(int(c * 255) for c in color)
+        return color
+
+    def html(self):
+        return "#{:02X}{:02X}{:02X}".format(*(self.components))

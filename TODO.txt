@@ -261,12 +261,15 @@ Improvements and small features:
 
 HTML-Backend Steps (WIP)
     find-out a working HTML model able to represent chars as in the terminal (V)
-    re-write functionalities of Commands and logic of Journaling commands for HTML
+    create proper color class with HTML rendering of color.
+    re-write functionalities of Commands and logic of Journaling commands for HTML (WIP)
     Parametrize Screen so it can have an HTML commands backend
     Implement HTML render output for files in images.Shape
+    Implement "terminal styles" into html rendering
 
     future
     ------
+    Render with a separate CSS block and classes instead of inlining style in all tags.
     WSGI compatible server and javascript snippet to enable frame rendering and update
     keyboard and mouse event handling on server.
 
