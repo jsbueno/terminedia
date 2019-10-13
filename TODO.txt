@@ -258,6 +258,18 @@ Improvements and small features:
     terminedia-image should resize to full screen-size when loading image (V))
     add an --output parameter to terminedia image to render output as ansi-laden txt file(V)
 
+
+HTML-Backend Steps (WIP)
+    find-out a working HTML model able to represent chars as in the terminal (V)
+    re-write functionalities of Commands and logic of Journaling commands for HTML
+    Parametrize Screen so it can have an HTML commands backend
+    Implement HTML render output for files in images.Shape
+
+    future
+    ------
+    WSGI compatible server and javascript snippet to enable frame rendering and update
+    keyboard and mouse event handling on server.
+
 Bugs:
     bug: CRITICAL: effects refactoring led rendering to be B&W (V)
     bug: unicode_effects not being applied on direct "screen.print" call.(V)
