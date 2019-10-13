@@ -444,6 +444,7 @@ class JournalingScreenCommands(ScreenCommands):
                     func(arg, file=file)
             file.write(char) #buffer += char
             last_pos += (1, 0)
+            self.__class__.last_pos += (1, 0)
 
         if not original_file:  # we actually write to the terminal
             self.print(file.getvalue())

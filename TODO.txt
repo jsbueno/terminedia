@@ -20,7 +20,7 @@ Future
 
 multiple backends: (check pygments):
     ANSI backend (file or text string) (V)
-    HTML backend
+    HTML backend (WIP)
     Image 'screenshot' backend
     image backend (pixels are simple color-only boring, image pixels)
     postscript backend
@@ -69,10 +69,10 @@ easy way to pick unicode emojis and glyphs
 
 alpha channel support for images:
     plot with spaces (" ") instead of full-block char, and compose color using background
-Single-write optimization:(WIP)
+Single-write optimization:(V)
     pass a "buffer" parameter around on the method-chain calls for screen rendering in the classes in Terminal.py (WIP)
-    have an option to export the rendered buffer as a single block of bytes: a screenshot snapshot with built-in ANSI sequences.
-    Add an optional parameter to Screen.update (maybe rename the method to 'render'?) to draw to a string buffer instead of the terminal.
+    have an option to export the rendered buffer as a single block of bytes: a screenshot snapshot with built-in ANSI sequences.(V)
+    Add an optional parameter to Screen.update (maybe rename the method to 'render'?) to draw to a string buffer instead of the terminal.(V)
 support to z-index, and background keeping on blitting ("sprite" api)
 MS-Windows support (colorama/mscrvt/color reducing)
 "business" framed-window api
@@ -122,7 +122,8 @@ space invaders implementation (hint: it would be already feasible - but it is st
 
 Advanced terminal handling features
     REPL Environment wit bottom lines for python console and upper screen for image (see posix_openpt)
-    anmating and coloring text output of unware apps, by creating an internal virtual terminal (posix_openpt)
+    anmating and coloring text output of unaware apps, by creating an internal virtual terminal (posix_openpt)
+    animating and coloring text output ... monkey patching a subprocess stdin, stdout and stderr.
     handle scrolling capabilities and pre-post buffer
     terminal agnostic screen commands (terminfo and infocmp to de-hardcode ANSI sequences)
     implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change
@@ -261,6 +262,7 @@ Bugs:
     bug: unicode_effects not being applied on direct "screen.print" call.(V)
     Bug: current "inkey" is buggy as repeated keystrokes are bundled in the same inkey response. (completly bork at higher repeat rates)(V)
     bug: re-entering a screen context and blitting  is not rendering the char at [0,0] (V)
+    bug: Terminedia-shape with custom shape may trigger "going left" after going up or down. (V)
     bug: plot example script prints completly bogus values on the y scale.
     bug:fix printing of colored double-width characters . (b0rk on konsole) (WIP)
     bug: colors in the 0-255 range are not working as terminedia-text value for color option
@@ -268,7 +270,5 @@ Bugs:
 
 Bugs-external (report issue):
 
-    Pypy3 regular expressions'split does not work with forward look-ahead (used in terminal rendering to slice a string at ESCape sequences)
-
-
+    Pypy3 regular expressions'split does not work with forward look-ahead (used in terminal rendering to slice a string at ESCape sequences) (resolved - not a PyPy3 Py3.6 bug: re.split is a nw thing in Python 3.7
 

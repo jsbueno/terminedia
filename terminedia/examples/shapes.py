@@ -2,7 +2,7 @@ import time
 
 import click
 
-from terminedia import Screen, realtime_keyb, inkey, DEFAULT_FG
+from terminedia import Screen, realtime_keyb, inkey, DEFAULT_FG, V2
 from terminedia import KeyCodes as K
 
 
@@ -62,11 +62,9 @@ def main(shape, high=False, braille=False):
         shape = shape1
     if "\\n" in shape:
         shape = shape.replace("\\n", "\n")
-    size_ =   (shape.find("\n") if "\n" in shape else 1), shape.count("\n")
-    #size_ = 13, 7
+    shape = shape.rstrip("\n")
+    size_ =   V2((shape.find("\n") if "\n" in shape else len(shape)), shape.count("\n") + 1)
     factor = 1
-    #if shape == shape2:
-    #    size_ = 21, 12
     with realtime_keyb(), Screen(clear_screen=False) as scr:
         parent_scr = scr
         if high:
@@ -74,23 +72,26 @@ def main(shape, high=False, braille=False):
             factor = 2
         elif braille:
             scr = scr.braille
-            factor = 2
+            factor = 1
 
         x = scr.get_size()[0] // 2 - 6
         y = 0
+        pos = V2(x, y)
+        old_pos = pos
         while True:
             key = inkey()
             if key in (K.ESC, "q"):
                 break
 
             with parent_scr.commands:
+                scr.draw.rect(pos, rel=size_ + (1, 1), erase=True)
 
-                scr.draw.rect((x, y), rel=size_, erase=True)
+                pos += (
+                    factor * ((key == K.RIGHT) - (key == K.LEFT)),
+                    factor * ((key == K.DOWN) - (key == K.UP))
+                )
 
-                x += factor * ((key == K.RIGHT) - (key == K.LEFT))
-                y += factor * ((key == K.DOWN) - (key == K.UP))
-
-                scr.draw.blit((x, y), shape, **({"color_map": c_map} if shape == shape2 else {}))
+                scr.draw.blit(pos, shape, **({"color_map": c_map} if shape == shape2 else {}))
 
             time.sleep(1/30)
 
