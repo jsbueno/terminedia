@@ -263,6 +263,7 @@ Bugs:
     Bug: current "inkey" is buggy as repeated keystrokes are bundled in the same inkey response. (completly bork at higher repeat rates)(V)
     bug: re-entering a screen context and blitting  is not rendering the char at [0,0] (V)
     bug: Terminedia-shape with custom shape may trigger "going left" after going up or down. (V)
+    bug: blitting full-shape to full-shape destroys characters and keep only blocks (V)
     bug: plot example script prints completly bogus values on the y scale.
     bug:fix printing of colored double-width characters . (b0rk on konsole) (WIP)
     bug: colors in the 0-255 range are not working as terminedia-text value for color option

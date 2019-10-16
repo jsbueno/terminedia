@@ -170,7 +170,7 @@ class ShapeApiMixin:
         # The 'type(self).__setitem__` pattern ensures __setitem__ is called on the proxy,
         # not on the proxied object.
         return Drawing(
-            set_fn = lambda pos: type(self).__setitem__(self, pos, self.context.char),
+            set_fn = lambda pos, pixel=None: type(self).__setitem__(self, pos, pixel if pixel else self.context.char),
             reset_fn = lambda pos: type(self).__setitem__(self, pos, EMPTY),
             size_fn = lambda : V2(self.width, self.height),
             context = self.context
