@@ -2,7 +2,7 @@ import click
 from ast import literal_eval
 
 import terminedia.values
-from terminedia import Screen, pause, DEFAULT_FG
+from terminedia import Screen, pause, DEFAULT_FG, Color
 
 @click.command()
 @click.argument("text", default="terminedia")
@@ -17,7 +17,7 @@ def main(text, position, size, color, clear, font):
     """Terminedia example for rendering large text characters
     """
     position = literal_eval(f"({position})")
-    color = literal_eval(f"({color})") if color.count(",") >= 2 else getattr(terminedia.values, color)
+    color = Color(literal_eval(f"({color})") if color.count(",") >= 2 else color)
     with Screen(clear_screen=clear) as sc:
         sc.context.color = color
         sc.context.font = font

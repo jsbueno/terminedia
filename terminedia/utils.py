@@ -287,12 +287,6 @@ class Rect:
         return f"{self.__class__.__name__}({tuple(self.c1)}, {tuple(self.c2)})"
 
 
-class Color:
-    # TODO: a context sensitive color class
-    # (to stop yielding constant values to be used as RGB tripplets)
-    pass
-
-
 class LazyBindProperty:
     def __init__(self, initializer):
         self.initializer = initializer
@@ -412,19 +406,62 @@ def char_width(char):
     return 1 if v in ("N", "Na") else 2   # (?) include "A" as single width?
 
 
-class Color:
-    def __init__(self, components=None, html=None):
-        if html and not components:
-            html = html.strip("#;")
-            if len(html) == 3:
-                components = tuple((int(comp[i], 16) << 8) + int(comp[i], 16) for i in (0,1,2))
-            elif len(html == 6):
-                components = tuple(int(comp[2 * i: 2 * i + 2], 16) for i in (0,1,2))
-        self.components = self._normalize_color(components)
+_colors_cache = {}
 
+class Color:
+    """One Color class to Rule then all
+
+      Args:
+        - value: 3-sequence with floats in 0-1.0 range, or int in 0-255 range, or a string with
+                 color in HTML hex notation (3 or 6 digits) or HTML (css) color name
+
+    """
+    __slots__ = ("special", "components", "name")
+    def __init__(self, value=None):
+        from terminedia.values import css_colors, SpecialColors
+        self.special = None
+        self.name = ""
+        if isinstance(value, Color):
+            self.components = value.components
+            self.special = value.special
+        elif isinstance(value, SpecialColors):
+            self.special = value
+            self.components = (0, 0, 0)
+        elif isinstance(value, str):
+            if value.startswith("#"):
+                html = html.strip("#;")
+                if len(html) == 3:
+                    self.components = tuple((int(comp[i], 16) << 8) + int(comp[i], 16) for i in (0,1,2))
+                elif len(html == 6):
+                    self.components = tuple(int(comp[2 * i: 2 * i + 2], 16) for i in (0,1,2))
+            elif value in css_colors:
+                self.name = value
+                self.components = css_colors[value]
+            elif value in SpecialColors.__members__:
+                self.special = SpecialColors.__members__[value]
+            else:
+                raise ValueError(f"Unrecognized color value or name: {value!r}")
+        else:
+            self.components = self.normalize_color(value)
+
+    def __len__(self):
+        return 3
+
+    def __iter__(self):
+        return iter(self.components)
+
+    def __eq__(self, other):
+        if not isinstance(other, Color):
+            try:
+                other = Color(other)
+            except (ValueError, TypeError, IndexError):
+                return False
+        if self.special:
+            return self.special == other.special
+        return self.components == other.components
 
     @classmethod
-    def _normalize_color(cls, color):
+    def normalize_color(cls, components):
         """Converts RGB colors to use 0-255 integers.
 
         Args:
@@ -434,12 +471,20 @@ class Color:
 
         returns: Color constant, or 3-sequence normalized to 0-255 range.
         """
-        # FIXME: check ho to deal with special constants such as default_fg
-        if isinstance(color, int):
-            return color
-        if 0 <= color[0] < 1.0 or color[0] == 1.0 and all(c <= 1.0 for c in color[1:]):
-            color = tuple(int(c * 255) for c in color)
+
+        if isinstance(components, tuple) and components in _colors_cache:
+            return _colors_cache[components]
+
+        if all(0 <= c <= 1.0 for c in components):
+            color = tuple(int(c * 255) for c in components)
+        else:
+            color = components
+        _colors_cache[tuple(components)] = color
         return color
 
     def html(self):
         return "#{:02X}{:02X}{:02X}".format(*(self.components))
+
+    def __repr__(self):
+        value = self.special if self.special else self.name if self.name else self.components
+        return f"<Color {value!r}>"

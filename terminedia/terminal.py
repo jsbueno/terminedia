@@ -5,7 +5,7 @@ from functools import lru_cache
 from io import StringIO
 
 from terminedia.unicode_transforms import translate_chars
-from terminedia.utils import char_width, V2
+from terminedia.utils import char_width, V2, Color
 from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects, ESC
 
 use_re_split = sys.version_info >= (3, 7)
@@ -206,23 +206,6 @@ class ScreenCommands:
         # re be reissued instead of skipped)
         self.__class__.last_pos += (len(txt), 0)
 
-    @lru_cache()
-    def _normalize_color(self, color):
-        """Converts RGB colors to use 0-255 integers.
-
-        Args:
-          - color: Either a color constant or a 3-sequence,
-              with float components on the range 0.0-1.0, or integer components
-              in the 0-255 range.
-
-        returns: Color constant, or 3-sequence normalized to 0-255 range.
-        """
-        if isinstance(color, int):
-            return color
-        if 0 <= color[0] < 1.0 or color[0] == 1.0 and all(c <= 1.0 for c in color[1:]):
-            color = tuple(int(c * 255) for c in color)
-        return color
-
     def reset_colors(self, file=None):
         """Writes ANSI sequence to reset terminal colors to the default"""
         self.SGR(0, file=file)
@@ -243,8 +226,7 @@ class ScreenCommands:
         if color == DEFAULT_FG:
             self.SGR(39, file=file)
         else:
-            color = self._normalize_color(color)
-            self.SGR(38, 2, *color, file=file)
+            self.SGR(38, 2, *Color(color), file=file)
 
     def set_bg_color(self, color, file=None):
         """Writes ANSI sequence to set the background color
@@ -253,8 +235,7 @@ class ScreenCommands:
         if color == DEFAULT_BG:
             self.SGR(49, file=file)
         else:
-            color = self._normalize_color(color)
-            self.SGR(48, 2, *color, file=file)
+            self.SGR(48, 2, *Color(color), file=file)
 
     def set_effects(self, effects, *, reset=True, turn_off=False, update_active_only=False, file=None):
         """Writes ANSI sequence to set text effects (bold, blink, etc...)

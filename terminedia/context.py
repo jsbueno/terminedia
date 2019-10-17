@@ -18,8 +18,8 @@ class Transformer:
 
 
 class ContextVar:
-    def __init__(self, type, default=None):
-        self.type = type
+    def __init__(self, type_, default=None):
+        self.type = type_
         self.default = default
 
     def __set_name__(self, owner, name):
@@ -28,8 +28,8 @@ class ContextVar:
     def __set__(self, instance, value):
         if not isinstance(value, self.type):
             # May generate ValueError TypeError: expected behavior
-            type = self.type[0] if isinstance(self.type, tuple) else self.type
-            value = type(value)
+            type_ = self.type[0] if isinstance(self.type, tuple) else self.type
+            value = type_(value)
         setattr(instance._locals, self.name, value)
 
     def __get__(self, instance, owner):
@@ -80,8 +80,8 @@ class Context:
     """
 
     char = ContextVar(str, BlockChars.FULL_BLOCK)
-    color = ContextVar((tuple, Color, int), DEFAULT_FG)
-    background = ContextVar((tuple, Color, int), DEFAULT_BG)
+    color = ContextVar(Color, DEFAULT_FG)
+    background = ContextVar(Color, DEFAULT_BG)
     effects = ContextVar(Effects, Effects.none)
     direction = ContextVar(V2, Directions.RIGHT)
     transformer = ContextVar((Transformer, FunctionType, type(None)), None)

@@ -7,7 +7,7 @@ non-blocking keyboard reading.
 """
 
 from terminedia.keyboard import realtime_keyb, inkey, pause, KeyCodes
-from terminedia.utils import Rect, V2, create_transformer
+from terminedia.utils import Color, Rect, V2, create_transformer
 from terminedia.terminal import ScreenCommands, JournalingScreenCommands
 from terminedia.values import Directions, Effects, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, TRANSPARENT, NOP
 from terminedia.image import shape, ValueShape, ImageShape, PalettedShape, FullShape
