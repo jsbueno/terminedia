@@ -10,6 +10,15 @@ Welcome to terminedia's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   terminedia
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
 Terminedia is meant to be a lightweight terminal library to
 provide color output, positioned text, and use block characters
 for displaying low-resolution graphics in the terminal itself.
