@@ -371,18 +371,19 @@ class Shape(ABC, ShapeApiMixin):
             of the shape will be written. Binary backends require a binary file. thenmethod returns None.
             If no output is given, the rendered contents are returned.
         """
-        if backend == "ANSI":
-            return self._render_ansi(output)
+        backend = backend.upper()
+        if backend in ("ANSI", "HTML"):
+            return self._render_using_screen(output, backend)
         else:
              raise ValueError(f"Output type {backend!r} not implemented")
 
-    def _render_ansi(self, output):
+    def _render_using_screen(self, output, backend):
         from terminedia.screen import Screen
         if output is None:
             file = StringIO()
         else:
             file = output
-        sc = Screen(size=V2(self.width, self.height))
+        sc = Screen(size=V2(self.width, self.height), backend=backend)
         # Starts recording all image operations on the internal journal
         sc.commands.__enter__()
         sc.blit((0,0), self)

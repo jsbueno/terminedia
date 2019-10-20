@@ -278,6 +278,7 @@ HTML-Backend Steps (WIP)
         - recreate ScreenCommands equivalent to generate HTML(WIP)
         - Refactor JornalingScreenCommands so that its logic can be reused by HTMLCommands (WIP)
         - recreate Journaling...Commands to generate HTML.
+        - Rewire "screen.__setitem__" to only actually output data within a call to ".update()" if the output is not to terminal: so that other backends than terminal don't require writting to ".data"
     re-write functionalities of Commands and logic of Journaling commands for HTML (WIP)
     Parametrize Screen so it can have an HTML commands backend
     Implement HTML render output for files in images.Shape

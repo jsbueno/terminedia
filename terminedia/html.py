@@ -38,7 +38,7 @@ class HTMLCommands:
 
     def __init__(self):
         self.active_unicode_effects = set()
-        self.last_pos = None
+        self.__class__.last_pos = (0,0)
         self.next_pos = V2(0,0)
 
         self.current_foreground = None
@@ -82,8 +82,8 @@ class HTMLCommands:
                 position: absolute;
                 left: {self.next_pos.x};
                 top: {self.next_pos.y};
-                color: {self.current_foreground.html;}
-                background: {self.current_background.html;}
+                color: {self.current_foreground.html}
+                background: {self.current_background.html}
             """)
             # TODO some terminal effects map directly to
             # CSS styles, such as underline, overline, bold and blink
@@ -179,6 +179,9 @@ class HTMLCommands:
 
         """
         self.next_effects = effects
+
+    def clear(self):
+        pass
 
 
 
