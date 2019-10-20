@@ -209,6 +209,7 @@ General Refactoring:
         - Normalized reading and representation
         - conversion to 1-byte standard 216 color palette for terminals
         - make use of 1byte color on terminal.py
+    Assume `set` method passed to drawing.Drawing can always accept pixels. Simplify workarounds in "image.ShapeApiMixin" and "screen.set_at" to accept pixels. (API breaking - change this before making a release)
 
 
 Improvements and small features:
@@ -268,6 +269,7 @@ Bugs:
     bug:fix printing of colored double-width characters . (b0rk on konsole) (WIP)
     bug: colors in the 0-255 range are not working as terminedia-text value for color option
     bug: when apple shows up over snake body, it is erased from screen (snake.py) (easy) (external) (hacktober)
+    bug: Terminedia-image not proper resampling images (getting out of range errors for full-sized images)
 
 Bugs-external (report issue):
 
