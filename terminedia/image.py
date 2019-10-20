@@ -575,18 +575,17 @@ class ImageShape(ValueShape):
         _allowed_types = (str, Path, PILImage.Image)
 
     def load_data(self, file_or_path, size=None):
-        """Will load data from an image file.
-        Size parameter is ignored
+        """Will load data from an image file using PIL,
+
+        Image is re-scaled to self.size if that is not None.
         """
         if isinstance(file_or_path, PILImage.Image):
             img = file_or_path
         else:
             img = PILImage.open(file_or_path)
-        if self.kwargs.get("auto_scale", True):
-            scr = self.kwargs.get("screen", None)
-            pixel_ratio = self.kwargs.get("pixel_ratio", 2)
-
-            size = V2(scr.get_size() - (1, 1) if scr else (80, 12))
+        if size is not None:
+            pixel_ratio = 1
+            size = V2(size) - (1, 1)
             img_size = V2(img.width, img.height)
             if size.x < img_size.x or size.y < img_size.y:
                 ratio_x = size.x / img_size.x
@@ -832,6 +831,6 @@ def shape(data, color_map=None, **kwargs):
         return data
     elif isinstance(data, tuple) and len(data) == 2:
         return FullShape.new(data, **kwargs)
-
+    else:
         raise NotImplementedError("Could not pick a Shape class for given arguments!")
     return cls(data, color_map, **kwargs)
