@@ -274,7 +274,10 @@ Color class Todo:
 
 HTML-Backend Steps (WIP)
     find-out a working HTML model able to represent chars as in the terminal (V)
-    create proper color class with HTML rendering of color.[WIP]
+    create proper color class with HTML rendering of color.[WIP]:
+        - recreate ScreenCommands equivalent to generate HTML(WIP)
+        - Refactor JornalingScreenCommands so that its logic can be reused by HTMLCommands (WIP)
+        - recreate Journaling...Commands to generate HTML.
     re-write functionalities of Commands and logic of Journaling commands for HTML (WIP)
     Parametrize Screen so it can have an HTML commands backend
     Implement HTML render output for files in images.Shape
@@ -293,11 +296,12 @@ Bugs:
     bug: re-entering a screen context and blitting  is not rendering the char at [0,0] (V)
     bug: Terminedia-shape with custom shape may trigger "going left" after going up or down. (V)
     bug: blitting full-shape to full-shape destroys characters and keep only blocks (V)
+    bug: Terminedia-image not proper resampling images (getting out of range errors for full-sized images)(V)
     bug: plot example script prints completly bogus values on the y scale.
     bug:fix printing of colored double-width characters . (b0rk on konsole) (WIP)
     bug: colors in the 0-255 range are not working as terminedia-text value for color option
     bug: when apple shows up over snake body, it is erased from screen (snake.py) (easy) (external) (hacktober)
-    bug: Terminedia-image not proper resampling images (getting out of range errors for full-sized images)
+    bug: PGMShap class incorrectly using "default color" for black pixels (termined-image default loading is broken after refactoring to use Color class)
 
 Bugs-external (report issue):
 

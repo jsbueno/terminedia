@@ -4,6 +4,7 @@ import sys
 from functools import lru_cache
 from io import StringIO
 
+from terminedia.backend_common import JournalingCommandsMixin
 from terminedia.unicode_transforms import translate_chars
 from terminedia.utils import char_width, V2, Color
 from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects, ESC
@@ -179,3 +180,7 @@ class HTMLCommands:
         """
         self.next_effects = effects
 
+
+
+class JournalingHTMLCommands(JournalingCommandsMixin, HTMLCommands):
+    pass
