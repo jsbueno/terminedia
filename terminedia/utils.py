@@ -38,7 +38,7 @@ class V2(tuple):
         # Enable working with values defined in Enums
         if hasattr(x, "value"):
             x = x.value
-        if hasattr(x, "__len__"):
+        if hasattr(x, "__len__") or hasattr(x, "__iter__"):
             x, y = x
         return super().__new__(cls, (x, y))
 
