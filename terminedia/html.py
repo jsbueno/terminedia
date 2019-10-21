@@ -23,7 +23,7 @@ full_body_template = """\
 """
 
 open_tag = """<span style="{style}">"""
-close_tag = """</span>\n"""
+close_tag = """</span\n>"""
 
 # Space normalizer
 D = lambda str: " ".join(str.split())
@@ -31,7 +31,14 @@ D = lambda str: " ".join(str.split())
 
 
 class HTMLCommands:
-    """
+    """Backend for generating HTML monospace content with character rendition for a terminedia image.
+
+
+    Used indirectlly by Shape.render when the selected render backend is HTML. It is interesting
+    to note that unlike the terminal "ANSI" backend, the output stream is only touched
+    by the ".print" method - the "file" parameter is ignored in other methods
+    that just update the internal state of the instance so that the next character
+    to be printed comes out correctly.
     """
 
     last_pos = None
@@ -50,16 +57,18 @@ class HTMLCommands:
 
         self.tag_is_open = False
 
+
     @property
-    def dirty_state(self):
+    def dirty(self):
         return self.current_foreground != self.next_foreground or \
             self.current_background != self.next_background or \
             self.current_effect != self.next_effect
 
-    def actualize_state(self):
+    def update_state(self):
         self.current_foreground = self.next_foreground
         self.current_background = self.next_background
         self.current_effect = self.next_effect
+        self.last_pos = self.next_pos
 
     def print(self, *args, sep='', end='', flush=True, file=None, count=0):
         """Write needed HTML tags with inline style to positin and color given text"""
@@ -71,19 +80,18 @@ class HTMLCommands:
         else:
             break_line = False
         content = sep.join(args) + end
-        if self.next_pos == self.last_pos and self.tag_is_open and self.dirty_state:
+        if self.next_pos == self.last_pos and self.tag_is_open and not self.dirty:
             file.write(sep.join(args) + end)
-            self.last_pos += len(content)
         else:
             if self.tag_is_open:
                 file.write(close_tag)
-            self.actualize_state()
+            self.update_state()
             tag_attrs = D(f"""\
                 position: absolute;
-                left: {self.next_pos.x};
-                top: {self.next_pos.y};
-                color: {self.current_foreground.html}
-                background: {self.current_background.html}
+                left: {self.next_pos.x}em;
+                top: {self.next_pos.y}em;
+                color: {self.current_foreground.html};
+                background: {self.current_background.html};
             """)
             # TODO some terminal effects map directly to
             # CSS styles, such as underline, overline, bold and blink
@@ -91,6 +99,7 @@ class HTMLCommands:
             tag = open_tag.format(style=tag_attrs)
             file.write(tag + content)
             self.tag_is_open = True
+        self.last_pos += (len(content), 0)
         if flush or break_line:
             file.write(close_tag)
             self.tag_is_open = False
@@ -98,8 +107,8 @@ class HTMLCommands:
             file.write("<br>\n")
             self.next_pos = V2(0, self.last_pos.y + 1)
         else:
-            self.next_pos = self.last_pos
-        if self.flush:
+            self.next_pos = self.last_pos # V2(self.last_pos if self.last_pos else (0,0))
+        if flush:
             file.flush()
 
 
@@ -165,7 +174,7 @@ class HTMLCommands:
     def set_fg_color(self, color, file=None):
         """
         """
-        self.next_color = Color(color)
+        self.next_foreground = Color(color)
 
 
     def set_bg_color(self, color, file=None):
@@ -186,4 +195,14 @@ class HTMLCommands:
 
 
 class JournalingHTMLCommands(JournalingCommandsMixin, HTMLCommands):
-    pass
+
+    def replay(self, file=None, single_write=False):
+        """Renders the buffered output to the given stream.
+
+        Force the Journaling mixin to call ".print" for
+        each character to be printed, since colors, position
+        and other context state only takes place in the output
+        stream when a character is actually printed.
+        (It does not make sense to pass this as True from here)
+        """
+        super().replay(file=file, single_write=False)

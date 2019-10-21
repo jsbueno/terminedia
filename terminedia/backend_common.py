@@ -100,10 +100,13 @@ class JournalingCommandsMixin:
         """Manually stops journalling so that recorded contents can be replayed"""
         self.in_block = 0
 
-    def replay(self, file=None):
+    def replay(self, file=None, single_write=True):
         """Renders the commands recorded to the terminal screen.
           Args:
             - file (Optional[TextIO]): Optional file to render command-content to.
+            - single_write (Bool): Whether to incrementally call print for every character
+            or to do a single call to print once the content is set-up.
+            Backend dependendant parameter.
 
         This collects the last-writting in each screen position,
         groups same-color in consecutive left-to-right characters to avoid
@@ -115,12 +118,10 @@ class JournalingCommandsMixin:
         can be further used inside the same context.
 
         If optional `file` is passed, all contents are written  in as a
-        text sequence in an optmized top-left to bottom-right stream with ANSI commands
-        to position the cursor (and set colors, etc...).
+        text sequence in an optmized top-left to bottom-right stream with the appropriate backend commands
+        to position each character (and set colors, etc...).
         (note it should be a text-file, if any of the characters to be rendered
         is not valid in the file inner encoding, it will rase an UnicodeEncode error).
-        If file is not passed, the contents are rendered to the terminal using
-        sys.stdout.
 
         """
         last_color = last_bg = None
@@ -151,16 +152,16 @@ class JournalingCommandsMixin:
                 call.append((self.set_effects, effect))
 
             if call:
-                #if buffer:
-                #    self.print(buffer)
-                #    buffer = ""
                 for func, arg in call:
                     func(arg, file=file)
-            file.write(char) #buffer += char
+            if single_write:
+                file.write(char) #buffer += char
+            else:
+                self.print(char, file=file)
             last_pos += (1, 0)
             self.__class__.last_pos += (1, 0)
 
-        if not original_file:  # we actually write to the terminal
+        if not original_file and single_write:
             self.print(file.getvalue())
 
     def print_at(self, pos, txt, file=None):

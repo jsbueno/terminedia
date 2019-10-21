@@ -482,6 +482,7 @@ class Color:
         _colors_cache[tuple(components)] = color
         return color
 
+    @property
     def html(self):
         return "#{:02X}{:02X}{:02X}".format(*(self.components))
 

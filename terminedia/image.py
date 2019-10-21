@@ -372,13 +372,33 @@ class Shape(ABC, ShapeApiMixin):
             If no output is given, the rendered contents are returned.
         """
         backend = backend.upper()
-        if backend in ("ANSI", "HTML"):
+        original_output = output
+        if not original_output:
+            output = StringIO()
+
+        if backend == "ANSI":
             return self._render_using_screen(output, backend)
+        if backend == "HTML":
+            # FIXME: this somewhat violates some "this module should not know about
+            # specific backend stuff (HTML template)."
+            # However, the rendering machinnery only knows
+            # about incremental rendering, and can't "sandwhich"
+            # the final rendering. In any case, the outter HTML template
+            # should be configurable in a near term future.
+            from terminedia.html import full_body_template
+
+            preamble, post_amble = full_body_template.split("{content}")
+            output.write(preamble)
+            self._render_using_screen(output, backend)
+            output.write(post_amble)
         else:
              raise ValueError(f"Output type {backend!r} not implemented")
+        if not original_output:
+            return output.get_value()
 
     def _render_using_screen(self, output, backend):
         from terminedia.screen import Screen
+
         if output is None:
             file = StringIO()
         else:
@@ -391,9 +411,7 @@ class Shape(ABC, ShapeApiMixin):
         # which does not allow passing an external file.
         sc.commands.stop_journal()
         # Renders all graphic ops as ANSI sequences + unicode into file:
-        sc.commands.replay(file)
-        if output is None:
-            return file.getvalue()
+        sc.commands.replay(output)
 
 
 # "Virtualsubclassing" - 2 days after I wrote there were no
