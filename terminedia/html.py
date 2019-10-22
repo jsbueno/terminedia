@@ -88,7 +88,7 @@ class HTMLCommands:
             self.update_state()
             tag_attrs = D(f"""\
                 position: absolute;
-                left: {self.next_pos.x}em;
+                left: {self.next_pos.x}ch;
                 top: {self.next_pos.y}em;
                 color: {self.current_foreground.html};
                 background: {self.current_background.html};
