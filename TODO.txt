@@ -283,6 +283,8 @@ HTML-Backend Steps (WIP)
     find-out a working HTML model able to represent chars as in the terminal (V)
         - recreate ScreenCommands equivalent to generate HTML(WIP):
             - make minimal working version outputing colored blocks (V)
+            - Fix span-tag re-use over multiple characters in the same row (V)
+            - separate colors/effects setting from moveto setting to reduce number of "<span>" tags.
             - Implement text and character effects (WIP):
                 - apply "terminal effects" into html rendering with inline CSS (WIP)
         - Refactor JornalingScreenCommands so that its logic can be reused by HTMLCommands (WIP)
@@ -291,10 +293,12 @@ HTML-Backend Steps (WIP)
     re-write functionalities of Commands and logic of Journaling commands for HTML (V)
     Parametrize Screen so it can have an HTML commands backend
     Implement HTML render output for files in images.Shape (V)
-    Change terminedia-image example script to accept a "-backend HTML" option and create an HTML file.
+    Change terminedia-image example script to accept a "-backend HTML" option and create an HTML file.(V)
+    Hardwire a web-font to display braille characters as pixels (UNSCII?)
 
     future
     ------
+    Refactor rendering mechanism to speed things up (0.2 sec/frame = 10 times too slow)
     Render with a separate CSS block and classes instead of inlining style in all tags.
     WSGI compatible server and javascript snippet to enable frame rendering and update
     keyboard and mouse event handling on server.

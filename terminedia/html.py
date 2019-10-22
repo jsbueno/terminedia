@@ -15,7 +15,7 @@ full_body_template = """\
   <meta charset="utf-8">
 </head>
 <body>
-  <div style="font-family: monospace; width:{width}em; height: {height}em; background: {background}; position: relative">
+  <div style="font-family: monospace; width:{width}em; height: {height}em; background: {background}; position: relative; white-space: pre">
      {content}
   </div>
 </body>
@@ -70,7 +70,7 @@ class HTMLCommands:
         self.current_effect = self.next_effect
         self.last_pos = self.next_pos
 
-    def print(self, *args, sep='', end='', flush=True, file=None, count=0):
+    def print(self, *args, sep='', end='', flush=False, file=None, count=0):
         """Write needed HTML tags with inline style to positin and color given text"""
         if file is None:
             file = sys.stdout
