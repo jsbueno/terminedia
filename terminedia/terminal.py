@@ -77,7 +77,7 @@ class ScreenCommands:
     last_pos = None
 
     def __init__(self):
-        self.active_unicode_effects = set()
+        self.active_unicode_effects = Effects.none
         self.__class__.last_pos = None
 
     def print(self, *args, sep='', end='', flush=True, file=None, count=0):
@@ -105,9 +105,9 @@ class ScreenCommands:
                 sep = end = ''
                 if use_re_split:
                     # This is new in Python 3.7
-                    args = re.split("(?=\x1b)", args[0]) 
+                    args = re.split("(?=\x1b)", args[0])
                 else:
-                    args = [("\x1b" if i else "") + arg for i, arg in enumerate(args[0].split("\x1b"))] 
+                    args = [("\x1b" if i else "") + arg for i, arg in enumerate(args[0].split("\x1b"))]
             for arg in args:
                 file.write(arg)
                 if sep:
@@ -178,9 +178,6 @@ class ScreenCommands:
         # x, y = pos
         self.CSI(f'{pos.y + 1};{pos.x + 1}H', file=file)
         self.__class__.last_pos = V2(pos)
-
-    def apply_unicode_effects(self, txt):
-        return translate_chars(txt, self.active_unicode_effects)
 
     def print_at(self, pos, txt, file=None):
         """Positions the cursor and prints a text sequence
@@ -263,13 +260,14 @@ class ScreenCommands:
         sgr_codes = []
 
         effect_map = effect_off_map if turn_off else effect_on_map
-        active_unicode_effects = set()
+        active_unicode_effects = Effects.none
+
         for effect_enum in Effects:
             if effect_enum is Effects.none:
                 continue
             if effect_enum in unicode_effects:
                 if effect_enum & effects:
-                    active_unicode_effects.add(effect_enum)
+                    active_unicode_effects |= effect_enum
                 continue
             if effect_enum & effects:
                 sgr_codes.append(effect_map[effect_enum])

@@ -45,7 +45,7 @@ class HTMLCommands:
     last_pos = None
 
     def __init__(self):
-        self.active_unicode_effects = set()
+        self.active_unicode_effects = Effects.none
         self.__class__.last_pos = (0,0)
         self.next_pos = V2(0,0)
 
@@ -141,8 +141,6 @@ class HTMLCommands:
         """
         self.next_pos = V2(pos)
 
-    def apply_unicode_effects(self, txt):
-        return translate_chars(txt, self.active_unicode_effects)
 
     def print_at(self, pos, txt, file=None):
         """Positions the cursor and prints a text sequence

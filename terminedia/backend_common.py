@@ -208,3 +208,6 @@ class JournalingCommandsMixin:
     def set_effects(self, effects, file=None):
         super().set_effects(effects, update_active_only = self.in_block, file=file)
         self.current_effect = effects
+
+    def apply_unicode_effects(self, txt):
+        return translate_chars(txt, self.active_unicode_effects)
