@@ -22,6 +22,7 @@ full_body_template = """\
 </html>
 """
 
+
 open_tag = """<span style="{style}">"""
 close_tag = """</span\n>"""
 
@@ -50,10 +51,10 @@ class HTMLCommands:
 
         self.current_foreground = None
         self.current_background = None
-        self.current_effect = None
+        self.current_effects = None
         self.next_foreground = Color((0,0,0))
         self.next_background = Color((255, 255, 255))
-        self.next_effect = Effects.none
+        self.next_effects = Effects.none
 
         self.tag_is_open = False
 
@@ -62,12 +63,12 @@ class HTMLCommands:
     def dirty(self):
         return self.current_foreground != self.next_foreground or \
             self.current_background != self.next_background or \
-            self.current_effect != self.next_effect
+            self.current_effects != self.next_effects
 
     def update_state(self):
         self.current_foreground = self.next_foreground
         self.current_background = self.next_background
-        self.current_effect = self.next_effect
+        self.current_effects = self.next_effects
         self.last_pos = self.next_pos
 
     def print(self, *args, sep='', end='', flush=False, file=None, count=0):
@@ -80,23 +81,42 @@ class HTMLCommands:
         else:
             break_line = False
         content = sep.join(args) + end
+        if self.active_unicode_effects:
+            txt = self.apply_unicode_effects(content)
         if self.next_pos == self.last_pos and self.tag_is_open and not self.dirty:
-            file.write(sep.join(args) + end)
+            file.write(content)
         else:
             if self.tag_is_open:
                 file.write(close_tag)
             self.update_state()
-            tag_attrs = D(f"""\
+            color = self.current_foreground.html
+            background = self.current_background.html
+            if self.next_effects & Effects.faint:
+                color = f"rgba{color.components + (.5,)!r}"
+            if self.next_effects & Effects.reverse:
+                color, background = background, color
+            if self.next_effects & Effects.conceal:
+                color = background
+            tag_attrs = f"""\
                 position: absolute;
                 left: {self.next_pos.x}ch;
                 top: {self.next_pos.y}em;
-                color: {self.current_foreground.html};
-                background: {self.current_background.html};
-            """)
-            # TODO some terminal effects map directly to
-            # CSS styles, such as underline, overline, bold and blink
-            # these should be coded above;
-            tag = open_tag.format(style=tag_attrs)
+                color: {color};
+                background: {background};
+            """
+            tag_attrs += (
+                "text-decoration: " +
+                    ("underline" if self.next_effects & (Effects.underline | Effects.double_underline) else "") +
+                    ("double" if self.next_effects & Effects.double_underline else "") +
+                    ("overline" if self.next_effects & Effects.overlined else "") +
+                    ("line-through" if self.next_effects & Effects.crossed_out else "") +
+                    ("blink" if self.next_effects & (Effects.blink | Effects.fast_blink) else "")
+
+            ) if self.next_effects & (
+                Effects.underline | Effects.overlined | Effects.crossed_out | Effects.double_underline |
+                Effects.blink | Effects.fast_blink
+            ) else ""
+            tag = open_tag.format(style=D(tag_attrs))
             file.write(tag + content)
             self.tag_is_open = True
         self.last_pos += (len(content), 0)
@@ -132,8 +152,6 @@ class HTMLCommands:
           - txt: Text to render at position
 
         """
-        if self.active_unicode_effects:
-            txt = self.apply_unicode_effects(txt)
 
         self.moveto(pos, file=file)
         self.print(txt, file=file)
@@ -183,10 +201,20 @@ class HTMLCommands:
         self.next_background = Color(color)
 
 
-    def set_effects(self, effects, *, reset=True, turn_off=False, update_active_only=False, file=None):
+    def set_effects(self, effects, *, update_active_only=False, file=None):
         """Sets internal state so that next characters rendered have character effects applied
 
+        update_active_only parameter is meant for low-level interactive
+        use of the terminal, and make no sense when rendering to HTML, but is kept
+        for signature compatibility
         """
+        # effect_map = effect_off_map if turn_off else effect_on_map
+        active_unicode_effects = Effects.none
+        for effect in effects:
+            if effect in unicode_effects:
+                active_unicode_effects |= effect
+
+        self.active_unicode_effects = active_unicode_effects
         self.next_effects = effects
 
     def clear(self):

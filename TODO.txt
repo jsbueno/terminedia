@@ -284,7 +284,6 @@ HTML-Backend Steps (WIP)
         - recreate ScreenCommands equivalent to generate HTML(WIP):
             - make minimal working version outputing colored blocks (V)
             - Fix span-tag re-use over multiple characters in the same row (V)
-            - separate colors/effects setting from moveto setting to reduce number of "<span>" tags.
             - Implement text and character effects (WIP):
                 - apply "terminal effects" into html rendering with inline CSS (WIP)
         - Refactor JornalingScreenCommands so that its logic can be reused by HTMLCommands (WIP)
