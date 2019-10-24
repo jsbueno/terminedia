@@ -62,6 +62,18 @@ class Effects(IntFlag):
             if self & element:
                 yield element
 
+    def __contains__(self, effect):
+        """if self is a group of various flags ored together, this returns if 'effect' is contained in then"""
+        return self & effect
+
+    def __len__(self):
+        x = self.value
+        count = 0
+        while x:
+            count += x % 2
+            x >> 1
+        return count
+
     none = 0
     bold = 1
     italic = 2
