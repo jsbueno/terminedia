@@ -19,3 +19,5 @@ __version__ = "0.3.dev0"
 __author__ = "João S. O. Bueno"
 
 
+
+context = Context()

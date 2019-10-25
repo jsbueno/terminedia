@@ -406,7 +406,28 @@ def char_width(char):
     return 1 if v in ("N", "Na") else 2   # (?) include "A" as single width?
 
 
+css_colors = {
+    'black': (0, 0, 0),
+    'silver': (192, 192, 192),
+    'gray': (128, 128, 128),
+    'white': (255, 255, 255),
+    'maroon': (128, 0, 0),
+    'red': (255, 0, 0),
+    'purple': (128, 0, 128),
+    'fuchsia': (255, 0, 255),
+    'green': (0, 128, 0),
+    'lime': (0, 255, 0),
+    'olive': (128, 128, 0),
+    'yellow': (255, 255, 0),
+    'navy': (0, 0, 128),
+    'blue': (0, 0, 255),
+    'teal': (0, 128, 128),
+    'aqua': (0, 255, 255)
+}
+
+
 _colors_cache = {}
+
 
 class Color:
     """One Color class to Rule then all
@@ -418,15 +439,12 @@ class Color:
     """
     __slots__ = ("special", "components", "name")
     def __init__(self, value=None):
-        from terminedia.values import css_colors, SpecialColors
         self.special = None
         self.name = ""
         if isinstance(value, Color):
             self.components = value.components
             self.special = value.special
-        elif isinstance(value, SpecialColors):
-            self.special = value
-            self.components = (0, 0, 0)
+
         elif isinstance(value, str):
             if value.startswith("#"):
                 html = html.strip("#;")
@@ -456,8 +474,6 @@ class Color:
                 other = Color(other)
             except (ValueError, TypeError, IndexError):
                 return False
-        if self.special:
-            return self.special == other.special
         return self.components == other.components
 
     @classmethod
@@ -489,3 +505,31 @@ class Color:
     def __repr__(self):
         value = self.special if self.special else self.name if self.name else self.components
         return f"<Color {value!r}>"
+
+
+special_color_names = "DEFAULT_FG DEFAULT_BG CONTEXT_COLORS TRANSPARENT".split()
+
+
+class SpecialColor(Color):
+    """Three to the TTY kings under the sky.
+
+    These are singletons, and some actions on which actual color to
+    use will be taken by the code consuming the colors.
+    The singleton instances are created in terminedia.values
+    """
+    __slots__ = ("special", "components", "name")
+
+    def __new__(cls, value):
+        if value in _colors_cache:
+            return _colors_cache[value]
+        return super().__new__(cls)
+
+    def __init__(self, value=None):
+        self.special = value
+        self.name = value
+        self.components = (0, 0, 0)
+        # no super call.
+
+    def __eq__(self, other):
+        return other is self
+

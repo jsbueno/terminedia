@@ -1,24 +1,23 @@
 from enum import Enum, IntFlag, EnumMeta
 
-from terminedia.utils import mirror_dict, V2, NamedV2
-
+from terminedia.utils import mirror_dict, V2, NamedV2, Color, SpecialColor
 
 class SpecialColors(Enum):
-    DEFAULT_FG = "DEFAULT_FG"
-    DEFAULT_BG = "DEFAULT_BG"
-    CONTEXT_COLORS = "CONTEXT_COLORS"
-    TRANSPARENT = "TRANSPARENT"
+    DEFAULT_FG = SpecialColor("DEFAULT_FG")
+    DEFAULT_BG = SpecialColor("DEFAULT_BG")
+    CONTEXT_COLORS = SpecialColor("CONTEXT_COLORS")
+    TRANSPARENT = SpecialColor("TRANSPARENT")
 
 
 #: Constant used as color to mean the default terminal foreground
 #: (Currently all other color values should be RGB)
-DEFAULT_FG = SpecialColors.DEFAULT_FG
+DEFAULT_FG = SpecialColors.DEFAULT_FG.value
 #: Constant used as color to mean the default terminal background
-DEFAULT_BG = SpecialColors.DEFAULT_BG
+DEFAULT_BG = SpecialColors.DEFAULT_BG.value
 #: Constant used as color to mean keep the current context colors
-CONTEXT_COLORS = SpecialColors.CONTEXT_COLORS
-#: Constant to mean keep the current value, usd as char, fg, bg or effect
-TRANSPARENT = SpecialColors.TRANSPARENT
+CONTEXT_COLORS = SpecialColors.CONTEXT_COLORS.value
+#: Constant to mean keep the current value on setting a pixel, used as char, fg, bg or effect
+TRANSPARENT = SpecialColors.TRANSPARENT.value
 
 #: Special value to mean no transformation to a given channel
 #: on context-transforms. (See `terminedia.utils.create_transformer`)
@@ -115,23 +114,3 @@ UNICODE_EFFECTS = Effects(sum(effect for effect in Effects if effect in unicode_
 
 
 ESC = "\x1b"
-
-# These are used in utils.Color
-css_colors = {
-    'black': (0, 0, 0),
-    'silver': (192, 192, 192),
-    'gray': (128, 128, 128),
-    'white': (255, 255, 255),
-    'maroon': (128, 0, 0),
-    'red': (255, 0, 0),
-    'purple': (128, 0, 128),
-    'fuchsia': (255, 0, 255),
-    'green': (0, 128, 0),
-    'lime': (0, 255, 0),
-    'olive': (128, 128, 0),
-    'yellow': (255, 255, 0),
-    'navy': (0, 0, 128),
-    'blue': (0, 0, 255),
-    'teal': (0, 128, 128),
-    'aqua': (0, 255, 255)
-}
