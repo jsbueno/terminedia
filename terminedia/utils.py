@@ -287,12 +287,6 @@ class Rect:
         return f"{self.__class__.__name__}({tuple(self.c1)}, {tuple(self.c2)})"
 
 
-class Color:
-    # TODO: a context sensitive color class
-    # (to stop yielding constant values to be used as RGB tripplets)
-    pass
-
-
 class LazyBindProperty:
     def __init__(self, initializer):
         self.initializer = initializer
@@ -410,3 +404,139 @@ def char_width(char):
         return max(char_width(combining) for combining in char)
     v = unicodedata.east_asian_width(char)
     return 1 if v in ("N", "Na") else 2   # (?) include "A" as single width?
+
+
+css_colors = {
+    'black': (0, 0, 0),
+    'silver': (192, 192, 192),
+    'gray': (128, 128, 128),
+    'white': (255, 255, 255),
+    'maroon': (128, 0, 0),
+    'red': (255, 0, 0),
+    'purple': (128, 0, 128),
+    'fuchsia': (255, 0, 255),
+    'green': (0, 128, 0),
+    'lime': (0, 255, 0),
+    'olive': (128, 128, 0),
+    'yellow': (255, 255, 0),
+    'navy': (0, 0, 128),
+    'blue': (0, 0, 255),
+    'teal': (0, 128, 128),
+    'aqua': (0, 255, 255)
+}
+
+
+_colors_cache = {}
+
+
+class Color:
+    """One Color class to Rule then all
+
+      Args:
+        - value: 3-sequence with floats in 0-1.0 range, or int in 0-255 range, or a string with
+                 color in HTML hex notation (3 or 6 digits) or HTML (css) color name
+
+    """
+    __slots__ = ("special", "components", "name")
+    def __init__(self, value=None):
+        self.special = None
+        self.name = ""
+        if isinstance(value, Color):
+            self.components = value.components
+            self.special = value.special
+
+        elif isinstance(value, str):
+            if value.startswith("#"):
+                html = html.strip("#;")
+                if len(html) == 3:
+                    self.components = tuple((int(comp[i], 16) << 8) + int(comp[i], 16) for i in (0,1,2))
+                elif len(html == 6):
+                    self.components = tuple(int(comp[2 * i: 2 * i + 2], 16) for i in (0,1,2))
+            elif value in css_colors:
+                self.name = value
+                self.components = css_colors[value]
+            else:
+                raise ValueError(f"Unrecognized color value or name: {value!r}")
+        else:
+            self.components = self.normalize_color(value)
+
+    def __len__(self):
+        return 3
+
+    def __iter__(self):
+        return iter(self.components)
+
+    def __eq__(self, other):
+        if not isinstance(other, Color):
+            try:
+                other = Color(other)
+            except (ValueError, TypeError, IndexError):
+                return False
+        return self.components == other.components
+
+    @classmethod
+    def normalize_color(cls, components):
+        """Converts RGB colors to use 0-255 integers.
+
+        Args:
+          - color: Either a color constant or a 3-sequence,
+              with float components on the range 0.0-1.0, or integer components
+              in the 0-255 range.
+
+        returns: Color constant, or 3-sequence normalized to 0-255 range.
+        """
+
+        if isinstance(components, tuple) and components in _colors_cache:
+            return _colors_cache[components]
+
+        if all(0 <= c <= 1.0 for c in components):
+            color = tuple(int(c * 255) for c in components)
+        else:
+            color = components
+        _colors_cache[tuple(components)] = color
+        return color
+
+    @property
+    def html(self):
+        return "#{:02X}{:02X}{:02X}".format(*(self.components))
+
+    def __repr__(self):
+        value = self.special if self.special else self.name if self.name else self.components
+        return f"<Color {value!r}>"
+
+
+special_color_names = "DEFAULT_FG DEFAULT_BG CONTEXT_COLORS TRANSPARENT".split()
+
+
+class SpecialColor(Color):
+    """Three to the TTY kings under the sky.
+
+    These are singletons, and some actions on which actual color to
+    use will be taken by the code consuming the colors.
+    The singleton instances are created in terminedia.values
+    """
+    __slots__ = ("special", "name", "component_source")
+
+    def __new__(cls, value, component_source=None):
+        if value in _colors_cache:
+            return _colors_cache[value]
+        return super().__new__(cls)
+
+    def __init__(self, value, component_source=None):
+        self.special = value
+        self.name = value
+        self.component_source = component_source
+        # no super call.
+
+    def __eq__(self, other):
+        return other is self
+
+    @property
+    def components(self):
+        if not self.component_source:
+            return (0, 0, 0)
+        if callable(self.component_source):
+            return self.component_source(self)
+        return self.component_source
+
+

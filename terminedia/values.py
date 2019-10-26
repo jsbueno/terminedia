@@ -1,17 +1,29 @@
-from enum import Enum, IntFlag
+from enum import Enum, IntFlag, EnumMeta
 
-from terminedia.utils import mirror_dict, V2, NamedV2
+from terminedia.utils import mirror_dict, V2, NamedV2, Color, SpecialColor
+
+
+def _lazy_app_context():
+    from terminedia import context
+    return context
+
+class SpecialColors(Enum):
+    DEFAULT_FG = SpecialColor("DEFAULT_FG", component_source=lambda color: _lazy_app_context().default_fg.components)
+    DEFAULT_BG = SpecialColor("DEFAULT_BG", component_source=lambda color: _lazy_app_context().default_bg.components)
+    CONTEXT_COLORS = SpecialColor("CONTEXT_COLORS")
+    TRANSPARENT = SpecialColor("TRANSPARENT")
 
 
 #: Constant used as color to mean the default terminal foreground
 #: (Currently all other color values should be RGB)
-DEFAULT_FG = 0xffff
+DEFAULT_FG = SpecialColors.DEFAULT_FG.value
 #: Constant used as color to mean the default terminal background
-DEFAULT_BG = 0xfffe
+DEFAULT_BG = SpecialColors.DEFAULT_BG.value
 #: Constant used as color to mean keep the current context colors
-CONTEXT_COLORS = 0xfffd
-#: Constant to mean keep the current value, usd as char, fg, bg or effect
-TRANSPARENT = 0xfffc
+CONTEXT_COLORS = SpecialColors.CONTEXT_COLORS.value
+#: Constant to mean keep the current value on setting a pixel, used as char, fg, bg or effect
+TRANSPARENT = SpecialColors.TRANSPARENT.value
+
 #: Special value to mean no transformation to a given channel
 #: on context-transforms. (See `terminedia.utils.create_transformer`)
 NOP = "NOP"
@@ -54,6 +66,18 @@ class Effects(IntFlag):
             if self & element:
                 yield element
 
+    def __contains__(self, effect):
+        """if self is a group of various flags ored together, this returns if 'effect' is contained in then"""
+        return self & effect
+
+    def __len__(self):
+        x = self.value
+        count = 0
+        while x:
+            count += x % 2
+            x >> 1
+        return count
+
     none = 0
     bold = 1
     italic = 2
@@ -95,4 +119,3 @@ UNICODE_EFFECTS = Effects(sum(effect for effect in Effects if effect in unicode_
 
 
 ESC = "\x1b"
-

@@ -168,6 +168,10 @@ Text and big-text capabilities:
     Add arbitrary font handling by using PIL to cache rendered chars.
     Enable 16 x 8 double and 16 x 16 double width UNSCII fonts.
 
+Enhance EMOJI and multi-language support:
+    - handle combining characters properly
+    - document which terminal applications will have the best emoji experience
+
 shape and page capabilities:
     create full fledged shape with char, fg, bg, effects (WIP - only missing example script):
         implement FullShape class (V):
@@ -237,7 +241,9 @@ Improvements and small features:
     fix breaking on terminedia-context (context initialization) (V)
     fix regression on terminedia-context (V)
     Improve error messages/or silence/ when attempting to write out of Screen/Shape limits
-    FIX DOCUMENTATION GENERATION
+    FIX DOCUMENTATION GENERATION (V)
+    generate documentation
+    Add missing doc-strings
     improvement: API for  X-session wide key-repeat tunning with "xset r rate".
             (Maybe, in combination with other features, it is even possible to have keydown/keyup emulation)
             What is the equivalent API for Win and Mac if any?
@@ -258,6 +264,49 @@ Improvements and small features:
     terminedia-image should resize to full screen-size when loading image (V))
     add an --output parameter to terminedia image to render output as ansi-laden txt file(V)
 
+
+Color class Todo:
+    - Create a color class (V)
+    - Use color class in terminal commands(V)
+    - Add support for html/css color names (V)
+    - Add proper support for special constants: (default_bg, default_fg, etc...) (V)
+    - use color class in html commands (V)
+    - BUG: fix image-rendering to terminal using "default_fg" for black color.
+    Future:
+
+    - Add support for gray colors (single int)
+    - Add support for alpha-component
+    - Add support for HSL parsing/conversion
+
+
+HTML-Backend Steps (WIP)
+    find-out a working HTML model able to represent chars as in the terminal (V)
+        - recreate ScreenCommands equivalent to generate HTML(WIP):
+            - make minimal working version outputing colored blocks (V)
+            - Fix span-tag re-use over multiple characters in the same row (V)
+            - Implement text and character effects (V):
+                - apply "terminal effects" into html rendering with inline CSS (V)
+
+        - Refactor JornalingScreenCommands so that its logic can be reused by HTMLCommands (V)
+        - refactor Journaling...Commands to generate HTML(V)
+        - Add a mechanism to provide default actual colors for "default_fg" and "default_bg" (V)
+        - Rewire "screen.__setitem__" to only actually output data within a call to ".update()" if the output is not to terminal: so that other backends than terminal don't require writting to ".data" (?)
+    re-write functionalities of Commands and logic of Journaling commands for HTML (V)
+    Parametrize Screen so it can have an HTML commands backend
+    Implement HTML render output for files in images.Shape (V)
+    Change terminedia-image example script to accept a "-backend HTML" option and create an HTML file.(V)
+
+    future
+    ------
+    Hardwire a web-font to display braille characters as pixels (UNSCII?)
+    Refactor rendering mechanism to speed things up (0.2 sec/frame = 10 times too slow)
+    Render with a separate CSS block and classes instead of inlining style in all tags.
+    WSGI compatible server and javascript snippet to enable frame rendering and update
+    keyboard and mouse event handling on server.
+    create HTML Canvas output (?)
+    create SVG output (?)
+    Add text effects to take advantage of transforms available in HTML/SVG (rotate, rescale, transparency)
+
 Bugs:
     bug: CRITICAL: effects refactoring led rendering to be B&W (V)
     bug: unicode_effects not being applied on direct "screen.print" call.(V)
@@ -265,11 +314,12 @@ Bugs:
     bug: re-entering a screen context and blitting  is not rendering the char at [0,0] (V)
     bug: Terminedia-shape with custom shape may trigger "going left" after going up or down. (V)
     bug: blitting full-shape to full-shape destroys characters and keep only blocks (V)
+    bug: Terminedia-image not proper resampling images (getting out of range errors for full-sized images)(V)
     bug: plot example script prints completly bogus values on the y scale.
     bug:fix printing of colored double-width characters . (b0rk on konsole) (WIP)
     bug: colors in the 0-255 range are not working as terminedia-text value for color option
     bug: when apple shows up over snake body, it is erased from screen (snake.py) (easy) (external) (hacktober)
-    bug: Terminedia-image not proper resampling images (getting out of range errors for full-sized images)
+    bug: PGMShap class incorrectly using "default color" for black pixels (termined-image default loading is broken after refactoring to use Color class)
 
 Bugs-external (report issue):
 

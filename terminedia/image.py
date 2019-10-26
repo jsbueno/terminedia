@@ -7,7 +7,7 @@ from inspect import signature
 from io import StringIO
 from pathlib import Path
 
-from terminedia.context import Context
+from terminedia.contexts import Context
 from terminedia.subpixels import BrailleChars
 from terminedia.utils import Color, Rect, V2, LazyBindProperty, char_width
 from terminedia.unicode_transforms import translate_chars
@@ -353,7 +353,7 @@ class Shape(ABC, ShapeApiMixin):
 
         return new_shape
 
-    def render(self, backend="ANSI", output=None):
+    def render(self, output=None, backend="ANSI"):
         """Renders shape contents into a text-output.
           Args:
             - backend (str): currently implemented "ANSI" - output type
@@ -371,18 +371,41 @@ class Shape(ABC, ShapeApiMixin):
             of the shape will be written. Binary backends require a binary file. thenmethod returns None.
             If no output is given, the rendered contents are returned.
         """
+        backend = backend.upper()
+        original_output = output
+        if isinstance(output, (str, Path)):
+            output = open(output, 'wt')  # FIXME: for some backends a binary file will be needed.
+        if not original_output:
+            output = StringIO()
+
         if backend == "ANSI":
-            return self._render_ansi(output)
+            return self._render_using_screen(output, backend)
+        if backend == "HTML":
+            # FIXME: this somewhat violates some "this module should not know about
+            # specific backend stuff (HTML template)."
+            # However, the rendering machinnery only knows
+            # about incremental rendering, and can't "sandwhich"
+            # the final rendering. In any case, the outter HTML template
+            # should be configurable in a near term future.
+            from terminedia.html import full_body_template
+
+            preamble, post_amble = full_body_template.split("{content}")
+            output.write(preamble)
+            self._render_using_screen(output, backend)
+            output.write(post_amble)
         else:
              raise ValueError(f"Output type {backend!r} not implemented")
+        if not original_output:
+            return output.get_value()
 
-    def _render_ansi(self, output):
+    def _render_using_screen(self, output, backend):
         from terminedia.screen import Screen
+
         if output is None:
             file = StringIO()
         else:
             file = output
-        sc = Screen(size=V2(self.width, self.height))
+        sc = Screen(size=V2(self.width, self.height), backend=backend)
         # Starts recording all image operations on the internal journal
         sc.commands.__enter__()
         sc.blit((0,0), self)
@@ -390,9 +413,7 @@ class Shape(ABC, ShapeApiMixin):
         # which does not allow passing an external file.
         sc.commands.stop_journal()
         # Renders all graphic ops as ANSI sequences + unicode into file:
-        sc.commands.replay(file)
-        if output is None:
-            return file.getvalue()
+        sc.commands.replay(output)
 
 
 # "Virtualsubclassing" - 2 days after I wrote there were no

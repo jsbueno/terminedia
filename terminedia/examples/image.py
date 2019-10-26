@@ -19,14 +19,15 @@ class DummyCtx:
 @click.argument("image_paths", required=False, nargs=-1)
 @click.option("size", "--size", "-s", required=False, help="Size of output in <width>x<height> format. Defaults to current terminal size in fullblock color, compensating aspect ratio.")
 @click.option("output", "--output", "-o", help="Output file: render images to txt + ANSI, instead of displaying it.")
-def main(image_paths, size=None, output=""):
+@click.option("backend", "--backend", "-b", default="ANSI", help="Output file backend: either HTML or ANSI")
+def main(image_paths, size=None, output="", backend=""):
     """Displays an image, given in a path, on the terminal.
     """
     # TODO add more options to control the output,
     # including disabling auto-scaling.
     if not image_paths:
         image_paths = (default_image,)
-    context = scr = Screen()
+    context = scr = Screen(backend=backend)
     if not size:
         size = scr.size
     else:
@@ -38,7 +39,7 @@ def main(image_paths, size=None, output=""):
         for img_path in image_paths:
             img = shape(img_path, size=size)
             if output:
-                img.render(output=output_file)
+                img.render(output=output_file, backend=backend)
                 output_file.write("\n")
             else:
                 scr.clear()

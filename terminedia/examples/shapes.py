@@ -62,6 +62,7 @@ def main(shape, high=False, braille=False):
         shape = shape1
     if "\\n" in shape:
         shape = shape.replace("\\n", "\n")
+    original_shape = shape
     shape = shape.rstrip("\n")
     size_ =   V2((shape.find("\n") if "\n" in shape else len(shape)), shape.count("\n") + 1)
     factor = 1
@@ -91,7 +92,7 @@ def main(shape, high=False, braille=False):
                     factor * ((key == K.DOWN) - (key == K.UP))
                 )
 
-                scr.draw.blit(pos, shape, **({"color_map": c_map} if shape == shape2 else {}))
+                scr.draw.blit(pos, shape, **({"color_map": c_map} if original_shape == shape2 else {}))
 
             time.sleep(1/30)
 

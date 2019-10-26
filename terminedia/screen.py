@@ -4,10 +4,9 @@ import threading
 from math import ceil
 
 import terminedia.text
-from terminedia.context import Context
+from terminedia.contexts import Context
 from terminedia.utils import V2, Rect
 from terminedia.subpixels import BrailleChars
-from terminedia.terminal import JournalingScreenCommands
 from terminedia.values import CONTINUATION, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, Directions, EMPTY, Effects, FULL_BLOCK
 from terminedia.drawing import Drawing, HighRes
 from terminedia.image import Pixel, FullShape
@@ -62,7 +61,7 @@ class Screen:
     #: Internal: tracks last used effects attribute to avoid mangling and enable optimizations
     last_effects = None
 
-    def __init__(self, size=(), clear_screen=True):
+    def __init__(self, size=(), clear_screen=True, backend="ansi"):
         if not size:
             #: Set in runtime to a method to retrieve the screen width, height.
             #: The class is **not** aware of terminal resizings while running, though.
@@ -95,10 +94,18 @@ class Screen:
 
         self.text = terminedia.text.Text(self)
 
-        #: Namespace for low-level Terminal commands, an instance of :any:`JournalingScreenCommands`.
+        self.backend = backend = backend.upper()
+        if backend == "ANSI":
+            from terminedia.terminal import JournalingScreenCommands as CommandsClass
+        elif backend == "HTML":
+            from terminedia.html import JournalingHTMLCommands as CommandsClass
+        else:
+            raise ValueError(f"Unrecognized backend: {backend!r}.")
+
+        #: Namespace for low-level rendering commands, an instance of :any:`JournalingCommandsMixin`.
         #: This attribute can be used as a context manager to group
-        #: various screen operations in a single block that is rendered at once.
-        self.commands = JournalingScreenCommands()
+        #: various output operations in a single block that is rendered at once.
+        self.commands = CommandsClass()
         self.clear_screen = clear_screen
         self.data = FullShape.new((self.width, self.height))
         # Synchronize context for data and screen painting.

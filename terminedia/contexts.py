@@ -18,8 +18,8 @@ class Transformer:
 
 
 class ContextVar:
-    def __init__(self, type, default=None):
-        self.type = type
+    def __init__(self, type_, default=None):
+        self.type = type_
         self.default = default
 
     def __set_name__(self, owner, name):
@@ -28,8 +28,8 @@ class ContextVar:
     def __set__(self, instance, value):
         if not isinstance(value, self.type):
             # May generate ValueError TypeError: expected behavior
-            type = self.type[0] if isinstance(self.type, tuple) else self.type
-            value = type(value)
+            type_ = self.type[0] if isinstance(self.type, tuple) else self.type
+            value = type_(value)
         setattr(instance._locals, self.name, value)
 
     def __get__(self, instance, owner):
@@ -80,8 +80,8 @@ class Context:
     """
 
     char = ContextVar(str, BlockChars.FULL_BLOCK)
-    color = ContextVar((tuple, Color, int), DEFAULT_FG)
-    background = ContextVar((tuple, Color, int), DEFAULT_BG)
+    color = ContextVar(Color, DEFAULT_FG)
+    background = ContextVar(Color, DEFAULT_BG)
     effects = ContextVar(Effects, Effects.none)
     direction = ContextVar(V2, Directions.RIGHT)
     transformer = ContextVar((Transformer, FunctionType, type(None)), None)
@@ -89,7 +89,9 @@ class Context:
 
     def __init__(self, **kw):
         self._locals = threading.local()
+        self._update_from_global()
         self._update(kw)
+        self._dirty = False
 
     def _update(self, params):
         for attr, value in params.items():
@@ -99,6 +101,7 @@ class Context:
         if name.startswith("_") or getattr(self.__class__, name, None):
             super().__setattr__(name, value)
         else:
+            self._dirty = True
             setattr(self._locals, name, value)
 
     def __getattr__(self, name):
@@ -125,3 +128,58 @@ class Context:
             f"   {key} = {getattr(self._locals, key)!r}" for key in dir(self._locals)
             if not key.startswith("_")
         ))
+
+    def __iter__(self):
+        seen = set()
+        for attr_name in dir(self):
+            if attr_name.startswith("_"):
+                continue
+            seen.add(attr_name)
+            yield (attr_name, getattr(self, attr_name))
+        for attr_name in dir(self._locals):
+            if attr_name.startswith("_") or attr_name in seen:
+                continue
+            yield (attr_name, getattr(self._locals, attr_name))
+
+    def _update_from_global(self):
+        import terminedia
+        if not hasattr(terminedia, "context"):
+            # global initialization not complete - we may be initializing the root context itself
+            return
+        for name, attr in terminedia.context:
+            if name in ("default_bg", "default_fg"):
+                continue
+            setattr(self, name, attr)
+
+
+class RootContext(Context):
+    def __init__(self, default_fg, default_bg, **kwargs):
+        super().__init__(**kwargs)
+        # These are ordinary instance parameters, but are used as the default
+        # source for components for "DEFAULT_FG" and "DEFAULT_BG" colors
+        # for all non-terminal backends.
+        self._default_fg = Color(default_fg)
+        self._default_bg = Color(default_bg)
+
+    # These dummy propertis bypass the __setattr__ code in the superclass
+    @property
+    def default_fg(self):
+        return self._default_fg
+
+    @default_fg.setter
+    def default_fg(self, value):
+        from terminedia.values import DEFAULT_FG
+        if value is DEFAULT_FG:
+            raise ValueError("The source for default_fg can't be set as DEFAULT_FG")
+        self._default_fg = Color(value)
+
+    @property
+    def default_bg(self):
+        return self._default_bg
+
+    @default_bg.setter
+    def default_bg(self, value):
+        from terminedia.values import DEFAULT_BG
+        if value is DEFAULT_BG:
+            raise ValueError("The source for default_bg can't be set as DEFAULT_BG")
+        self._default_bg = Color(value)
