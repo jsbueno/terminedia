@@ -455,8 +455,6 @@ class Color:
             elif value in css_colors:
                 self.name = value
                 self.components = css_colors[value]
-            elif value in SpecialColors.__members__:
-                self.special = SpecialColors.__members__[value]
             else:
                 raise ValueError(f"Unrecognized color value or name: {value!r}")
         else:
