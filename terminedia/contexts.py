@@ -125,9 +125,8 @@ class Context:
 
     def __repr__(self):
         return "Context[\n{}\n]".format("\n".join(
-            f"   {key} = {getattr(self._locals, key)!r}" for key in dir(self._locals)
-            if not key.startswith("_")
-        ))
+            f"   {key} = {value!r}" for key, value in self)
+        )
 
     def __iter__(self):
         seen = set()
