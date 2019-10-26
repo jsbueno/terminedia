@@ -163,6 +163,9 @@ class ShapeApiMixin:
     def braille(self):
         return self._get_highres(block_class=BrailleChars, block_height=4)
 
+    def get_size(self):
+        return V2(self.width, self.height)
+
     _data_func = staticmethod(lambda size: [EMPTY * size.x] * size.y)
 
     def _get_drawing(self):
@@ -172,7 +175,7 @@ class ShapeApiMixin:
         return Drawing(
             set_fn = lambda pos, pixel=None: type(self).__setitem__(self, pos, pixel if pixel else self.context.char),
             reset_fn = lambda pos: type(self).__setitem__(self, pos, EMPTY),
-            size_fn = lambda : V2(self.width, self.height),
+            size_fn = self.get_size,
             context = self.context
         )
 
