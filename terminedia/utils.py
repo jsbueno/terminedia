@@ -515,19 +515,28 @@ class SpecialColor(Color):
     use will be taken by the code consuming the colors.
     The singleton instances are created in terminedia.values
     """
-    __slots__ = ("special", "components", "name")
+    __slots__ = ("special", "name", "component_source")
 
-    def __new__(cls, value):
+    def __new__(cls, value, component_source=None):
         if value in _colors_cache:
             return _colors_cache[value]
         return super().__new__(cls)
 
-    def __init__(self, value=None):
+    def __init__(self, value, component_source=None):
         self.special = value
         self.name = value
-        self.components = (0, 0, 0)
+        self.component_source = component_source
         # no super call.
 
     def __eq__(self, other):
         return other is self
+
+    @property
+    def components(self):
+        if not self.component_source:
+            return (0, 0, 0)
+        if callable(self.component_source):
+            return self.component_source(self)
+        return self.component_source
+
 

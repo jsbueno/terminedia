@@ -2,9 +2,14 @@ from enum import Enum, IntFlag, EnumMeta
 
 from terminedia.utils import mirror_dict, V2, NamedV2, Color, SpecialColor
 
+
+def _lazy_app_context():
+    from terminedia import context
+    return context
+
 class SpecialColors(Enum):
-    DEFAULT_FG = SpecialColor("DEFAULT_FG")
-    DEFAULT_BG = SpecialColor("DEFAULT_BG")
+    DEFAULT_FG = SpecialColor("DEFAULT_FG", component_source=lambda color: _lazy_app_context().default_fg.components)
+    DEFAULT_BG = SpecialColor("DEFAULT_BG", component_source=lambda color: _lazy_app_context().default_bg.components)
     CONTEXT_COLORS = SpecialColor("CONTEXT_COLORS")
     TRANSPARENT = SpecialColor("TRANSPARENT")
 

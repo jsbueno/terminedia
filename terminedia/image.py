@@ -7,7 +7,7 @@ from inspect import signature
 from io import StringIO
 from pathlib import Path
 
-from terminedia.context import Context
+from terminedia.contexts import Context
 from terminedia.subpixels import BrailleChars
 from terminedia.utils import Color, Rect, V2, LazyBindProperty, char_width
 from terminedia.unicode_transforms import translate_chars

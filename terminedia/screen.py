@@ -4,7 +4,7 @@ import threading
 from math import ceil
 
 import terminedia.text
-from terminedia.context import Context
+from terminedia.contexts import Context
 from terminedia.utils import V2, Rect
 from terminedia.subpixels import BrailleChars
 from terminedia.values import CONTINUATION, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, Directions, EMPTY, Effects, FULL_BLOCK

@@ -284,11 +284,13 @@ HTML-Backend Steps (WIP)
         - recreate ScreenCommands equivalent to generate HTML(WIP):
             - make minimal working version outputing colored blocks (V)
             - Fix span-tag re-use over multiple characters in the same row (V)
-            - Implement text and character effects (WIP):
-                - apply "terminal effects" into html rendering with inline CSS (WIP)
+            - Implement text and character effects (V):
+                - apply "terminal effects" into html rendering with inline CSS (V)
+
         - Refactor JornalingScreenCommands so that its logic can be reused by HTMLCommands (WIP)
         - refactor Journaling...Commands to generate HTML(V)
-        - Rewire "screen.__setitem__" to only actually output data within a call to ".update()" if the output is not to terminal: so that other backends than terminal don't require writting to ".data"
+        - Add a mechanism to provide default actual colors for "default_fg" and "default_bg" (V)
+        - Rewire "screen.__setitem__" to only actually output data within a call to ".update()" if the output is not to terminal: so that other backends than terminal don't require writting to ".data" (?)
     re-write functionalities of Commands and logic of Journaling commands for HTML (V)
     Parametrize Screen so it can have an HTML commands backend
     Implement HTML render output for files in images.Shape (V)
