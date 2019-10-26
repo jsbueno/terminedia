@@ -314,6 +314,7 @@ Bugs:
     bug: re-entering a screen context and blitting  is not rendering the char at [0,0] (V)
     bug: Terminedia-shape with custom shape may trigger "going left" after going up or down. (V)
     bug: blitting full-shape to full-shape destroys characters and keep only blocks (V)
+    bug: RootContext repr not working (V)
     bug: Terminedia-image not proper resampling images (getting out of range errors for full-sized images)(V)
     bug: plot example script prints completly bogus values on the y scale.
     bug:fix printing of colored double-width characters . (b0rk on konsole) (WIP)
