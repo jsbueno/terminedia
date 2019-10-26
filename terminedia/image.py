@@ -353,7 +353,7 @@ class Shape(ABC, ShapeApiMixin):
 
         return new_shape
 
-    def render(self, backend="ANSI", output=None):
+    def render(self, output=None, backend="ANSI"):
         """Renders shape contents into a text-output.
           Args:
             - backend (str): currently implemented "ANSI" - output type
@@ -373,6 +373,8 @@ class Shape(ABC, ShapeApiMixin):
         """
         backend = backend.upper()
         original_output = output
+        if isinstance(output, (str, Path)):
+            output = open(output, 'wt')  # FIXME: for some backends a binary file will be needed.
         if not original_output:
             output = StringIO()
 
