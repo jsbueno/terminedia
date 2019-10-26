@@ -418,6 +418,20 @@ class Shape(ABC, ShapeApiMixin):
         # Renders all graphic ops as ANSI sequences + unicode into file:
         sc.commands.replay(output)
 
+    def __repr__(self):
+        cap = self.PixelCls.capabilities
+        bck = cap.has_background
+        ftn = cap.has_foreground
+        eff = cap.has_effects
+        size = self.get_size()
+        rep = "".join([self.__class__.__name__, ": [\n",
+                        "value_type = "+repr(cap.value_type)+"\n" if cap.value_type else '',
+                        "foreground\n" if ftn else '',
+                        "background\n" if bck else '',
+                        "effects\n" if eff else '',
+                        f"size = {size.x}, {size.y}\n",
+                        "]"])
+        return rep
 
 # "Virtualsubclassing" - 2 days after I wrote there were no
 # practical uses for it.
