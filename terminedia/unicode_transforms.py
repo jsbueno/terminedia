@@ -1,3 +1,5 @@
+"""unicode_transforms creates text effects based on UNICODE character
+transformations. Those effects depends on the fonts available in the system"""
 import re
 import unicodedata
 from functools import lru_cache
