@@ -66,9 +66,9 @@ class Pixel(tuple):
         if other_capabilities.has_foreground:
             values.append(self.foreground if cap.has_foreground else context.color)
         if other_capabilities.has_background:
-            values.append(self.background if cap.has_foreground else context.backgroung)
+            values.append(self.background if cap.has_background else context.background)
         if other_capabilities.has_effects:
-            values.append(self.effects if cap.has_effects else self.context.effects)
+            values.append(self.effects if cap.has_effects else context.effects)
 
         return values
 
@@ -709,7 +709,8 @@ class PalettedShape(Shape):
         v = super().__getitem__(pos)
         if v:
             return v
-        char = self.get_raw(pos)
+        char =  self.get_raw(pos)
+        value = bool(char != EMPTY)
 
         # TODO: Legacy: when this class doubled as "BooleanShape".
         # (remove comment block when BooleanShape is implemented)
@@ -719,14 +720,15 @@ class PalettedShape(Shape):
             #foreground_arg = ()
 
         foreground_arg = self.color_map.get(char, CONTEXT_COLORS)
-        return self.PixelCls(char, foreground_arg)
+        return self.PixelCls(value, foreground_arg)
 
     def __setitem__(self, pos, value):
         """
         Values set for each pixel are: character - only spaces (0x20) or "non-spaces" are
         taken into account for PalettedShape
         """
-        self.data[pos[1] * self.width + pos[0]] = value
+        type_ = self.PixelCls.capabilities.value_type
+        self.data[pos[1] * self.width + pos[0]] = value_type(value)
 
 
 class FullShape(Shape):
@@ -786,9 +788,11 @@ class FullShape(Shape):
         taken into account for PalettedShape
         """
         offset = pos[1] * self.width + pos[0]
-        if isinstance(value, self.PixelCls):
+        if isinstance(value, Pixel):
             value = value.get_values(self.context, self.PixelCls.capabilities)
         else:
+            if isinstance(value, bool):
+                value = self.context.char if value else EMPTY
             value = ([value] if isinstance(value, str) else list(value))
             value += [
                 self.context.color, self.context.background, self.context.effects,
@@ -803,6 +807,8 @@ class FullShape(Shape):
         effects = value[3] if value[3] != TRANSPARENT else self.eff_data[offset]
         transform_effects = effects & UNICODE_EFFECTS
         final_char = value[0]
+        if isinstance(final_char, bool):
+            final_char = self.context.char if final_char else EMPTY
         if final_char == CONTINUATION:
             if self.value_data[offset] == CONTINUATION:
                 # we are likely being blitted from a source with matching parameters.
