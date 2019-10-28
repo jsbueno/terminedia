@@ -317,3 +317,13 @@ class Screen:
                 for x in range(rect.left, rect.right):
                     self[x, y] = _REPLAY
 
+    def __repr__(self):
+        return "".join([
+            "Screen [\n",
+            f"size= {self.get_size()}\n",
+            f"last_background = {self.__class__.last_background}\n",
+            f"last_color = {self.__class__.last_color}\n",
+            f"last_effects = {self.__class__.last_effects}\n",
+            f"context = {self.context.__repr__() if self.context else ''}\n",
+            "]",
+        ])
