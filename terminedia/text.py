@@ -246,3 +246,9 @@ class Text:
         last_pos = self.get_ctx("last_pos", default=(0, 0))
         self.at(last_pos, text)
 
+    def __repr__(self):
+        return "".join(["Text [\n",
+                        f"owner = {self.owner}\n",
+                        f"planes = {self.planes}\n",
+                        "]",
+                        ])
