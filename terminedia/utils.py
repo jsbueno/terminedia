@@ -1,5 +1,6 @@
 import unicodedata
 
+
 def mirror_dict(dct):
     """Creates a new dictionary exchanging values for keys
     Args:
@@ -11,8 +12,10 @@ def mirror_dict(dct):
 class FrozenDict(dict):
     __slots__ = ()
     __setitem__ = None
+
     def __hash__(self):
         return hash(tuple(self.items()))
+
 
 class V2(tuple):
     """2-component Vector class to ease drawing
@@ -50,10 +53,10 @@ class V2(tuple):
         # If composition of this class ever gets more complex, uncomment the
         # pedantic way to go is:
 
-        #x, y = kw.pop(x, None), kw.pop(y, None)
-        #if not x and not y and len(args) >= 2:
-            #args = args[2:]
-        #super().__init__(*args, **kw)
+        # x, y = kw.pop(x, None), kw.pop(y, None)
+        # if not x and not y and len(args) >= 2:
+        # args = args[2:]
+        # super().__init__(*args, **kw)
 
     x = property(lambda self: self[0])
     y = property(lambda self: self[1])
@@ -117,7 +120,9 @@ class NamedV2(V2):
     # (so that adding "Directions" results in a normal vector,
     # not an object with a __dict__)
     for method in "__add__ __sub__ __mul__ __abs__ as_int".split():
-        locals()[method] = (lambda method: lambda s, *args: getattr(V2, method)(V2(s), *args))(method)
+        locals()[method] = (
+            lambda method: lambda s, *args: getattr(V2, method)(V2(s), *args)
+        )(method)
 
     @property
     def value(self):
@@ -133,11 +138,12 @@ class Rect:
         left_or_corner1=None,
         top_or_corner2=None,
         right=None,
-        bottom=None, *,
+        bottom=None,
+        *,
         width_height=None,
         width=None,
         height=None,
-        center=None
+        center=None,
     ):
         if isinstance(left_or_corner1, Rect):
             self.c1 = left_or_corner1.c1
@@ -152,10 +158,26 @@ class Rect:
                 c1 = V2(left_or_corner1)
         elif isinstance(left_or_corner1, slice) or isinstance(top_or_corner2, slice):
 
-            left = left_or_corner1.start if isinstance(left_or_corner1, slice) else left_or_corner1
-            right = left_or_corner1.stop if isinstance(left_or_corner1, slice) else left_or_corner1 + 1
-            top = top_or_corner2.start if isinstance(top_or_corner2, slice) else top_or_corner2
-            bottom = top_or_corner2.stop if isinstance(top_or_corner2, slice) else top_or_corner2 + 1
+            left = (
+                left_or_corner1.start
+                if isinstance(left_or_corner1, slice)
+                else left_or_corner1
+            )
+            right = (
+                left_or_corner1.stop
+                if isinstance(left_or_corner1, slice)
+                else left_or_corner1 + 1
+            )
+            top = (
+                top_or_corner2.start
+                if isinstance(top_or_corner2, slice)
+                else top_or_corner2
+            )
+            bottom = (
+                top_or_corner2.stop
+                if isinstance(top_or_corner2, slice)
+                else top_or_corner2 + 1
+            )
         else:
             left = left_or_corner1
 
@@ -166,19 +188,33 @@ class Rect:
 
         if not width_height and width is not None and height is not None:
             width_height = width, height
-        self.c1 = c1 if c1 else (left, top) if left is not None and top is not None else (0, 0)
-        self.c2 = c2 if c2 else (right, bottom) if right is not None and bottom is not None else (0, 0)
+        self.c1 = (
+            c1
+            if c1
+            else (left, top)
+            if left is not None and top is not None
+            else (0, 0)
+        )
+        self.c2 = (
+            c2
+            if c2
+            else (right, bottom)
+            if right is not None and bottom is not None
+            else (0, 0)
+        )
         if width_height:
             self.width_height = width_height
         if center:
             self.center = center
 
     c1 = property(lambda s: s._c1)
+
     @c1.setter
     def c1(self, value):
         self._c1 = V2(value)
 
     c2 = property(lambda s: s._c2)
+
     @c2.setter
     def c2(self, value):
         self._c2 = V2(value)
@@ -186,6 +222,7 @@ class Rect:
     @property
     def width_height(self):
         return V2(self.width, self.height)
+
     @width_height.setter
     def width_height(self, value):
         self.width = value[0]
@@ -194,6 +231,7 @@ class Rect:
     @property
     def width(self):
         return self._c2.x - self._c1.x
+
     @width.setter
     def width(self, value):
         self._c2 = V2(self._c1.x + value, self._c2.y)
@@ -201,6 +239,7 @@ class Rect:
     @property
     def height(self):
         return self._c2.y - self._c1.y
+
     @height.setter
     def height(self, value):
         self._c2 = V2(self._c2.x, self._c1.y + value)
@@ -208,17 +247,20 @@ class Rect:
     @property
     def center(self):
         return (self._c1 + self._c2) * 0.5
+
     @center.setter
     def center(self, value):
         center = V2(value)
         w, h = self.width_height
-        w2 = w / 2; h2 = h / 2
+        w2 = w / 2
+        h2 = h / 2
         self._c1 = V2(center.x - w2, center.y - h2)
         self._c2 = V2(center.x + w2, center.y + h2)
 
     @property
     def left(self):
         return self._c1.x
+
     @left.setter
     def left(self, value):
         w = self.width
@@ -228,6 +270,7 @@ class Rect:
     @property
     def top(self):
         return self._c1.y
+
     @top.setter
     def top(self, value):
         h = self.height
@@ -237,6 +280,7 @@ class Rect:
     @property
     def right(self):
         return self._c2.x
+
     @right.setter
     def right(self, value):
         w = self.width
@@ -246,6 +290,7 @@ class Rect:
     @property
     def bottom(self):
         return self._c2.y
+
     @bottom.setter
     def bottom(self, value):
         h = self.height
@@ -296,26 +341,36 @@ class LazyBindProperty:
 
     def __get__(self, instance, owner):
         from terminedia.image import ShapeView
+
         if not instance:
             return self
         if isinstance(instance, ShapeView):
-            namespace = getattr(instance, '_' + self.name, None)
+            namespace = getattr(instance, "_" + self.name, None)
             if not namespace:
                 namespace = self.initializer(instance)
-                setattr(instance, '_' + self.name, namespace)
+                setattr(instance, "_" + self.name, namespace)
             return namespace
         if not self.name in instance.__dict__:
             instance.__dict__[self.name] = self.initializer(instance)
         return instance.__dict__[self.name]
 
 
-def init_context_for_thread(context, char=None, color=None, background=None, effects=None, direction=None):
+def init_context_for_thread(
+    context, char=None, color=None, background=None, effects=None, direction=None
+):
     """Create all expected data inside a context in the current thread.
 
     Multi-threaded apps should call this to update a Screen or Shape instance
     before trying to use that instance in a different thread than its originating one.
     """
-    from terminedia.values import DEFAULT_BG, DEFAULT_FG, FULL_BLOCK, Directions, Effects
+    from terminedia.values import (
+        DEFAULT_BG,
+        DEFAULT_FG,
+        FULL_BLOCK,
+        Directions,
+        Effects,
+    )
+
     context.char = char or FULL_BLOCK
     context.color = color or DEFAULT_FG
     context.background = background or DEFAULT_BG
@@ -388,41 +443,45 @@ def create_transformer(context, slots, clear=False):
         if previous_transformer:
             values = previous_transformer(pos, values)
         return [
-            slot(pos, values, context) if callable(slot) else
-            slot if slot is not NOP else
-            values[i]
-                for i, slot in enumerate(slots)
+            slot(pos, values, context)
+            if callable(slot)
+            else slot
+            if slot is not NOP
+            else values[i]
+            for i, slot in enumerate(slots)
         ]
+
     context.transformer = transformer
 
 
 def char_width(char):
     from terminedia.subpixels import BlockChars
+
     if char in BlockChars.chars:
         return 1
     if len(char) > 1:
         return max(char_width(combining) for combining in char)
     v = unicodedata.east_asian_width(char)
-    return 1 if v in ("N", "Na") else 2   # (?) include "A" as single width?
+    return 1 if v in ("N", "Na") else 2  # (?) include "A" as single width?
 
 
 css_colors = {
-    'black': (0, 0, 0),
-    'silver': (192, 192, 192),
-    'gray': (128, 128, 128),
-    'white': (255, 255, 255),
-    'maroon': (128, 0, 0),
-    'red': (255, 0, 0),
-    'purple': (128, 0, 128),
-    'fuchsia': (255, 0, 255),
-    'green': (0, 128, 0),
-    'lime': (0, 255, 0),
-    'olive': (128, 128, 0),
-    'yellow': (255, 255, 0),
-    'navy': (0, 0, 128),
-    'blue': (0, 0, 255),
-    'teal': (0, 128, 128),
-    'aqua': (0, 255, 255)
+    "black": (0, 0, 0),
+    "silver": (192, 192, 192),
+    "gray": (128, 128, 128),
+    "white": (255, 255, 255),
+    "maroon": (128, 0, 0),
+    "red": (255, 0, 0),
+    "purple": (128, 0, 128),
+    "fuchsia": (255, 0, 255),
+    "green": (0, 128, 0),
+    "lime": (0, 255, 0),
+    "olive": (128, 128, 0),
+    "yellow": (255, 255, 0),
+    "navy": (0, 0, 128),
+    "blue": (0, 0, 255),
+    "teal": (0, 128, 128),
+    "aqua": (0, 255, 255),
 }
 
 
@@ -437,7 +496,9 @@ class Color:
                  color in HTML hex notation (3 or 6 digits) or HTML (css) color name
 
     """
+
     __slots__ = ("special", "components", "name")
+
     def __init__(self, value=None):
         self.special = None
         self.name = ""
@@ -449,9 +510,13 @@ class Color:
             if value.startswith("#"):
                 html = html.strip("#;")
                 if len(html) == 3:
-                    self.components = tuple((int(comp[i], 16) << 8) + int(comp[i], 16) for i in (0,1,2))
+                    self.components = tuple(
+                        (int(comp[i], 16) << 8) + int(comp[i], 16) for i in (0, 1, 2)
+                    )
                 elif len(html == 6):
-                    self.components = tuple(int(comp[2 * i: 2 * i + 2], 16) for i in (0,1,2))
+                    self.components = tuple(
+                        int(comp[2 * i : 2 * i + 2], 16) for i in (0, 1, 2)
+                    )
             elif value in css_colors:
                 self.name = value
                 self.components = css_colors[value]
@@ -501,7 +566,13 @@ class Color:
         return "#{:02X}{:02X}{:02X}".format(*(self.components))
 
     def __repr__(self):
-        value = self.special if self.special else self.name if self.name else self.components
+        value = (
+            self.special
+            if self.special
+            else self.name
+            if self.name
+            else self.components
+        )
         return f"<Color {value!r}>"
 
 
@@ -515,6 +586,7 @@ class SpecialColor(Color):
     use will be taken by the code consuming the colors.
     The singleton instances are created in terminedia.values
     """
+
     __slots__ = ("special", "name", "component_source")
 
     def __new__(cls, value, component_source=None):
@@ -538,5 +610,3 @@ class SpecialColor(Color):
         if callable(self.component_source):
             return self.component_source(self)
         return self.component_source
-
-
