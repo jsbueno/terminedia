@@ -11,7 +11,17 @@ from terminedia.contexts import Context
 from terminedia.subpixels import BrailleChars
 from terminedia.utils import Color, Rect, V2, LazyBindProperty, char_width
 from terminedia.unicode_transforms import translate_chars
-from terminedia.values import DEFAULT_FG, DEFAULT_BG, TRANSPARENT, CONTEXT_COLORS, Directions, Effects, CONTINUATION, EMPTY, UNICODE_EFFECTS
+from terminedia.values import (
+    DEFAULT_FG,
+    DEFAULT_BG,
+    TRANSPARENT,
+    CONTEXT_COLORS,
+    Directions,
+    Effects,
+    CONTINUATION,
+    EMPTY,
+    UNICODE_EFFECTS,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -23,11 +33,14 @@ except ImportError:
 SKIP_LINE = object()
 
 PixelClasses = {}
-pixel_capabilities = namedtuple("pixel_capabilities", "value_type has_foreground has_background has_effects")
+pixel_capabilities = namedtuple(
+    "pixel_capabilities", "value_type has_foreground has_background has_effects"
+)
 
 
 class Pixel(tuple):
     __slots__ = ()
+
     def __new__(cls, *args, context=None):
         if args and isinstance(args[0], Pixel):
             args = args[0].get_values(context, cls.capabilities)
@@ -73,8 +86,8 @@ class Pixel(tuple):
         return values
 
 
-
 full_pixel = namedtuple("Pixel", "char fg bg effects")
+
 
 def pixel_factory(
     value_type=str,
@@ -97,40 +110,45 @@ def pixel_factory(
     """
     PixelBase = globals()["Pixel"]
 
-    capabilities = pixel_capabilities(value_type, has_foreground, has_background, has_effects)
+    capabilities = pixel_capabilities(
+        value_type, has_foreground, has_background, has_effects
+    )
     if capabilities in PixelClasses:
         Pixel = PixelClasses[capabilities]
     else:
         pixel_tuple = namedtuple(
             "PixelBase",
             (
-                ("value",) +
-                (("foreground", ) if has_foreground else ()) +
-                (("background", ) if has_background else ()) +
-                (("effects", ) if has_effects else ())
+                ("value",)
+                + (("foreground",) if has_foreground else ())
+                + (("background",) if has_background else ())
+                + (("effects",) if has_effects else ())
             ),
         )
 
         def __repr__(self):
-            return "Pixel({})".format(", ".join(
-                f"{field}={getattr(self, field)!r}" for field in pixel_tuple._fields
-            ))
+            return "Pixel({})".format(
+                ", ".join(
+                    f"{field}={getattr(self, field)!r}" for field in pixel_tuple._fields
+                )
+            )
 
         Pixel = type(
             "Pixel",
             (PixelBase, pixel_tuple),
-            {
-                "capabilities": capabilities,
-                "__repr__": __repr__,
-                "__slots__": (),
-            }
+            {"capabilities": capabilities, "__repr__": __repr__, "__slots__": ()},
         )
 
         if translate_dots or value_type != str:
+
             @property
             def value(self):
                 value = super(Pixel, self).value
-                return (value not in (" .")) if value_type is bool and isinstance(value, str) else value_type(value)
+                return (
+                    (value not in (" ."))
+                    if value_type is bool and isinstance(value, str)
+                    else value_type(value)
+                )
 
             Pixel.value = value
 
@@ -170,21 +188,26 @@ class ShapeApiMixin:
 
     def _get_drawing(self):
         from terminedia.drawing import Drawing
+
         # The 'type(self).__setitem__` pattern ensures __setitem__ is called on the proxy,
         # not on the proxied object.
         return Drawing(
-            set_fn = lambda pos, pixel=None: type(self).__setitem__(self, pos, pixel if pixel else self.context.char),
-            reset_fn = lambda pos: type(self).__setitem__(self, pos, EMPTY),
-            size_fn = self.get_size,
-            context = self.context
+            set_fn=lambda pos, pixel=None: type(self).__setitem__(
+                self, pos, pixel if pixel else self.context.char
+            ),
+            reset_fn=lambda pos: type(self).__setitem__(self, pos, EMPTY),
+            size_fn=self.get_size,
+            context=self.context,
         )
 
     def _get_highres(self, **kw):
         from terminedia.drawing import HighRes
+
         return HighRes(self, **kw)
 
     def _get_text(self):
         from terminedia.text import Text
+
         return Text(self)
 
 
@@ -264,7 +287,9 @@ class Shape(ABC, ShapeApiMixin):
             self.data = list(data)
         else:
             if len(data) != h:
-                logger.warn("Passed size is inconsistent with data shape. Proceeding anyway")
+                logger.warn(
+                    "Passed size is inconsistent with data shape. Proceeding anyway"
+                )
             self.data = []
             for line in data:
                 self.data.extend(list(line))
@@ -280,7 +305,7 @@ class Shape(ABC, ShapeApiMixin):
         if isinstance(pos, Rect):
             roi = pos
         elif isinstance(pos, tuple) and isinstance(pos[0], slice):
-            if any(pos[i].step not in (None, 1) for i in (0,1)):
+            if any(pos[i].step not in (None, 1) for i in (0, 1)):
                 raise NotImplementedError("Slice stepping not implemented for shapes")
             roi = Rect(*pos)
         else:
@@ -329,16 +354,13 @@ class Shape(ABC, ShapeApiMixin):
         v_size = abs(direction.y) * sum(s.height for s in shapes)
         new_size = V2(
             max(h_size, max(s.width for s in shapes)),
-            max(v_size, max(s.height for s in shapes))
+            max(v_size, max(s.height for s in shapes)),
         )
 
         new_shape = self.__class__.new(new_size, **kwargs)
 
         d = direction
-        offset = V2(
-            0 if d.x >= 0 else new_size.x,
-            0 if d.y >= 0 else new_size.y
-        )
+        offset = V2(0 if d.x >= 0 else new_size.x, 0 if d.y >= 0 else new_size.y)
 
         # blit always take the top-left offset corner
         # so, depending on direction of concatenation,
@@ -346,12 +368,12 @@ class Shape(ABC, ShapeApiMixin):
         for s in shapes:
             offset += (
                 int(s.width * d.x if d.x < 0 else 0),
-                int(s.height * d.y if d.y < 0 else 0)
+                int(s.height * d.y if d.y < 0 else 0),
             )
             new_shape.draw.blit(offset, s)
             offset += (
                 int(s.width * d.x if d.x >= 0 else 0),
-                int(s.height * d.y if d.y >= 0 else 0)
+                int(s.height * d.y if d.y >= 0 else 0),
             )
 
         return new_shape
@@ -377,7 +399,9 @@ class Shape(ABC, ShapeApiMixin):
         backend = backend.upper()
         original_output = output
         if isinstance(output, (str, Path)):
-            output = open(output, 'wt')  # FIXME: for some backends a binary file will be needed.
+            output = open(
+                output, "wt"
+            )  # FIXME: for some backends a binary file will be needed.
         if not original_output:
             output = StringIO()
 
@@ -397,7 +421,7 @@ class Shape(ABC, ShapeApiMixin):
             self._render_using_screen(output, backend)
             output.write(post_amble)
         else:
-             raise ValueError(f"Output type {backend!r} not implemented")
+            raise ValueError(f"Output type {backend!r} not implemented")
         if not original_output:
             return output.get_value()
 
@@ -411,7 +435,7 @@ class Shape(ABC, ShapeApiMixin):
         sc = Screen(size=V2(self.width, self.height), backend=backend)
         # Starts recording all image operations on the internal journal
         sc.commands.__enter__()
-        sc.blit((0,0), self)
+        sc.blit((0, 0), self)
         # Ends journal-recording, but without calling __exit__
         # which does not allow passing an external file.
         sc.commands.stop_journal()
@@ -424,14 +448,20 @@ class Shape(ABC, ShapeApiMixin):
         ftn = cap.has_foreground
         eff = cap.has_effects
         size = self.get_size()
-        rep = "".join([self.__class__.__name__, ": [\n",
-                        "value_type = "+repr(cap.value_type)+"\n" if cap.value_type else '',
-                        "foreground\n" if ftn else '',
-                        "background\n" if bck else '',
-                        "effects\n" if eff else '',
-                        f"size = {size.x}, {size.y}\n",
-                        "]"])
+        rep = "".join(
+            [
+                self.__class__.__name__,
+                ": [\n",
+                "value_type = " + repr(cap.value_type) + "\n" if cap.value_type else "",
+                "foreground\n" if ftn else "",
+                "background\n" if bck else "",
+                "effects\n" if eff else "",
+                f"size = {size.x}, {size.y}\n",
+                "]",
+            ]
+        )
         return rep
+
 
 # "Virtualsubclassing" - 2 days after I wrote there were no
 # practical uses for it.
@@ -439,6 +469,7 @@ class Shape(ABC, ShapeApiMixin):
 @Shape.register
 class ShapeView(ShapeApiMixin):
     __slots__ = ("roi", "original", "_draw", "_high", "_text")
+
     def __init__(self, original, roi):
         self.original = original
         self.roi = Rect(roi)
@@ -450,9 +481,13 @@ class ShapeView(ShapeApiMixin):
     def __getitem__(self, index):
         roi = self.roi
         if isinstance(index, Rect):
-            return ShapeView(self.original, Rect(
-                V2.max(roi.c1, (roi.c1 + index.c1)), V2.min((roi.c1 + index.c2), roi.c2)
-            ))
+            return ShapeView(
+                self.original,
+                Rect(
+                    V2.max(roi.c1, (roi.c1 + index.c1)),
+                    V2.min((roi.c1 + index.c2), roi.c2),
+                ),
+            )
         if not 0 <= index[0] < roi.width or not 0 <= index[1] < roi.bottom:
             raise IndexError(f"Value out of limits f{roi.width_height}")
         return self.original[roi.c1 + index]
@@ -467,10 +502,20 @@ class ShapeView(ShapeApiMixin):
 
     def __getattribute__(self, attr):
         if attr in {
-            "roi", "original", "width", "height", "size",
-            "draw", "high", "text",
-            "_draw", "_high", "_text",
-            "_get_drawing", "_get_highres", "_get_text",
+            "roi",
+            "original",
+            "width",
+            "height",
+            "size",
+            "draw",
+            "high",
+            "text",
+            "_draw",
+            "_high",
+            "_text",
+            "_get_drawing",
+            "_get_highres",
+            "_get_text",
         }:
             return super().__getattribute__(attr)
         return getattr(self.original, attr)
@@ -483,7 +528,7 @@ class ValueShape(Shape):
 
     PixelCls = pixel_factory(bool, has_foreground=True)
 
-    _data_func = staticmethod(lambda size, color=(0,0,0): [[color] * size.x] * size.y)
+    _data_func = staticmethod(lambda size, color=(0, 0, 0): [[color] * size.x] * size.y)
     _allowed_types = (Path, str, Sequence)
 
     def __init__(self, data, color_map=None, size=None, **kwargs):
@@ -550,7 +595,7 @@ class PGMShape(ValueShape):
         offset = 0
         while True:
             line_end = data.find(b"\n", offset)
-            line = data[offset: line_end + 1]
+            line = data[offset : line_end + 1]
             offset = line_end + 1
             if line.strip().startswith(b"#"):
                 continue
@@ -576,7 +621,9 @@ class PGMShape(ValueShape):
         elif type_num == 6:
             ascii, values_per_pixel = False, 3
         else:
-            raise NotImplementedError(f"File not supported. PNM with magic number: {type_.decode!r}")
+            raise NotImplementedError(
+                f"File not supported. PNM with magic number: {type_.decode!r}"
+            )
 
         data = data[offset:]
         if ascii:
@@ -588,7 +635,7 @@ class PGMShape(ValueShape):
         if values_per_pixel == 1:
             data = [(value, value, value) for value in data]
         else:
-            data = [tuple(data[i: i + 3]) for i in range(0, len(data), 3)]
+            data = [tuple(data[i : i + 3]) for i in range(0, len(data), 3)]
         self.data = data
 
 
@@ -608,7 +655,9 @@ class ImageShape(ValueShape):
 
     PixelCls = pixel_factory(bool, has_foreground=True)
 
-    _data_func = staticmethod(lambda size, mode="RGB", color=(0, 0, 0): PILImage.new(mode, size, color=color))
+    _data_func = staticmethod(
+        lambda size, mode="RGB", color=(0, 0, 0): PILImage.new(mode, size, color=color)
+    )
     if PILImage:
         _allowed_types = (str, Path, PILImage.Image)
 
@@ -629,7 +678,9 @@ class ImageShape(ValueShape):
                 ratio_x = size.x / img_size.x
                 ratio_y = (size.y / img_size.y) * pixel_ratio
                 if ratio_x > ratio_y:
-                    size = V2(size.x, min((img_size.y * ratio_x / pixel_ratio), size.y - 1))
+                    size = V2(
+                        size.x, min((img_size.y * ratio_x / pixel_ratio), size.y - 1)
+                    )
                 else:
                     size = V2(img_size * ratio_y, size.y / pixel_ratio)
 
@@ -648,6 +699,7 @@ class ImageShape(ValueShape):
 
     def _raw_setitem(self, pos, color):
         self.data.putpixel(pos, color)
+
 
 class PalettedShape(Shape):
     """'Shape' class intended to represent images, using a color-map to map characters to block colors.
@@ -682,7 +734,7 @@ class PalettedShape(Shape):
     def load_paletted(self, data):
 
         # Legacy boolean shape - deservers another, separate, Shape subclass
-        #if color_map is None:
+        # if color_map is None:
         #    self.PixelCls = pixel_factory(bool, has_foreground=False)
 
         if isinstance(data, str):
@@ -709,15 +761,15 @@ class PalettedShape(Shape):
         v = super().__getitem__(pos)
         if v:
             return v
-        char =  self.get_raw(pos)
+        char = self.get_raw(pos)
         value = bool(char != EMPTY)
 
         # TODO: Legacy: when this class doubled as "BooleanShape".
         # (remove comment block when BooleanShape is implemented)
-        #if self.color_map:
-            #foreground_arg = (self.color_map.get(char, DEFAULT_FG),)
-        #else:
-            #foreground_arg = ()
+        # if self.color_map:
+        # foreground_arg = (self.color_map.get(char, DEFAULT_FG),)
+        # else:
+        # foreground_arg = ()
 
         foreground_arg = self.color_map.get(char, CONTEXT_COLORS)
         return self.PixelCls(value, foreground_arg)
@@ -742,7 +794,13 @@ class FullShape(Shape):
             representing text effects according to Effects values.
     """
 
-    PixelCls = pixel_factory(str, has_foreground=True, has_background=True, has_effects=True, translate_dots=False)
+    PixelCls = pixel_factory(
+        str,
+        has_foreground=True,
+        has_background=True,
+        has_effects=True,
+        translate_dots=False,
+    )
 
     @staticmethod
     def _data_func(size):
@@ -753,14 +811,14 @@ class FullShape(Shape):
             [Effects.none] * size.x * size.y,
         ]
 
-
     def __init__(self, data):
         self.width = w = len(data[0][0])
         self.height = h = len(data[0])
-        self.value_data, self.fg_data, self.bg_data, self.eff_data = (self.load_data(plane, (w,h)) for plane in data)
+        self.value_data, self.fg_data, self.bg_data, self.eff_data = (
+            self.load_data(plane, (w, h)) for plane in data
+        )
         # self.data is created as a side-effect in load_data
         del self.data
-
 
     def get_raw(self, pos):
         offset = pos[1] * self.width + pos[0]
@@ -768,7 +826,7 @@ class FullShape(Shape):
             self.value_data[offset],
             self.fg_data[offset],
             self.bg_data[offset],
-            self.eff_data[offset]
+            self.eff_data[offset],
         )
 
     def __getitem__(self, pos):
@@ -793,10 +851,12 @@ class FullShape(Shape):
         else:
             if isinstance(value, bool):
                 value = self.context.char if value else EMPTY
-            value = ([value] if isinstance(value, str) else list(value))
+            value = [value] if isinstance(value, str) else list(value)
             value += [
-                self.context.color, self.context.background, self.context.effects,
-            ][len(value) - 1:]
+                self.context.color,
+                self.context.background,
+                self.context.effects,
+            ][len(value) - 1 :]
 
         if self.context.transformer:
             value = self.context.transformer(pos, value)
@@ -829,13 +889,18 @@ class FullShape(Shape):
         else:
             double_width = False
         # /check width
-        for component, plane in zip(value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)):
+        for component, plane in zip(
+            value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)
+        ):
             if component is not TRANSPARENT:
                 plane[offset] = component
             if double_width:
-                plane[offset2] = component if plane is not self.value_data else CONTINUATION
+                plane[offset2] = (
+                    component if plane is not self.value_data else CONTINUATION
+                )
         # set information so higher level users can partake char width (text, blit)
         self.context.shape_lastchar_was_double = double_width
+
 
 def shape(data, color_map=None, **kwargs):
     """Factory for shape objects
@@ -858,7 +923,12 @@ def shape(data, color_map=None, **kwargs):
 
 
     """
-    if isinstance(data, str) and "\n" not in data or isinstance(data, Path) or hasattr(data, "read"):
+    if (
+        isinstance(data, str)
+        and "\n" not in data
+        or isinstance(data, Path)
+        or hasattr(data, "read")
+    ):
         if hasattr(data, "read"):
             name = Path(getattr(data, "name", "stream"))
         else:
