@@ -7,13 +7,23 @@ import terminedia.text
 from terminedia.contexts import Context
 from terminedia.utils import V2, Rect
 from terminedia.subpixels import BrailleChars
-from terminedia.values import CONTINUATION, DEFAULT_BG, DEFAULT_FG, CONTEXT_COLORS, Directions, EMPTY, Effects, FULL_BLOCK
+from terminedia.values import (
+    CONTINUATION,
+    DEFAULT_BG,
+    DEFAULT_FG,
+    CONTEXT_COLORS,
+    Directions,
+    EMPTY,
+    Effects,
+    FULL_BLOCK,
+)
 from terminedia.drawing import Drawing, HighRes
 from terminedia.image import Pixel, FullShape
 
 logger = logging.getLogger(__name__)
 
 _REPLAY = object()
+
 
 class Screen:
     """Canvas class for terminal drawing.
@@ -45,7 +55,6 @@ class Screen:
 
     """
 
-
     #: Instance contaning a mirror of the screen contents and attributes.
     #: All Screen drawing attributes are mirrored in it, but it can
     #: be updated independently and blitted to the terminal
@@ -70,8 +79,10 @@ class Screen:
                 size = self.get_size()
             except OSError as error:
                 if error.errno == 25:
-                    logger.error("This terminal type does not allow guessing screen size."
-                        "Pass an explicit (cols, rows) size when instantiating {self.__class__}")
+                    logger.error(
+                        "This terminal type does not allow guessing screen size."
+                        "Pass an explicit (cols, rows) size when instantiating {self.__class__}"
+                    )
                 raise
         else:
             self.get_size = lambda: V2(size)
@@ -90,7 +101,9 @@ class Screen:
         #: :any:`Drawing` instance at ``Screen.high.draw`` to do 1/4 block pixel
         #: manipulation.
         self.high = HighRes(self)
-        self.braille = HighRes(self, block_class=BrailleChars, block_width=2, block_height=4)
+        self.braille = HighRes(
+            self, block_class=BrailleChars, block_width=2, block_height=4
+        )
 
         self.text = terminedia.text.Text(self)
 
@@ -140,7 +153,7 @@ class Screen:
         called as part of entering the screen context.
 
         """
-        self.context.last_pos = V2(0,0)
+        self.context.last_pos = V2(0, 0)
         self.__class__.last_color = None
         self.__class__.last_background = None
         with self.lock:
@@ -172,7 +185,9 @@ class Screen:
                         elif attr == "background":
                             value = self.context.background_stack[-1]
 
-                    setattr(self.context, attr if attr != "foreground" else "color", value)
+                    setattr(
+                        self.context, attr if attr != "foreground" else "color", value
+                    )
         else:
             char = self.context.char
 
@@ -190,7 +205,7 @@ class Screen:
 
         self[pos] = EMPTY
         pos = V2(pos)
-        if self[pos + (1,0)] == CONTINUATION:
+        if self[pos + (1, 0)] == CONTINUATION:
             self[pos + (1, 0)] = EMPTY
 
     def line_at(self, pos, length, sequence=FULL_BLOCK):
@@ -251,11 +266,10 @@ class Screen:
           - pos (2-sequence): coordinate to retrieve data from.
         """
         return self.data[pos].value
-        #if value[0] == CONTEXT_COLORS: value[0] = self.context.color
-        #if value[1] == CONTEXT_COLORS: value[1] = self.context.background
+        # if value[0] == CONTEXT_COLORS: value[0] = self.context.color
+        # if value[1] == CONTEXT_COLORS: value[1] = self.context.background
         ## FIXME: 'CONTEXT_COLORS' may clash with a effects flag combination in the future.
-        #if value[2] == CONTEXT_COLORS: value[2] = self.context.effects
-
+        # if value[2] == CONTEXT_COLORS: value[2] = self.context.effects
 
     def __setitem__(self, pos, value):
         """Writes character data at pos
@@ -290,9 +304,9 @@ class Screen:
             pixel = self.data[pos]
 
             update_colors = (
-                cls.last_color != pixel.foreground or
-                cls.last_background != pixel.background or
-                cls.last_effects != pixel.effects
+                cls.last_color != pixel.foreground
+                or cls.last_background != pixel.background
+                or cls.last_effects != pixel.effects
             )
             if update_colors:
                 colors = pixel.foreground, pixel.background, pixel.effects
@@ -318,12 +332,14 @@ class Screen:
                     self[x, y] = _REPLAY
 
     def __repr__(self):
-        return "".join([
-            "Screen [\n",
-            f"size= {self.get_size()}\n",
-            f"last_background = {self.__class__.last_background}\n",
-            f"last_color = {self.__class__.last_color}\n",
-            f"last_effects = {self.__class__.last_effects}\n",
-            f"context = {self.context.__repr__() if self.context else ''}\n",
-            "]",
-        ])
+        return "".join(
+            [
+                "Screen [\n",
+                f"size= {self.get_size()}\n",
+                f"last_background = {self.__class__.last_background}\n",
+                f"last_color = {self.__class__.last_color}\n",
+                f"last_effects = {self.__class__.last_effects}\n",
+                f"context = {self.context.__repr__() if self.context else ''}\n",
+                "]",
+            ]
+        )
