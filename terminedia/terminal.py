@@ -84,7 +84,8 @@ class ScreenCommands:
         return "".join(["ScreenCommands [\n",
                         f"active_unicode_effects = {self.active_unicode_effects}\n",
                         f"last_pos = {self.__class__.last_pos}\n",
-                        "]", ])
+                        "]",
+                        ])
 
     def print(self, *args, sep='', end='', flush=True, file=None, count=0):
         """Inner print method
