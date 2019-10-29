@@ -5,11 +5,19 @@ from terminedia.utils import mirror_dict, V2, NamedV2, Color, SpecialColor
 
 def _lazy_app_context():
     from terminedia import context
+
     return context
 
+
 class SpecialColors(Enum):
-    DEFAULT_FG = SpecialColor("DEFAULT_FG", component_source=lambda color: _lazy_app_context().default_fg.components)
-    DEFAULT_BG = SpecialColor("DEFAULT_BG", component_source=lambda color: _lazy_app_context().default_bg.components)
+    DEFAULT_FG = SpecialColor(
+        "DEFAULT_FG",
+        component_source=lambda color: _lazy_app_context().default_fg.components,
+    )
+    DEFAULT_BG = SpecialColor(
+        "DEFAULT_BG",
+        component_source=lambda color: _lazy_app_context().default_bg.components,
+    )
     CONTEXT_COLORS = SpecialColor("CONTEXT_COLORS")
     TRANSPARENT = SpecialColor("TRANSPARENT")
 
@@ -34,7 +42,8 @@ CONTINUATION = "CONT"
 #: Character to denote an empty-space on images and drawing contexts
 EMPTY = "\x20"
 #: Character to denote a filled-pixel on images and drawing contexts
-FULL_BLOCK = '\u2588'
+FULL_BLOCK = "\u2588"
+
 
 class Directions:
     """Direction vector constants.
@@ -43,6 +52,7 @@ class Directions:
     a :any:`Screen` context, and are free to general use
     in user applications
     """
+
     UP = NamedV2(0, -1)
     RIGHT = NamedV2(1, 0)
     DOWN = NamedV2(0, 1)
@@ -60,6 +70,7 @@ class Effects(IntFlag):
     The somewhat arbitrary order tries to put first
     the most supported/most useful attributes.
     """
+
     def __iter__(self):
         """much hacky. very smart: composed flags are now iterable!"""
         for element in self.__class__:
@@ -107,12 +118,20 @@ class Effects(IntFlag):
 # Effects that are rendered by character translation / unicode combining
 # rather than by ANSI terminal sequences
 unicode_effects = {
-    Effects.encircled, Effects.squared, Effects.negative_squared,
-    Effects.negative_circled, Effects.parenthesized, Effects.fullwidth,
-    Effects.math_bold, Effects.math_bold_italic, Effects.super_bold,
-    Effects.super_script
+    Effects.encircled,
+    Effects.squared,
+    Effects.negative_squared,
+    Effects.negative_circled,
+    Effects.parenthesized,
+    Effects.fullwidth,
+    Effects.math_bold,
+    Effects.math_bold_italic,
+    Effects.super_bold,
+    Effects.super_script,
 }
-UNICODE_EFFECTS = Effects(sum(effect for effect in Effects if effect in unicode_effects))
+UNICODE_EFFECTS = Effects(
+    sum(effect for effect in Effects if effect in unicode_effects)
+)
 
 # (encircled is actually defined as an ANSI effect, but no terminal
 # support for it was found at encoding time.)

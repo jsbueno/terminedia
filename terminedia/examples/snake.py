@@ -11,8 +11,10 @@ D = terminedia.Directions
 
 APPLE = "\U0001F34E"
 
+
 class GameOver(BaseException):
     pass
+
 
 class Snake:
 
@@ -46,7 +48,6 @@ class Snake:
                 continue
             if (rx, y) in game.items:
                 game.eat_item((rx, y))
-
 
     def check_dead(self, game):
         if game.scr.high.get_at(self.pos):
@@ -116,12 +117,11 @@ class Game:
         width, height = scr.get_size()
 
         scr.context.color = 1, 0, 1
-        scr.draw.line((0,0), (width - 1, 0))
-        scr.draw.line((0,0), (0, height - 3))
-        scr.draw.line((0,height - 3), (width - 1, height - 3))
+        scr.draw.line((0, 0), (width - 1, 0))
+        scr.draw.line((0, 0), (0, height - 3))
+        scr.draw.line((0, height - 3), (width - 1, height - 3))
         scr.draw.line((width - 1, 0), (width - 1, height - 3))
         scr.context.color = terminedia.DEFAULT_FG
-
 
     def show_status(self):
         if self.score == self.last_score:
@@ -129,7 +129,12 @@ class Game:
         width, height = self.scr.get_size()
         center = width // 2
         score_str = f"{self.score:<6d}"
-        self.scr.print_at((center - 3, height - 1), score_str, color=(1, .5, 0), effects=Effects.fullwidth)
+        self.scr.print_at(
+            (center - 3, height - 1),
+            score_str,
+            color=(1, 0.5, 0),
+            effects=Effects.fullwidth,
+        )
         self.last_score = self.score
 
     def maybe_create_item(self):

@@ -2,35 +2,32 @@
 from setuptools import setup, find_packages
 
 setup(
-    name = 'terminedia',
-    packages = find_packages(),
-    version = "0.3.dev0",
-    license = "LGPLv3+",
-    author = "João S. O. Bueno",
-    author_email = "gwidion@gmail.com",
-    description = "Utilities for drawing and interactiveness at the terminal",
-    keywords = "terminal cmd posix xterm ANSI color",
-    url = "https://github.com/jsbueno/terminedia",
+    name="terminedia",
+    packages=find_packages(),
+    version="0.3.dev0",
+    license="LGPLv3+",
+    author="João S. O. Bueno",
+    author_email="gwidion@gmail.com",
+    description="Utilities for drawing and interactiveness at the terminal",
+    keywords="terminal cmd posix xterm ANSI color",
+    url="https://github.com/jsbueno/terminedia",
     project_urls={
         "Documentation": "https://terminedia.readthedocs.io/en/stable/",
         "Source Code": "https://github.com/jsbueno/terminedia",
     },
-    long_description = open("README.md").read(),
+    long_description=open("README.md").read(),
     # use_scm_version=True,
-    setup_requires=['setuptools_scm'],
+    setup_requires=["setuptools_scm"],
     include_package_data=True,
-    zip_safe = True,
-    test_requires = [],
-    install_requires=[
-        "click",
-        "colorama >= 1.0;platform_system==\"Windows\"",
-    ],
-    extras_require = {
+    zip_safe=True,
+    test_requires=[],
+    install_requires=["click", 'colorama >= 1.0;platform_system=="Windows"'],
+    extras_require={
         "doc": ["Sphinx==2.0.0"],
         "images": ["pillow>=6.0.0"],
-        "tests": ["pytest"]
+        "tests": ["pytest"],
     },
-    entry_points = """
+    entry_points="""
         [console_scripts]
         terminedia-bezier=terminedia.examples.bezier:main
         terminedia-context=terminedia.examples.context:main
@@ -43,7 +40,7 @@ setup(
         terminedia-effects=terminedia.examples.effects:main
         terminedia-text=terminedia.examples.text:main
     """,
-    classifiers = [
+    classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
         "Intended Audience :: System Administrators",
@@ -57,5 +54,5 @@ setup(
         "Topic :: Multimedia :: Graphics",
         "Topic :: Terminals",
         "Topic :: Terminals :: Terminal Emulators/X Terminals",
-    ]
+    ],
 )

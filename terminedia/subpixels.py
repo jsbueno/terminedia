@@ -1,6 +1,6 @@
 import unicodedata
 
-from  terminedia import values
+from terminedia import values
 from terminedia.utils import mirror_dict
 
 
@@ -26,9 +26,13 @@ class SubPixels:
 
     def __init_subclass__(cls):
         # This depends on Python 3.6+ ordered behavior for local namespaces and dicts:
-        cls.chars_by_name = chars_by_name = {key: value for key, value in cls.__dict__.items() if key.isupper()}
+        cls.chars_by_name = chars_by_name = {
+            key: value for key, value in cls.__dict__.items() if key.isupper()
+        }
         cls.chars_to_name = mirror_dict(chars_by_name)
-        cls.chars_in_order = {i: value for i, value in enumerate(chars_by_name.values())}
+        cls.chars_in_order = {
+            i: value for i, value in enumerate(chars_by_name.values())
+        }
         cls.chars_to_order = mirror_dict(cls.chars_in_order)
         cls.chars = set(chars_by_name.values())
 
@@ -102,20 +106,20 @@ class BlockChars_(SubPixels):
     block_height = 2
 
     EMPTY = values.EMPTY
-    QUADRANT_UPPER_LEFT = '\u2598'
-    QUADRANT_UPPER_RIGHT = '\u259D'
-    UPPER_HALF_BLOCK = '\u2580'
-    QUADRANT_LOWER_LEFT = '\u2596'
-    LEFT_HALF_BLOCK = '\u258C'
-    QUADRANT_UPPER_RIGHT_AND_LOWER_LEFT = '\u259E'
-    QUADRANT_UPPER_LEFT_AND_UPPER_RIGHT_AND_LOWER_LEFT = '\u259B'
-    QUADRANT_LOWER_RIGHT = '\u2597'
-    QUADRANT_UPPER_LEFT_AND_LOWER_RIGHT = '\u259A'
-    RIGHT_HALF_BLOCK = '\u2590'
-    QUADRANT_UPPER_LEFT_AND_UPPER_RIGHT_AND_LOWER_RIGHT = '\u259C'
-    LOWER_HALF_BLOCK = '\u2584'
-    QUADRANT_UPPER_LEFT_AND_LOWER_LEFT_AND_LOWER_RIGHT = '\u2599'
-    QUADRANT_UPPER_RIGHT_AND_LOWER_LEFT_AND_LOWER_RIGHT = '\u259F'
+    QUADRANT_UPPER_LEFT = "\u2598"
+    QUADRANT_UPPER_RIGHT = "\u259D"
+    UPPER_HALF_BLOCK = "\u2580"
+    QUADRANT_LOWER_LEFT = "\u2596"
+    LEFT_HALF_BLOCK = "\u258C"
+    QUADRANT_UPPER_RIGHT_AND_LOWER_LEFT = "\u259E"
+    QUADRANT_UPPER_LEFT_AND_UPPER_RIGHT_AND_LOWER_LEFT = "\u259B"
+    QUADRANT_LOWER_RIGHT = "\u2597"
+    QUADRANT_UPPER_LEFT_AND_LOWER_RIGHT = "\u259A"
+    RIGHT_HALF_BLOCK = "\u2590"
+    QUADRANT_UPPER_LEFT_AND_UPPER_RIGHT_AND_LOWER_RIGHT = "\u259C"
+    LOWER_HALF_BLOCK = "\u2584"
+    QUADRANT_UPPER_LEFT_AND_LOWER_LEFT_AND_LOWER_RIGHT = "\u2599"
+    QUADRANT_UPPER_RIGHT_AND_LOWER_LEFT_AND_LOWER_RIGHT = "\u259F"
     FULL_BLOCK = values.FULL_BLOCK
 
 

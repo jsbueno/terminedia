@@ -78,7 +78,13 @@ class JournalingCommandsMixin:
         if not self.in_block:
             raise RuntimeError("Journal not open")
         self.journal.setdefault(pos, []).append(
-            (self.tick, char, self.current_color, self.current_background, self.current_effect)
+            (
+                self.tick,
+                char,
+                self.current_color,
+                self.current_background,
+                self.current_effect,
+            )
         )
         self.tick += 1
 
@@ -155,7 +161,7 @@ class JournalingCommandsMixin:
                 for func, arg in call:
                     func(arg, file=file)
             if single_write:
-                file.write(char) #buffer += char
+                file.write(char)  # buffer += char
             else:
                 self.print(char, file=file)
             last_pos += (1, 0)
@@ -206,7 +212,7 @@ class JournalingCommandsMixin:
         self.current_background = color
 
     def set_effects(self, effects, file=None):
-        super().set_effects(effects, update_active_only = self.in_block, file=file)
+        super().set_effects(effects, update_active_only=self.in_block, file=file)
         self.current_effect = effects
 
     def apply_unicode_effects(self, txt):

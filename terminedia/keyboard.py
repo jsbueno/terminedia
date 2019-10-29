@@ -16,6 +16,7 @@ from terminedia.utils import mirror_dict
 # https://stackoverflow.com/a/6599441/108205
 # (@mheyman, Mar, 2011)
 
+
 @contextmanager
 def realtime_keyb():
     """
@@ -39,17 +40,25 @@ def realtime_keyb():
     # make raw - the way to do this comes from the termios(3) man page.
     attrs = list(attrs_save)  # copy the stored version to update
     # iflag
-    attrs[0] &= ~(termios.IGNBRK | termios.BRKINT | termios.PARMRK
-                  | termios.ISTRIP | termios.INLCR | termios.IGNCR
-                  | termios.ICRNL | termios.IXON)
+    attrs[0] &= ~(
+        termios.IGNBRK
+        | termios.BRKINT
+        | termios.PARMRK
+        | termios.ISTRIP
+        | termios.INLCR
+        | termios.IGNCR
+        | termios.ICRNL
+        | termios.IXON
+    )
     # oflag
     attrs[1] &= ~termios.OPOST
     # cflag
     attrs[2] &= ~(termios.CSIZE | termios.PARENB)
     attrs[2] |= termios.CS8
     # lflag
-    attrs[3] &= ~(termios.ECHONL | termios.ECHO | termios.ICANON
-                  | termios.ISIG | termios.IEXTEN)
+    attrs[3] &= ~(
+        termios.ECHONL | termios.ECHO | termios.ICANON | termios.ISIG | termios.IEXTEN
+    )
     termios.tcsetattr(fd, termios.TCSANOW, attrs)
     fcntl.fcntl(fd, fcntl.F_SETFL, flags_save | os.O_NONBLOCK)
     try:
@@ -86,7 +95,9 @@ def inkey(break_=True, clear=True):
     if clear:
         c = sys.stdin.read(10000)
         if c:
-            c = c[c.rfind("\x1b"):] # if \x1b is not found, rfind returns -1, which is the desired value
+            c = c[
+                c.rfind("\x1b") :
+            ]  # if \x1b is not found, rfind returns -1, which is the desired value
     else:
         c = sys.stdin.read(1)  # returns a single character
 
@@ -101,6 +112,7 @@ def inkey(break_=True, clear=True):
         c = sys.stdin.read(1)
 
     return keycode
+
 
 def pause(timeout=0):
     """Enters non-blocking keyboard mode and waits for any keypress
@@ -118,6 +130,7 @@ def pause(timeout=0):
             ellapsed += step
             if timeout and ellapsed >= timeout:
                 break
+
 
 def _testkeys():
     """Debug function to print out keycodes as read by :any:`inkey`"""
@@ -142,30 +155,31 @@ class KeyCodes:
     are not listed here, as their "code" is just a string containing
     themselves.
     """
-    F1 = '\x1bOP'
-    F2 = '\x1bOQ'
-    F3 = '\x1bOR'
-    F4 = '\x1bOS'
-    F5 = '\x1b[15~'
-    F6 = '\x1b[17~'
-    F7 = '\x1b[18~'
-    F8 = '\x1b[19~'
-    F9 = '\x1b[20~'
-    F10 = '\x1b[21~'
-    F11 = '\x1b[23~'
-    F12 = '\x1b[24~'
-    ESC = '\x1b'
-    BACK = '\x7f'
-    DELETE = '\x1b[3~'
-    ENTER = '\r'
-    PGUP = '\x1b[5~'
-    PGDOWN = '\x1b[6~'
-    HOME = '\x1b[H'
-    END = '\x1b[F'
-    INSERT = '\x1b[2~'
-    UP = '\x1b[A'
-    RIGHT = '\x1b[C'
-    DOWN = '\x1b[B'
-    LEFT = '\x1b[D'
+
+    F1 = "\x1bOP"
+    F2 = "\x1bOQ"
+    F3 = "\x1bOR"
+    F4 = "\x1bOS"
+    F5 = "\x1b[15~"
+    F6 = "\x1b[17~"
+    F7 = "\x1b[18~"
+    F8 = "\x1b[19~"
+    F9 = "\x1b[20~"
+    F10 = "\x1b[21~"
+    F11 = "\x1b[23~"
+    F12 = "\x1b[24~"
+    ESC = "\x1b"
+    BACK = "\x7f"
+    DELETE = "\x1b[3~"
+    ENTER = "\r"
+    PGUP = "\x1b[5~"
+    PGDOWN = "\x1b[6~"
+    HOME = "\x1b[H"
+    END = "\x1b[F"
+    INSERT = "\x1b[2~"
+    UP = "\x1b[A"
+    RIGHT = "\x1b[C"
+    DOWN = "\x1b[B"
+    LEFT = "\x1b[D"
 
     codes = mirror_dict(locals())

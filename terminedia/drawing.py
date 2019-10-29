@@ -96,7 +96,7 @@ class Drawing:
         """
         pos1, pos2 = Rect(pos1, pos2, width_height=rel)
         # Ending interval is open, just as Python works with intervals.
-        pos2 -= (1,1)
+        pos2 -= (1, 1)
 
         x1, y1 = pos1
         x2, y2 = pos2
@@ -120,7 +120,7 @@ class Drawing:
         """
         if color:
             self.context.color = color
-        self.rect((0,0), self.size, fill=True)
+        self.rect((0, 0), self.size, fill=True)
 
     def _link_prev(self, pos, i, limits, mask):
         if i < limits[0] - 1:
@@ -149,9 +149,13 @@ class Drawing:
         """
         pos1, pos2 = Rect(pos1, pos2, width_height=rel)
 
-        pos2 -= (1,1)
+        pos2 -= (1, 1)
 
-        return self._empty_ellipse(pos1, pos2) if not fill else self._filled_ellipse(pos1, pos2)
+        return (
+            self._empty_ellipse(pos1, pos2)
+            if not fill
+            else self._filled_ellipse(pos1, pos2)
+        )
 
     def _filled_ellipse(self, pos1, pos2):
         from math import cos, asin
@@ -200,11 +204,11 @@ class Drawing:
             y = round(ry * sin(t) + cy)
             if abs(x - ox) > 1 or abs(y - oy) > 1:
                 t -= step
-                step *= (1 - factor)
+                step *= 1 - factor
                 factor *= 0.8
             elif x == ox and y == oy:
                 t -= step
-                step *= (1 + factor)
+                step *= 1 + factor
                 factor *= 0.8
             else:
                 factor = 0.25
@@ -232,7 +236,12 @@ class Drawing:
         self.set((x, y))
         while t <= 1.0:
 
-            x, y = pos1 * (1 - t) ** 3 + pos2 * 3 * (1 - t) ** 2 * t + pos3 * 3 * (1 - t) * t ** 2 + pos4 * t ** 3
+            x, y = (
+                pos1 * (1 - t) ** 3
+                + pos2 * 3 * (1 - t) ** 2 * t
+                + pos3 * 3 * (1 - t) * t ** 2
+                + pos4 * t ** 3
+            )
 
             self.set((round(x), round(y)))
             t += step
@@ -270,7 +279,9 @@ class Drawing:
         elif isinstance(data, Shape):
             shape = data
         else:
-            raise TypeError(f"Unknown data argument passed to blit: {type(data)} instance")
+            raise TypeError(
+                f"Unknown data argument passed to blit: {type(data)} instance"
+            )
 
         pos, extent = Rect(pos)
         if extent == (0, 0):
@@ -280,7 +291,7 @@ class Drawing:
             roi = Rect(roi)
             shape = shape[roi]
 
-        direct_pix =  len(inspect.signature(self.set).parameters) >= 2
+        direct_pix = len(inspect.signature(self.set).parameters) >= 2
 
         ishape = iter(shape)
         while True:
@@ -306,11 +317,14 @@ class Drawing:
                         self.context.background = pixel.background
 
                 should_set = (
-                    pixel.capabilities.value_type == str and (
-                        pixel.value != EMPTY or
-                        pixel.value == "." and pixel.capabilities.translate_dots
-                    )  or
-                    pixel.capabilities.value_type == bool and pixel.value
+                    pixel.capabilities.value_type == str
+                    and (
+                        pixel.value != EMPTY
+                        or pixel.value == "."
+                        and pixel.capabilities.translate_dots
+                    )
+                    or pixel.capabilities.value_type == bool
+                    and pixel.value
                 )
                 if should_set:
                     self.set(target_pos)
@@ -344,7 +358,9 @@ class HighRes:
         self.block_height = block_height
 
         self.parent = parent
-        self.draw = Drawing(self.set_at, self.reset_at, self.get_size, self.parent.context)
+        self.draw = Drawing(
+            self.set_at, self.reset_at, self.get_size, self.parent.context
+        )
         self.context = parent.context
 
     def get_size(self):
@@ -412,7 +428,6 @@ class HighRes:
         graphics, _, is_set = self.operate(pos, self.block_class.get_at)
         return is_set if graphics else None
 
-
     def at_parent(self, pos):
         """Get the equivalent, rounded down, coordinates, at the parent object.
 
@@ -423,7 +438,6 @@ class HighRes:
           - V2 object with the equivalent object at the parent space.
         """
         return V2(pos[0] // self.block_width, pos[1] // self.block_height)
-
 
     def print_at(self, pos, text):
         """Positions the cursor and prints a text sequence
@@ -442,4 +456,3 @@ class HighRes:
         Context's direction is respected when printing
         """
         self.parent.print_at(self.at_parent(pos), text)
-

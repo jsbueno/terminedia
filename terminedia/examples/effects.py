@@ -4,10 +4,15 @@ import click
 
 import terminedia as TM
 
+
 @click.command()
 @click.argument("phrases", required=False, nargs=-1)
-@click.option("clear", "--keep", "-k", flag_value=False, help="Prevents clearing the screen")
-@click.option("clear", "--clear", "-l", flag_value=True, default=True, help="Clears the screen")
+@click.option(
+    "clear", "--keep", "-k", flag_value=False, help="Prevents clearing the screen"
+)
+@click.option(
+    "clear", "--clear", "-l", flag_value=True, default=True, help="Clears the screen"
+)
 def main(phrases=(), clear=True):
     if not phrases:
         phrases = ["Hello World! 1234"]
