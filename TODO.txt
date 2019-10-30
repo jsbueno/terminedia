@@ -284,7 +284,7 @@ Improvements and small features:
     .text rendering should be transparent on unused pixels by default
     terminedia-image should resize to full screen-size when loading image (V))
     add an --output parameter to terminedia image to render output as ansi-laden txt file(V)
-    add a <br> element after outputting a full row in the HTML backend (by  sending a "\n" and converting it in "html.print"(?)) - so that html output can be properly copy and pasted.
+    add a <br> element after outputting a full row in the HTML backend (by  sending a "\n" and converting it in "html.print"(?)) - so that html output can be properly copy and pasted. (V)
     improve interactive usage of Screen on the repl: option to move the cursor to the bottom and prevent attribute caching when under interactive use.
     add an option so that rectangular area rendering to files be '"relocatable" - suppressing absolute cursor movement sequences
     use the same option of suppressing absolute cursor movement for the html backend.

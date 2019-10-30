@@ -137,11 +137,18 @@ class JournalingCommandsMixin:
         original_file = file
         file = StringIO() if not original_file else original_file
 
+        if single_write:
+            writer = file.write
+        else:
+            writer = lambda char: self.print(char, file=file)
+
         for pos in sorted(self.journal, key=lambda pos: (pos[1], pos[0])):
             tick, char, color, bg, effect = self.journal[pos][-1]
             call = []
 
             if pos != last_pos:
+                if last_pos and  pos.y == last_pos.y + 1 and pos.x == 0:
+                    writer("\n")
                 last_pos = pos
                 call.append((self.moveto, pos))
 
@@ -160,12 +167,12 @@ class JournalingCommandsMixin:
             if call:
                 for func, arg in call:
                     func(arg, file=file)
-            if single_write:
-                file.write(char)  # buffer += char
-            else:
-                self.print(char, file=file)
-            last_pos += (1, 0)
-            self.__class__.last_pos += (1, 0)
+
+            writer(char)
+
+            width = (char_width(char), 0)
+            last_pos += width
+            self.__class__.last_pos += width
 
         if not original_file and single_write:
             self.print(file.getvalue())

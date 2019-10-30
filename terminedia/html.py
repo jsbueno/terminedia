@@ -75,16 +75,18 @@ class HTMLCommands:
         """Write needed HTML tags with inline style to positin and color given text"""
         if file is None:
             file = sys.stdout
-        if end == "\n":
+        if end == "\n" or len(args) == 1 and args[0] == "\n":
             break_line = True
             end = ""
         else:
             break_line = False
-        content = sep.join(args) + end
+        content = (sep.join(args) + end).strip("\n")
         if self.active_unicode_effects:
             txt = self.apply_unicode_effects(content)
         if self.next_pos == self.last_pos and self.tag_is_open and not self.dirty:
             file.write(content)
+        elif not content:
+            pass
         else:
             if self.tag_is_open:
                 file.write(close_tag)
@@ -141,7 +143,7 @@ class HTMLCommands:
             file.write(tag + content)
             self.tag_is_open = True
         self.last_pos += (len(content), 0)
-        if flush or break_line:
+        if (flush or break_line) and self.tag_is_open:
             file.write(close_tag)
             self.tag_is_open = False
         if break_line:
