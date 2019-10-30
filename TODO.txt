@@ -62,8 +62,14 @@ Find a way to find witch unicode-glyphs are available in system-wide fonts
     - (or) download free-fonts to terminedia data folder (but how to make the host terminal use them?)
     - refactor unicode-translations to include correct information about the characters used, with links back to proper unicode documentation (including the motivation for theis inclusion)
 
-convolution-dependant effects, to smooth-out corners, use unicode circles and squares to denote intensity
-    (should use transformers, and be applied at painting time)
+Convolution-dependant effects:
+    - smooth-out corners
+    - use unicode circles and squares to denote intensity
+    - conversion to ASCII line-art with "/_\|" chars, and unicode version
+    - conversion to table chars (single and double-frame)
+    - Couple with "find border" filter(?)
+
+
 "page" abstraction expanding the "shape": including text regions, layers and animation effects
 easy way to pick unicode emojis and glyphs
 
@@ -216,6 +222,22 @@ General Refactoring:
     Assume `set` method passed to drawing.Drawing can always accept pixels. Simplify workarounds in "image.ShapeApiMixin" and "screen.set_at" to accept pixels. (API breaking - change this before making a release)
 
 
+PalettedShape:
+    - create proper booleanshape (true/false + color) - used by default to render fonts.
+    - reading with __getitem__ should get back a pixel with the original character, but when blitting, only the color and boolean information should be blitted (color.TRANSPARENT should imply in "False" pixels)
+    - on drawing, context.char should be respected - and auto-appended to the color_map if not there.
+
+Transformers:
+    Improve context transformers to become a friendly, stackable class
+    create some filters as ready-made transformers:
+        - threshold: yield true/false pixels and strip color information
+        - convert colorred fullblock pixels to "transparent" pixels: keep the existing char, and apply the color as background
+        - color-value to different unicode-circles
+        - color-value to different unicod-squares
+
+
+
+
 Improvements and small features:
     Text effects are not cached in the terminal journaling-commands (V)
     Fix tm.text.render into palettedshape: result is mixing spaces and color-constants in data
@@ -248,7 +270,6 @@ Improvements and small features:
             (Maybe, in combination with other features, it is even possible to have keydown/keyup emulation)
             What is the equivalent API for Win and Mac if any?
     Make internal FullShape planes (and maybe other Shapes) specialized containers (they are plain lists): enable direct attribute setting on plane (rename  attributes in the process) (maybe trim further down shape class, and make internal planes for shapes, shapes as well?)
-    Improve context transformers to become a friendly, stackable class
     create a few ready-made, parametrized transformers for effects like: plane select, color gradients, mask blit,
     Refactor "context" namespace into full class with descriptors. (V)
     Update "Context" to use context-locals (async aware) instead of thread-locals
@@ -267,6 +288,9 @@ Improvements and small features:
     improve interactive usage of Screen on the repl: option to move the cursor to the bottom and prevent attribute caching when under interactive use.
     add an option so that rectangular area rendering to files be '"relocatable" - suppressing absolute cursor movement sequences
     use the same option of suppressing absolute cursor movement for the html backend.
+    uniformize "size", "get", "set" and __getitem__ & __setitem__ on screen, shape, high and braille namespaces.
+    accept context attributes (color, background, effects) as keyword arguments on all .draw methods
+
 
 
 
