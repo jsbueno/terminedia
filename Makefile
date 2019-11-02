@@ -51,7 +51,6 @@ dev-env-setup:
 	# minimal python environment for terminedia
 	pyenv install 3.6.8
 	# install pyenv to easily manage dev environment
-	git clone https://github.com/yyuu/pyenv-virtualenv.git ~/.pyenv/plugins/pyenv-virtualenv
 	source ~/.bashrc
 	# create virtualenv for terminedia development environment and activate it
 	pyenv virtualenv 3.6.8 terminedia-dev-env
