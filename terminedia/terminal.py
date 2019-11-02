@@ -77,10 +77,11 @@ class ScreenCommands:
 
     last_pos = None
 
-    def __init__(self):
+    def __init__(self, absolute_movement=True):
         self.alternate_terminal_buffer = 0
         self.active_unicode_effects = Effects.none
         self.__class__.last_pos = None
+        self.absolute_movement = absolute_movement
 
     def __repr__(self):
         return "".join(
@@ -181,9 +182,27 @@ class ScreenCommands:
         self.CSI("?1049", "l" if self.alternate_terminal_buffer else "h", file=file)
         self.alternate_terminal_buffer = not self.alternate_terminal_buffer
 
+    def up(self, amount=1, file=None):
+        """Writes ANSI Sequence to move cursor up"""
+        self.CSI(amount, "A", file=file)
+
+    def down(self, amount=1, file=None):
+        """Writes ANSI Sequence to move cursor down"""
+        self.CSI(amount, "B", file=file)
+
     def right(self, amount=1, file=None):
         """Writes ANSI Sequence to move cursor right"""
-        self.CSI(amount, "A", file=file)
+        self.CSI(amount, "C", file=file)
+
+    def left(self, amount=1, file=None):
+        """Writes ANSI Sequence to move cursor left"""
+        self.CSI(amount, "D", file=file)
+
+    def home(self, file=None):
+
+        self.CSI(f"0;0H", file=file)
+        self.__class__.last_pos = V2(0,0)
+
 
     def moveto(self, pos, file=None):
         """Writes ANSI Sequence to position the text cursor
@@ -198,9 +217,22 @@ class ScreenCommands:
         pos = V2(pos)
         if pos != (0, 0) and pos == self.__class__.last_pos:
             return
-        # x, y = pos
-        self.CSI(f"{pos.y + 1};{pos.x + 1}H", file=file)
-        self.__class__.last_pos = V2(pos)
+        if self.absolute_movement:
+            self.CSI(f"{pos.y + 1};{pos.x + 1}H", file=file)
+        else:
+            delta_x = pos.x - self.__class__.last_pos.x
+            delta_y = pos.y - self.__class__.last_pos.y
+            if delta_x > 0:
+                self.right(delta_x, file=file)
+            elif delta_x < 0:
+                self.left(-delta_x, file=file)
+
+            if delta_y > 0:
+                self.down(delta_y, file=file)
+            elif delta_y < 0:
+                self.up(-delta_y, file=file)
+
+        self.__class__.last_pos = pos
 
     def print_at(self, pos, txt, file=None):
         """Positions the cursor and prints a text sequence

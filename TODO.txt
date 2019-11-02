@@ -9,9 +9,9 @@ Resolve "can't output a lot of things to terminal if stdin set to non blocking" 
 smaller features:
     - improve interactive usage of Screen on the repl: option to move the cursor to the bottom and prevent attribute caching when under interactive use.
     - add an option so that rectangular area rendering to files be '"relocatable" - suppressing absolute cursor movement sequences (WIP):
-        - Add ANSI commands for relative cursor movement (WIP)
-        - enable relative positioning in Terminal classes (moveto)
-        - Add state attribute to terminal backend indicating relative positioning should be used
+        - Add ANSI commands for relative cursor movement (V)
+        - enable relative positioning in Terminal class (V) (but not perfect, see bellow)
+        - Add state attribute to terminal backend indicating relative positioning should be used (V)
         - change 'shape.render' so that positioning cursor at 0,0 before rendering is optional
 
     - use the same option of suppressing absolute cursor movement for the html backend.
@@ -30,7 +30,10 @@ smaller features:
     - shape "clear" call:
         - optional parameter to reset text information
         - method to redraw text from a given plane/roi.
-    - bug: Screen.clear() should clear the associated shape in Screen.data.
+    - bug: Screen.clear() should clear the associated shape in Screen.data
+
+    - bug: html rendering not respecting contxt colors, on starting empty space characters
+    - bug: with terminal in relativ movement, snake-game is faulty,, suggesting terminal-context bugs
 
 
 Transformers:

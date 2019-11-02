@@ -41,14 +41,14 @@ class JournalingCommandsMixin:
 
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """__init__ initializes internal attributes"""
         self.in_block = 0
         self.current_color = DEFAULT_FG
         self.current_background = DEFAULT_BG
         self.current_effect = Effects.none
         self.current_pos = 0, 0
-        super().__init__()
+        super().__init__(**kwargs)
 
     def __enter__(self):
         """Enters a context where screen writes are collected together.
@@ -147,8 +147,6 @@ class JournalingCommandsMixin:
             call = []
 
             if pos != last_pos:
-                if last_pos and  pos.y == last_pos.y + 1 and pos.x == 0:
-                    writer("\n")
                 last_pos = pos
                 call.append((self.moveto, pos))
 

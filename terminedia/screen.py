@@ -165,7 +165,9 @@ class Screen:
         with self.lock:
             if wet_run:
                 self.commands.clear()
+            self.commands.home()
             self.commands.cursor_hide()
+        # self.data.clear()  # TODO: implement proper Shape.clear()
 
     def set_at(self, pos, pixel=None):
         """Sets pixel at given coordinate

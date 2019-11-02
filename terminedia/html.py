@@ -45,7 +45,7 @@ class HTMLCommands:
 
     def __init__(self):
         self.active_unicode_effects = Effects.none
-        self.__class__.last_pos = (0, 0)
+        self.__class__.last_pos = V2(0, 0)
         self.next_pos = V2(0, 0)
 
         self.current_foreground = None
@@ -75,11 +75,12 @@ class HTMLCommands:
         """Write needed HTML tags with inline style to positin and color given text"""
         if file is None:
             file = sys.stdout
-        if end == "\n" or len(args) == 1 and args[0] == "\n":
-            break_line = True
-            end = ""
-        else:
-            break_line = False
+        if self.last_pos and  self.next_pos.y == self.last_pos.y + 1 and self.next_pos.x == 0:
+            if self.tag_is_open:
+                file.write(close_tag)
+                self.tag_is_open = False
+            file.write("<br/>")
+        break_line = args and args[-1] == "\n"
         content = (sep.join(args) + end).strip("\n")
         if self.active_unicode_effects:
             txt = self.apply_unicode_effects(content)
