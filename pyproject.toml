@@ -1,0 +1,58 @@
+[build-system]
+requires = ["poetry"]
+build-backend = "poetry.masonry.api"
+
+[tool.poetry]
+name = 'terminedia'
+version = "0.3.dev0"
+description = "Utilities for drawing and interactiveness at the terminal"
+license = "LGPLv3+"
+authors = ["JS Bueno <gwidion@gmail.com>"]
+readme = "README.md"
+repository = "https://github.com/jsbueno/terminedia"
+homepage = "https://github.com/jsbueno/terminedia"
+documentatione = "https://terminedia.readthedocs.io/en/stable/"
+keywords = "terminal cmd posix xterm ANSI"
+classifiers = [
+	"Development Status :: 4 - Beta",
+	"Intended Audience :: Developers",
+	"Intended Audience :: System Administrators",
+	"Programming Language :: Python :: 3.6",
+	"Programming Language :: Python :: 3.7",
+	"Programming Language :: Python :: 3.8",
+	"License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
+	"License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+	"Operating System :: OS Independent",
+	"Topic :: Artistic Software",
+	"Topic :: Multimedia :: Graphics",
+	"Topic :: Terminals",
+	"Topic :: Terminals :: Terminal Emulators/X Terminals"
+]
+
+[tool.poetry.dependencies]
+python = "^3.6.8"
+click = "*"
+colorama = {version = "^0.4.1", optional = true}
+pillow = {version = "^6.0.0", optional = true}
+
+[tool.poetry.extras]
+image = ["pillow"]
+windoes = ["colorama"]
+
+[tool.poetry.dev-dependencies]
+flake8 = "*"
+pytest = "*"
+Sphinx = "*"
+
+[tool.poetry.plugins]
+terminedia-bezier="terminedia.examples.bezier:main"
+terminedia-context="terminedia.examples.context:main"
+terminedia-ellipses="terminedia.examples.ellipses:main"
+terminedia-image="terminedia.examples.image:main"
+terminedia-lines="terminedia.examples.lines:main"
+terminedia-plot="terminedia.examples.plot:main"
+terminedia-shapes="terminedia.examples.shapes:main"
+terminedia-snake="terminedia.examples.snake:main"
+terminedia-effects="terminedia.examples.effects:main"
+terminedia-text="terminedia.examples.text:main"
+
