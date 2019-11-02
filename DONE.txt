@@ -119,7 +119,11 @@ Improvements and small features:
     add an --output parameter to terminedia image to render output as ansi-laden txt file(V)
     add a <br> element after outputting a full row in the HTML backend (by  sending a "\n" and converting it in "html.print"(?)) - so that html output can be properly copy and pasted. (V)
     Toggle terminal screen buffer when clearing screen: "magically" restores terminal content on Screen.__exit__(V)
-
+    - add an option so that rectangular area rendering to files be '"relocatable" - suppressing absolute cursor movement sequences (V):
+        - Add ANSI commands for relative cursor movement (V)
+        - enable relative positioning in Terminal class (V) (but not perfect, see bellow)
+        - Add state attribute to terminal backend indicating relative positioning should be used (V)
+        - change 'shape.render' to use relative positioning for ansi and not home cursor to 0,0 (V)
 
 Color class:
     - Create a color class (V)

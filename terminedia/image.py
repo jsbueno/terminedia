@@ -433,6 +433,10 @@ class Shape(ABC, ShapeApiMixin):
         else:
             file = output
         sc = Screen(size=V2(self.width, self.height), backend=backend)
+        if backend=="ANSI":
+            # generate a relocatable image
+            sc.commands.__class__.last_pos = V2(0, 0)
+            sc.commands.absolute_movement = False
         # Starts recording all image operations on the internal journal
         sc.commands.__enter__()
         sc.blit((0, 0), self)

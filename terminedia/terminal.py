@@ -220,17 +220,20 @@ class ScreenCommands:
         if self.absolute_movement:
             self.CSI(f"{pos.y + 1};{pos.x + 1}H", file=file)
         else:
-            delta_x = pos.x - self.__class__.last_pos.x
-            delta_y = pos.y - self.__class__.last_pos.y
-            if delta_x > 0:
-                self.right(delta_x, file=file)
-            elif delta_x < 0:
-                self.left(-delta_x, file=file)
+            if pos.x == 0 and pos.y == self.__class__.last_pos.y + 1:
+                self.print("\n", file=file)
+            else:
+                delta_x = pos.x - self.__class__.last_pos.x
+                delta_y = pos.y - self.__class__.last_pos.y
+                if delta_x > 0:
+                    self.right(delta_x, file=file)
+                elif delta_x < 0:
+                    self.left(-delta_x, file=file)
 
-            if delta_y > 0:
-                self.down(delta_y, file=file)
-            elif delta_y < 0:
-                self.up(-delta_y, file=file)
+                if delta_y > 0:
+                    self.down(delta_y, file=file)
+                elif delta_y < 0:
+                    self.up(-delta_y, file=file)
 
         self.__class__.last_pos = pos
 
