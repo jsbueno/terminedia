@@ -118,6 +118,7 @@ Improvements and small features:
     terminedia-image should resize to full screen-size when loading image (V))
     add an --output parameter to terminedia image to render output as ansi-laden txt file(V)
     add a <br> element after outputting a full row in the HTML backend (by  sending a "\n" and converting it in "html.print"(?)) - so that html output can be properly copy and pasted. (V)
+    Toggle terminal screen buffer when clearing screen: "magically" restores terminal content on Screen.__exit__(V)
 
 
 Color class:

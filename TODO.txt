@@ -7,9 +7,13 @@ Partial windows support (cmder and maybe microsoft's new terminal):
 Resolve "can't output a lot of things to terminal if stdin set to non blocking" bug on windows
 
 smaller features:
-    - have an ".update" method for .text and ".text[plane]" that will re-blit the contents into its .owner.data
     - improve interactive usage of Screen on the repl: option to move the cursor to the bottom and prevent attribute caching when under interactive use.
-    - add an option so that rectangular area rendering to files be '"relocatable" - suppressing absolute cursor movement sequences
+    - add an option so that rectangular area rendering to files be '"relocatable" - suppressing absolute cursor movement sequences (WIP):
+        - Add ANSI commands for relative cursor movement (WIP)
+        - enable relative positioning in Terminal classes (moveto)
+        - Add state attribute to terminal backend indicating relative positioning should be used
+        - change 'shape.render' so that positioning cursor at 0,0 before rendering is optional
+
     - use the same option of suppressing absolute cursor movement for the html backend.
     - uniformize "size", "get", "set" and __getitem__ & __setitem__ on screen, shape, high and braille namespaces.
     - accept context attributes (color, background, effects) as keyword arguments on all .draw methods

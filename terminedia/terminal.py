@@ -78,6 +78,7 @@ class ScreenCommands:
     last_pos = None
 
     def __init__(self):
+        self.alternate_terminal_buffer = 0
         self.active_unicode_effects = Effects.none
         self.__class__.last_pos = None
 
@@ -175,6 +176,14 @@ class ScreenCommands:
     def cursor_show(self, file=None):
         """Writes ANSI Sequence to show the text cursor"""
         self.CSI("?25", "h", file=file)
+
+    def toggle_buffer(self, file=None):
+        self.CSI("?1049", "l" if self.alternate_terminal_buffer else "h", file=file)
+        self.alternate_terminal_buffer = not self.alternate_terminal_buffer
+
+    def right(self, amount=1, file=None):
+        """Writes ANSI Sequence to move cursor right"""
+        self.CSI(amount, "A", file=file)
 
     def moveto(self, pos, file=None):
         """Writes ANSI Sequence to position the text cursor
