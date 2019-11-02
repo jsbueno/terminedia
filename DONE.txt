@@ -1,0 +1,164 @@
+version 0.3
+============
+
+Bezier curves primitive (v)
+2D Vector class (v)
+PNM Image File loading and Displaying (v)
+Shape Class (v)
+Image File Displaying Support(v)
+Preliminary CLI (v)
+move examples to CLI-based standalone scripts available to pip-installs (v)
+refactor into full package (v)
+Big Font rendering - using multi-block for large characters composed of multiple pixels. (V)
+Bold, blink and underline text support (V)
+
+multiple backends: (check pygments):
+    ANSI backend (file or text string) (V)
+    HTML backend
+
+    - braille-block (1/8 block)(WIP):
+        - refactor "HighRes" class splittin a base class sub-pixel resolution agnostic (V)
+        - refactor "BlockChars" to have a usefull superclass (V)
+        - add equivalent class using Braille characters as 2x4 pixel blocks (V)
+        - Add a provisional namespace "braille" for super-resolution (V)
+        - Add a Text[2] plane using braille chars(V)
+
+unicode latin-effected characters as character effects:
+    (like digits and letters inside squares and circles, combining stroke, underline, slash, and so on)
+    (should use the "Effects" space currently marking terminal-wise text effects,
+     and be applied only at rendering time - "value_data" structures should retain page-0 range latin text)
+     - encircled chars(V)
+     - squared chars(V)
+     - Reversed squared chars(V)
+     - Refactor char translation engine to enable auto-generation of more unicode-alphabet families (WIP)
+     - mathematical sans-serif bold italic (WIP - missing digits, think on refactoring)
+     - Small (combining?) chars
+     - Fix internal data and cursor positioning for non-single width characters(V)
+     - Allow manual selection of double-width chars (the "math-bold-italic" unicode group is listed as "single width", but does not look nice, would be better as double-width)
+
+Single-write optimization:(V)
+    pass a "buffer" parameter around on the method-chain calls for screen rendering in the classes in Terminal.py (WIP)
+    have an option to export the rendered buffer as a single block of bytes: a screenshot snapshot with built-in ANSI sequences.(V)
+    Add an optional parameter to Screen.update (maybe rename the method to 'render'?) to draw to a string buffer instead of the terminal.(V)
+
+Text and big-text capabilities:
+
+    enable new blank shape with given size (V)
+    sanitizing load from data for shapes(V)
+    enable drawing context and api for shapes(V)
+    enable shape drawing (V)
+    enable shape blit (V)
+    write shape-concatenation method (V)
+        use "imp.resource" to read default font data (allows terminedia to run from zipped egg) (V)
+    create "render text" call returning a shape (V)
+    create "render text and blit at position on screen" call on drawing api (V)
+    write example script using large-text rendering (V)
+    connect Screen "print" and "print_at" to ".text" namespace.(V)
+
+    Improve font selection and loading (V)
+    Bundle 8x16 UNSCII font to packages (whooping 3.5MB) (V)
+
+    create full fledged shape with char, fg, bg, effects
+        implement FullShape class (V):
+        class with internal data planes for each attribute (V)
+        class bound as internal storage for screen (V)
+        bug: issues with internal data and rendering(V)
+        Fix text rendering into FullShape(V)
+        FEATURE: being able to draw in differing planes (value, FG, BG, effects) independent way(V)
+        write a refresh method to redraw a Screen rectangle - allowing double-buffering drawing (V)
+    Add "render" method or other API for early implementation of other backends (not terminal)
+
+
+Imaging capabilities:
+    make text effects work on terminal (V)
+    Associate a base FullShape class with a Screen (V)
+    Add example with terminal text effects(V)
+    enable rendering of pixels with char, fg, bg, effects on screen (V)
+    enable rendering of arbitrary pixels on arbitrary shape types (V)
+    update blit and other actions on drawing api to use all pixel properties. (V) (via context.transfomer)
+    implement handling of "TRANSPARENT" as FG, BG and Effects keeping attribute (V)
+
+
+General Refactoring:
+    refactor context initialization (V)
+    Convert directions to specialized V2s, with a nice repr, instead of Enums (they have to be interchangeable with plain V2) (V)
+    Add a proper rectangle class (V)
+    Refactor APIs to accept Rectangle(V)
+    Introduce "Shape view" so that shape-slices work like a rectangular view with no data-copying (V)
+    improve "blit" to allow optional source and destination ROI (V)
+    create a proper color class:
+        - Accept 0-255 or 0-1.0 3 sequences for RGB color
+        - Accept internal constants and a have a proper way to check for then
+                 (defaultFG, defaultBG, Transparent, context)
+        - Normalized reading and representation
+
+
+Improvements and small features:
+    Text effects are not cached in the terminal journaling-commands (V)
+    Fix tm.text.render into palettedshape: result is mixing spaces and color-constants in data
+    make double-width unicode characters take 2 character cells. (V):
+        - create way to check char width and constant (V)
+        - refactor text effects flags to be iterable (V)
+        - implement fix at FullShape.__setitem__, __getitem__ (V)
+        - implement fix at drawing.blit
+        - implement fix at text[1].at (V)
+        - implement fix at Screen.__setitem__ (V)
+        - implement fix at terminal.Commands.print
+        - fix example snake game - second half of apple should be edible.(V)
+        - fix regression in high-res shape drawing(V)
+    Fix blitting from FullShape (V)
+    fix-highres-shape-bliting color leak (V)
+    fix breaking on terminedia-context (context initialization) (V)
+    fix regression on terminedia-context (V)
+    FIX DOCUMENTATION GENERATION (V)
+    Refactor "context" namespace into full class with descriptors. (V)
+    Optimize extent-limted blitting to skip fast to next shape line (by sending a next-line sentinel to shape-iterator) (V)
+    improvement: Screen.set_at should pass a pixel straight to __setitem__ and not set the context and pass only th value
+    .text rendering should be transparent on unused pixels by default
+    terminedia-image should resize to full screen-size when loading image (V))
+    add an --output parameter to terminedia image to render output as ansi-laden txt file(V)
+    add a <br> element after outputting a full row in the HTML backend (by  sending a "\n" and converting it in "html.print"(?)) - so that html output can be properly copy and pasted. (V)
+    Toggle terminal screen buffer when clearing screen: "magically" restores terminal content on Screen.__exit__(V)
+    - add an option so that rectangular area rendering to files be '"relocatable" - suppressing absolute cursor movement sequences (V):
+        - Add ANSI commands for relative cursor movement (V)
+        - enable relative positioning in Terminal class (V) (but not perfect, see bellow)
+        - Add state attribute to terminal backend indicating relative positioning should be used (V)
+        - change 'shape.render' to use relative positioning for ansi and not home cursor to 0,0 (V)
+
+Color class:
+    - Create a color class (V)
+    - Use color class in terminal commands(V)
+    - Add support for html/css color names (V)
+    - Add proper support for special constants: (default_bg, default_fg, etc...) (V)
+    - use color class in html commands (V)
+    - BUG: fix image-rendering to terminal using "default_fg" for black color.
+
+
+HTML-Backend Steps
+    find-out a working HTML model able to represent chars as in the terminal (V)
+        - recreate ScreenCommands equivalent to generate HTML(WIP):
+            - make minimal working version outputing colored blocks (V)
+            - Fix span-tag re-use over multiple characters in the same row (V)
+            - Implement text and character effects (V):
+                - apply "terminal effects" into html rendering with inline CSS (V)
+
+        - Refactor JornalingScreenCommands so that its logic can be reused by HTMLCommands (V)
+        - refactor Journaling...Commands to generate HTML(V)
+        - Add a mechanism to provide default actual colors for "default_fg" and "default_bg" (V)
+    re-write functionalities of Commands and logic of Journaling commands for HTML (V)
+    Implement HTML render output for files in images.Shape (V)
+    Change terminedia-image example script to accept a "-backend HTML" option and create an HTML file.(V)
+
+
+Bugs:
+    bug: CRITICAL: effects refactoring led rendering to be B&W (V)
+    bug: unicode_effects not being applied on direct "screen.print" call.(V)
+    Bug: current "inkey" is buggy as repeated keystrokes are bundled in the same inkey response. (completly bork at higher repeat rates)(V)
+    bug: re-entering a screen context and blitting  is not rendering the char at [0,0] (V)
+    bug: Terminedia-shape with custom shape may trigger "going left" after going up or down. (V)
+    bug: blitting full-shape to full-shape destroys characters and keep only blocks (V)
+    bug: RootContext repr not working (V)
+    bug: Terminedia-image not proper resampling images (getting out of range errors for full-sized images)(V)
+    bug: colors in the 0-255 range are not working as terminedia-text value for color option
+    bug: PGMShap class incorrectly using "default color" for black pixels (termined-image default loading is broken after refactoring to use Color class)
+

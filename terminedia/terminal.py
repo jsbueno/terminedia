@@ -61,8 +61,9 @@ effect_double_off = {
     E.double_underline: {E.underline},
     E.framed: {E.encircled},
     E.encircled: {E.framed},
-    E.fraktur: {E.italic}
+    E.fraktur: {E.italic},
 }
+
 
 class ScreenCommands:
     """Low level functions to execute ANSI-Sequence-related tasks on the terminal.
@@ -76,18 +77,23 @@ class ScreenCommands:
 
     last_pos = None
 
-    def __init__(self):
+    def __init__(self, absolute_movement=True):
+        self.alternate_terminal_buffer = 0
         self.active_unicode_effects = Effects.none
         self.__class__.last_pos = None
+        self.absolute_movement = absolute_movement
 
     def __repr__(self):
-        return "".join(["ScreenCommands [\n",
-                        f"active_unicode_effects = {self.active_unicode_effects}\n",
-                        f"last_pos = {self.__class__.last_pos}\n",
-                        "]",
-                        ])
+        return "".join(
+            [
+                "ScreenCommands [\n",
+                f"active_unicode_effects = {self.active_unicode_effects}\n",
+                f"last_pos = {self.__class__.last_pos}\n",
+                "]",
+            ]
+        )
 
-    def print(self, *args, sep='', end='', flush=True, file=None, count=0):
+    def print(self, *args, sep="", end="", flush=True, file=None, count=0):
         """Inner print method
 
         Args:
@@ -109,12 +115,15 @@ class ScreenCommands:
             if len(args) == 1 and "\x1b" in args[0] and file is sys.stdout:
                 # Separate a long sequence in one write operation for each
                 # ANSI command
-                sep = end = ''
+                sep = end = ""
                 if use_re_split:
                     # This is new in Python 3.7
                     args = re.split("(?=\x1b)", args[0])
                 else:
-                    args = [("\x1b" if i else "") + arg for i, arg in enumerate(args[0].split("\x1b"))]
+                    args = [
+                        ("\x1b" if i else "") + arg
+                        for i, arg in enumerate(args[0].split("\x1b"))
+                    ]
             for arg in args:
                 file.write(arg)
                 if sep:
@@ -143,7 +152,7 @@ class ScreenCommands:
         Check https://en.wikipedia.org/wiki/ANSI_escape_code#CSI_sequences for available commands
         """
         command = args[-1]
-        args = ';'.join(str(arg) for arg in args[:-1]) if args else ''
+        args = ";".join(str(arg) for arg in args[:-1]) if args else ""
         self.print("\x1b[", args, command, file=file)
 
     def SGR(self, *args, file=None):
@@ -155,19 +164,45 @@ class ScreenCommands:
         This function calls .CSI with the command fixed as "m"
           which is "SGR".
         """
-        self.CSI(*args, 'm', file=file)
+        self.CSI(*args, "m", file=file)
 
     def clear(self, file=None):
         """Writes ANSI Sequence to clear the screen"""
-        self.CSI(2, 'J', file=file)
+        self.CSI(2, "J", file=file)
 
     def cursor_hide(self, file=None):
         """Writes ANSI Sequence to hide the text cursor"""
-        self.CSI('?25', 'l', file=file)
+        self.CSI("?25", "l", file=file)
 
     def cursor_show(self, file=None):
         """Writes ANSI Sequence to show the text cursor"""
-        self.CSI('?25', 'h', file=file)
+        self.CSI("?25", "h", file=file)
+
+    def toggle_buffer(self, file=None):
+        self.CSI("?1049", "l" if self.alternate_terminal_buffer else "h", file=file)
+        self.alternate_terminal_buffer = not self.alternate_terminal_buffer
+
+    def up(self, amount=1, file=None):
+        """Writes ANSI Sequence to move cursor up"""
+        self.CSI(amount, "A", file=file)
+
+    def down(self, amount=1, file=None):
+        """Writes ANSI Sequence to move cursor down"""
+        self.CSI(amount, "B", file=file)
+
+    def right(self, amount=1, file=None):
+        """Writes ANSI Sequence to move cursor right"""
+        self.CSI(amount, "C", file=file)
+
+    def left(self, amount=1, file=None):
+        """Writes ANSI Sequence to move cursor left"""
+        self.CSI(amount, "D", file=file)
+
+    def home(self, file=None):
+
+        self.CSI(f"0;0H", file=file)
+        self.__class__.last_pos = V2(0,0)
+
 
     def moveto(self, pos, file=None):
         """Writes ANSI Sequence to position the text cursor
@@ -182,9 +217,25 @@ class ScreenCommands:
         pos = V2(pos)
         if pos != (0, 0) and pos == self.__class__.last_pos:
             return
-        # x, y = pos
-        self.CSI(f'{pos.y + 1};{pos.x + 1}H', file=file)
-        self.__class__.last_pos = V2(pos)
+        if self.absolute_movement:
+            self.CSI(f"{pos.y + 1};{pos.x + 1}H", file=file)
+        else:
+            if pos.x == 0 and pos.y == self.__class__.last_pos.y + 1:
+                self.print("\n", file=file)
+            else:
+                delta_x = pos.x - self.__class__.last_pos.x
+                delta_y = pos.y - self.__class__.last_pos.y
+                if delta_x > 0:
+                    self.right(delta_x, file=file)
+                elif delta_x < 0:
+                    self.left(-delta_x, file=file)
+
+                if delta_y > 0:
+                    self.down(delta_y, file=file)
+                elif delta_y < 0:
+                    self.up(-delta_y, file=file)
+
+        self.__class__.last_pos = pos
 
     def print_at(self, pos, txt, file=None):
         """Positions the cursor and prints a text sequence
@@ -242,7 +293,15 @@ class ScreenCommands:
         else:
             self.SGR(48, 2, *Color(color), file=file)
 
-    def set_effects(self, effects, *, reset=True, turn_off=False, update_active_only=False, file=None):
+    def set_effects(
+        self,
+        effects,
+        *,
+        reset=True,
+        turn_off=False,
+        update_active_only=False,
+        file=None,
+    ):
         """Writes ANSI sequence to set text effects (bold, blink, etc...)
 
         When using the high-level drawing functions, each time a text-effect
@@ -278,8 +337,10 @@ class ScreenCommands:
                 continue
             if effect_enum & effects:
                 sgr_codes.append(effect_map[effect_enum])
-            elif reset and (not effect_enum in effect_double_off or
-                            not any(e & effects for e in effect_double_off[effect_enum])):
+            elif reset and (
+                not effect_enum in effect_double_off
+                or not any(e & effects for e in effect_double_off[effect_enum])
+            ):
                 sgr_codes.append(effect_off_map[effect_enum])
 
         self.active_unicode_effects = active_unicode_effects
@@ -290,4 +351,5 @@ class ScreenCommands:
 class JournalingScreenCommands(JournalingCommandsMixin, ScreenCommands):
     """Internal use class to optimize writting ANSI-Sequence commands to the terminal
     """
+
     pass

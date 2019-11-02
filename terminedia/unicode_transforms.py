@@ -28,12 +28,16 @@ _template = """
     for the translation.
     """
 
+
 @lru_cache()
 def _name_based_translation(
-    text, convert, substitution,
+    text,
+    convert,
+    substitution,
     match=r"[A-Z]",
-    convert_lower=True, convert_upper=False,
-    fallback_dict=None
+    convert_lower=True,
+    convert_upper=False,
+    fallback_dict=None,
 ):
     """Internal generic code to transform characters using unicode-name strategy
     """
@@ -65,32 +69,50 @@ def _name_based_translation(
 
 
 def text_to_circled(text, convert=True):
-    return _name_based_translation(text, convert, "CIRCLED", r"[A-Za-z0-9]", convert_lower=False)
+    return _name_based_translation(
+        text, convert, "CIRCLED", r"[A-Za-z0-9]", convert_lower=False
+    )
 
 
 def text_to_negative_circled(text, convert=True):
-    return _name_based_translation(text, convert, "NEGATIVE CIRCLED", r"[A-Za-z0]", convert_lower=True)
+    return _name_based_translation(
+        text, convert, "NEGATIVE CIRCLED", r"[A-Za-z0]", convert_lower=True
+    )
 
 
 def text_to_squared(text, convert=True):
-    return _name_based_translation(text, convert, "SQUARED", r"[A-Za-z0]", convert_lower=True)
+    return _name_based_translation(
+        text, convert, "SQUARED", r"[A-Za-z0]", convert_lower=True
+    )
 
 
 def text_to_negative_squared(text, convert=True):
-    return _name_based_translation(text, convert, "NEGATIVE SQUARED", r"[A-Za-z0]", convert_lower=True)
+    return _name_based_translation(
+        text, convert, "NEGATIVE SQUARED", r"[A-Za-z0]", convert_lower=True
+    )
 
 
 def text_to_parenthesized(text, convert=True):
-    return _name_based_translation(text, convert, "PARENTHESIZED", r"[A-Za-z0-9]", convert_lower=False)
+    return _name_based_translation(
+        text, convert, "PARENTHESIZED", r"[A-Za-z0-9]", convert_lower=False
+    )
 
 
 def text_to_fullwidth(text, convert=True):
-    return _name_based_translation(text, convert, "FULLWIDTH", r"[A-Za-z0-9!@#$%*()-+=[\]{}/|]", convert_lower=False)
+    return _name_based_translation(
+        text,
+        convert,
+        "FULLWIDTH",
+        r"[A-Za-z0-9!@#$%*()-+=[\]{}/|]",
+        convert_lower=False,
+    )
 
 
 def text_to_san_serif_bold(text, convert=True):
     # example name: ('MATHEMATICAL SANS-SERIF BOLD CAPITAL A',)
-    return _name_based_translation(text, convert,
+    return _name_based_translation(
+        text,
+        convert,
         r"MATHEMATICAL SANS-SERIF BOLD \g<case> \g<symbol>",
         match=r"[a-zA-Z0-9]",
         convert_lower=False,
@@ -99,31 +121,40 @@ def text_to_san_serif_bold(text, convert=True):
 
 def text_to_san_serif_bold_italic(text, convert=True):
     # example name: ('MATHEMATICAL SANS-SERIF BOLD ITALIC CAPITAL A',)
-    return _name_based_translation(text, convert,
+    return _name_based_translation(
+        text,
+        convert,
         r"MATHEMATICAL SANS-SERIF BOLD ITALIC \g<case> \g<symbol>",
         match=r"[a-zA-Z]",
         convert_lower=False,
     )
 
+
 def text_to_regional_indicator_symbol(text, convert=True):
-    #REGIONAL INDICATOR SYMBOL LETTER A',
-    return _name_based_translation(text, convert,
+    # REGIONAL INDICATOR SYMBOL LETTER A',
+    return _name_based_translation(
+        text,
+        convert,
         r"REGIONAL INDICATOR SYMBOL LETTER \g<symbol>",
         match=r"[a-zA-Z]",
         convert_lower=True,
     )
 
+
 def text_to_modifier_letter(text, convert=True):
     # MODIFIER LETTER SMALL A
     # TODO: More than half capital letters and a lot of symbols
     # are available in this variant. Going with lower case only.
-    return _name_based_translation(text, convert,
+    return _name_based_translation(
+        text,
+        convert,
         r"MODIFIER LETTER SMALL \g<symbol>",
         match=r"[a-zA-Z]",
         convert_lower=False,
         convert_upper=True,
         fallback_dict=FD({"i": "\N{MODIFIER LETTER CAPITAL I}"}),
     )
+
 
 _nop_effect = lambda t, c: t
 
@@ -151,4 +182,3 @@ def translate_chars(text, unicode_effects, convert=True):
     for effect in unicode_effects:
         text = effect_dict.get(effect, _nop_effect)(text, convert)
     return text
-

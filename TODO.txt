@@ -1,26 +1,55 @@
-version 0.3
-============
+Targeted for next release (0.3):
+=================================
+Partial windows support (cmder and maybe microsoft's new terminal):
+    - install and activate colorama if under windows
+    - create a non-blocking keybard reading system using mscrvt api
 
-Bezier curves primitive (v)
-2D Vector class (v)
-PNM Image File loading and Displaying (v)
-Shape Class (v)
-Image File Displaying Support(v)
-Preliminary CLI (v)
-move examples to CLI-based standalone scripts available to pip-installs (v)
-refactor into full package (v)
-Big Font rendering - using multi-block for large characters composed of multiple pixels. (V)
-Bold, blink and underline text support (V)
-raw-data backend (terminal independent)
-Block-smoothing with half triangle block chars
+Resolve "can't output a lot of things to terminal if stdin set to non blocking" bug on windows
+
+smaller features:
+    - improve interactive usage of Screen on the repl: option to move the cursor to the bottom and prevent attribute caching when under interactive use.
+    - use the same option of suppressing absolute cursor movement for the html backend.
+    - uniformize "size", "get", "set" and __getitem__ & __setitem__ on screen, shape, high and braille namespaces.
+    - accept context attributes (color, background, effects) as keyword arguments on all .draw methods
+    - fix palleted shapes:
+        - create proper booleanshape (true/false + color) - used by default to render fonts.
+        - reading with __getitem__ should get back a pixel with the original character, but when blitting, only the color and boolean information should be blitted (color.TRANSPARENT should imply in "False" pixels)
+        - on drawing, context.char should be respected - and auto-appended to the color_map if not there.
+    - make emoji's and unicode chars easier to use:
+        - expose unicodedata databases as plain dictionaries
+        - implement basic search for character names with partial match
+            (eg: so that one can search for all characters containing "square" or "chess" in the name)
+    - enable "debug" flag in root context and display internal information on object's repr based on that
+            (currently Screen's repr is showing last_pos, last_color, and other internal state attrs by default)
+    - shape "clear" call:
+        - optional parameter to reset text information
+        - method to redraw text from a given plane/roi.
+    - bug: Screen.clear() should clear the associated shape in Screen.data
+
+    - bug: html rendering not respecting contxt colors, on starting empty space characters
+    - bug: with terminal in relativ movement, snake-game is faulty,, suggesting terminal-context bugs
+
+
+Transformers:
+    Improve context transformers to become a friendly, stackable class with defined API
+    create some filters as ready-made transformers (maybe not all for 0.3.0):
+        - threshold: yield true/false pixels and strip color information
+        - convert colorred fullblock pixels to "transparent" pixels: keep the existing char, and apply the color as background
+        - color-value to different unicode-circles
+        - color-value to different unicode-squares
+        - linear gradients
+
+breaking-changes:
+    - use "keyboard" instead of "realtime_keyb" to enable realtime keyboard reading
+    - rename unicode effects so that their name matchs their unicode names (at least "super_bold" -> "regional_indicator")
+
+3.1:
+========
+Write some real nice docs, with tutorials and use suggestions
 
 
 Future
 ========
-
-multiple backends: (check pygments):
-    ANSI backend (file or text string) (V)
-    HTML backend (WIP)
     Image 'screenshot' backend
     image backend (pixels are simple color-only boring, image pixels)
     postscript backend
@@ -28,61 +57,54 @@ multiple backends: (check pygments):
     pdf backend
     Fallback terminal to 1-byte color setting for up to 216 colors + 24 grayscale
 
-new "resolution modes":
+- new "resolution modes":
     - half character (1/2 block - square aspect ratio)
     - double-character (2 blocks - square aspect ratio)
-    - braille-block (1/8 block)(WIP):
-        - refactor "HighRes" class splittin a base class sub-pixel resolution agnostic (V)
-        - refactor "BlockChars" to have a usefull superclass (V)
-        - add equivalent class using Braille characters as 2x4 pixel blocks (V)
-        - Add a provisional namespace "braille" for super-resolution (V)
         - Add a Text[2] plane using braille chars(WIP)
         - create a solution equivalent to the ".text[4]" plane selection for resolutions
     - sextant (1/6 block) (depends on unicode 12 with vintage charset), with square aspect ratio:
     - 1 block width x 1 block height at arbitrary 1/8 block height position. (use "LOWER ONE EIGHTH BLOCK" and friends)
     - 1 block width x 1 block height at arbitrary 1/8 block width position.
     - refactor image loading to be able to use super-resolutions for B&W, while keeping color resolution low (Speccy way)
-
-unicode latin-effected characters as character effects:
-    (like digits and letters inside squares and circles, combining stroke, underline, slash, and so on)
-    (should use the "Effects" space currently marking terminal-wise text effects,
-     and be applied only at rendering time - "value_data" structures should retain page-0 range latin text)
-     - encircled chars(V)
-     - squared chars(V)
-     - Reversed squared chars(V)
-     - Refactor char translation engine to enable auto-generation of more unicode-alphabet families (WIP)
-     - mathematical sans-serif bold italic (WIP - missing digits, think on refactoring)
-     - Small (combining?) chars
      - Update "text-effects" example to fit more effects to come.
-     - Fix internal data and cursor positioning for non-single width characters(V)
-     - Allow manual selection of double-width chars (the "math-bold-italic" unicode group is listed as "single width", but does not look nice, would be better as double-width)
 
 Find a way to find witch unicode-glyphs are available in system-wide fonts
     - suggest font-installation
     - (or) download free-fonts to terminedia data folder (but how to make the host terminal use them?)
     - refactor unicode-translations to include correct information about the characters used, with links back to proper unicode documentation (including the motivation for theis inclusion)
 
-convolution-dependant effects, to smooth-out corners, use unicode circles and squares to denote intensity
-    (should use transformers, and be applied at painting time)
+Convolution-dependant effects:
+    - smooth-out corners
+    - use unicode circles and squares to denote intensity
+    - conversion to ASCII line-art with "/_\|" chars, and unicode version
+    - conversion to table chars (single and double-frame)
+    - Couple with "find border" filter(?)
+
 "page" abstraction expanding the "shape": including text regions, layers and animation effects
+
 easy way to pick unicode emojis and glyphs
 
 alpha channel support for images:
     plot with spaces (" ") instead of full-block char, and compose color using background
-Single-write optimization:(V)
-    pass a "buffer" parameter around on the method-chain calls for screen rendering in the classes in Terminal.py (WIP)
-    have an option to export the rendered buffer as a single block of bytes: a screenshot snapshot with built-in ANSI sequences.(V)
-    Add an optional parameter to Screen.update (maybe rename the method to 'render'?) to draw to a string buffer instead of the terminal.(V)
+
 support to z-index, and background keeping on blitting ("sprite" api)
+
 MS-Windows support (colorama/mscrvt/color reducing)
+
 "business" framed-window api
-Postscriptish/Turtleish drawing api
+
 Basic image transform API: resize, rotate, flip.
+
 Table drawing chars drawing API (maybe convert chars with a convolution after block-line art?)
+
 Super-high resolution (Unicode vintage charset and "sextant" blocks)
+
 Mouse event support
+
 Audio support (pyAudio?)
+
 Image (shape) transform - (rotate, scale).
+
 paint modes to use different characters to denote intensity (back do ascii art):
     unicode circles
     unicode squares
@@ -102,7 +124,6 @@ paint modes to use different characters to denote intensity (back do ascii art):
 
 replicate text-char effects for big-chars
 
-frontend:
 Graph plotting CLI
     make terminedia available as a matplotlib backend
 
@@ -115,11 +136,15 @@ gaming framework in general:
     animation support
     main loop
 
+"main loop":
+    - event system
+    - loop dependant 'blink like" animations: cicle colors, characters, text based on timing
+
+
 space invaders implementation (hint: it would be already feasible - but it is still a "landmark" of the roadmap)
 
 
 # virtual terminal server-
-
 Advanced terminal handling features
     REPL Environment wit bottom lines for python console and upper screen for image (see posix_openpt)
     anmating and coloring text output of unaware apps, by creating an internal virtual terminal (posix_openpt)
@@ -129,172 +154,71 @@ Advanced terminal handling features
     implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change
         check if there is a ms-windows equivalent
 
-HTML Backend:
-    generate static html files with inline style
-    server/mini app to live update a terminal HTML component
-    Ability to emulate Unix terminal on HTML comonent (posix_openpt)
-    Full-client-side implementation (using brython)
-
-
-Ongoing (0.3dev)
+more features
 ###############
-
-Text and big-text capabilities:
-
-    enable new blank shape with given size (V)
-    sanitizing load from data for shapes(V)
-    enable drawing context and api for shapes(V)
-    enable shape drawing (V)
-    enable shape blit (V)
-    write shape-concatenation method (V)
-        use "imp.resource" to read default font data (allows terminedia to run from zipped egg) (V)
-    create "render text" call returning a shape (V)
-    create "render text and blit at position on screen" call on drawing api (V)
-    write example script using large-text rendering (V)
-    connect Screen "print" and "print_at" to ".text" namespace.(V)
-
     Add text formatting and flowing primitives into ".text" namespace:
         method to allow text insertion and flowing inside a shape or ROI
         allow center/left/right/justify alignments
-
     Add scrolling, rectangular text regions and flowing text
     All-side scrolling and flowing text from one region to the next
-
     (make text.at work with the @ operator?: `sc.text[4] @ (5,2)("hello!")(?)
     read font "planes" on demand (WIP - only the first 256 chars are loaded)
-    Improve font selection and loading (V)
-    Bundle 8x16 UNSCII font to packages (whooping 3.5MB) (V)
     Find proper API do render 8x16 pixel fonts into 8x8 char "high-resolution" 1/4 block.
     Add arbitrary font handling by using PIL to cache rendered chars.
     Enable 16 x 8 double and 16 x 16 double width UNSCII fonts.
-
-Enhance EMOJI and multi-language support:
-    - handle combining characters properly
-    - document which terminal applications will have the best emoji experience
-
-shape and page capabilities:
-    create full fledged shape with char, fg, bg, effects (WIP - only missing example script):
-        implement FullShape class (V):
-        class with internal data planes for each attribute (V)
-        class bound as internal storage for screen (V)
-        bug: issues with internal data and rendering(V)
-        Fix text rendering into FullShape(V)
-        FEATURE: being able to draw in differing planes (value, FG, BG, effects) independent way(V)
-        write a refresh method to redraw a Screen rectangle - allowing double-buffering drawing (V)
-        Add example script using FullShape and transformers(terminedia-text)
-    Add "render" method or other API for early implementation of other backends (not terminal)
-    create "Page" class: contaning several z-ordered shape or ROIs for text layout
-
-
-Imaging capabilities:
-    make text effects work on terminal (V)
-    Associate a base FullShape class with a Screen (V)
-    Add example with terminal text effects(V)
-    enable rendering of pixels with char, fg, bg, effects on screen (V)
-    enable rendering of arbitrary pixels on arbitrary shape types (V)
-    update blit and other actions on drawing api to use all pixel properties. (V) (via context.transfomer)
-    implement handling of "TRANSPARENT" as FG, BG and Effects keeping attribute (V)
     create a "blit fast path" for value/palette shapes to target (avoid overhead of pixel creation)
     make "Alpha" value work for value-shapes.
     make "intensity" rendering for values (B&W shapes)
-
-General Refactoring:
-    refactor context initialization (V)
-    Convert directions to specialized V2s, with a nice repr, instead of Enums (they have to be interchangeable with plain V2) (V)
-    Add a proper rectangle class (V)
-    Refactor APIs to accept Rectangle(V)
-    Introduce "Shape view" so that shape-slices work like a rectangular view with no data-copying (V)
-    improve "blit" to allow optional source and destination ROI (WIP)
     (them proceed to write the different backends.)
-    create a proper color class:
         - Accept 0-255 or 0-1.0 3 [4] sequences for RGB color [Alpha]
-        - Accept internal constants and a have a proper way to check for then
-                 (defaultFG, defaultBG, Transparent, context)
-        - Normalized reading and representation
         - conversion to 1-byte standard 216 color palette for terminals
         - make use of 1byte color on terminal.py
     Assume `set` method passed to drawing.Drawing can always accept pixels. Simplify workarounds in "image.ShapeApiMixin" and "screen.set_at" to accept pixels. (API breaking - change this before making a release)
 
 
-Improvements and small features:
-    Text effects are not cached in the terminal journaling-commands (V)
-    Fix tm.text.render into palettedshape: result is mixing spaces and color-constants in data
-    make double-width unicode characters take 2 character cells. (V):
-        - create way to check char width and constant (V)
-        - refactor text effects flags to be iterable (V)
-        - implement fix at FullShape.__setitem__, __getitem__ (V)
-        - implement fix at drawing.blit (N/A - blit simply copies CONTINUATION constant normally)
-        - implement fix at text[1].at (V)
-        - implement fix at Screen.__setitem__ (V)
-        - implement fix at terminal.Commands.print (N/A - 'CONTINUATION' constant never reaches terminal functions)
-        - fix example snake game - second half of apple should be edible.(V)
-        - fix regression in high-res shape drawing(V)
-        - [future]:
-            - check double width chars at UNSCII 16 for proper use at other text scales
-            - if needed implement the logic above at text[4], [8], etc...
-    Fix blitting from FullShape (V)
+Enhance EMOJI and multi-language support:
+    - handle combining characters properly
+    - document which terminal applications will have the best emoji experience (check kitty terminal app)
+
+shape and page capabilities:
+    create full fledged shape with char, fg, bg, effects (WIP - only missing example script):
+        Add example script using FullShape and transformers(terminedia-text)
+    create "Page" class: contaning several z-ordered shape or ROIs for text layout
+
+- implement fix at drawing.blit (N/A - blit simply copies CONTINUATION constant normally)
+- implement fix at terminal.Commands.print (N/A - 'CONTINUATION' constant never reaches terminal functions)
+- [future]:
+    - check double width chars at UNSCII 16 for proper use at other text scales
+    - if needed implement the logic above at text[4], [8], etc...
+
+Features and improvements
+=========================
     fix-paletted-shape-blitting-bug
     fix-value-shape-blitting-bug
-    fix-highres-shape-bliting color leak (V)
     refactor bezier-curve and ellipse(empty) adaptive code to use same codebase
     configure properly and make consistent use of logger
-    fix breaking on terminedia-context (context initialization) (V)
-    fix regression on terminedia-context (V)
     Improve error messages/or silence/ when attempting to write out of Screen/Shape limits
-    FIX DOCUMENTATION GENERATION (V)
     generate documentation
     Add missing doc-strings
     improvement: API for  X-session wide key-repeat tunning with "xset r rate".
             (Maybe, in combination with other features, it is even possible to have keydown/keyup emulation)
             What is the equivalent API for Win and Mac if any?
     Make internal FullShape planes (and maybe other Shapes) specialized containers (they are plain lists): enable direct attribute setting on plane (rename  attributes in the process) (maybe trim further down shape class, and make internal planes for shapes, shapes as well?)
-    Improve context transformers to become a friendly, stackable class
     create a few ready-made, parametrized transformers for effects like: plane select, color gradients, mask blit,
-    Refactor "context" namespace into full class with descriptors. (V)
     Update "Context" to use context-locals (async aware) instead of thread-locals
     Add a "clear" draw method to empty-up a target.
     Drawing APIs not respecting ShapeView limits (V)
-    Optimize extent-limted blitting to skip fast to next shape line (by sending a next-line sentinel to shape-iterator) (V)
     add "callback" or early event system so that context parameters can be changed after printing a character, or other event.
     set up internal state on which terminal program is running, basd on env-vars (so that terminal behaviors bugs can be work-around)
-    improvement: Screen.set_at should pass a pixel straight to __setitem__ and not set the context and pass only th value
     work on special methods to allow pickle serialization of shapes and maybe screens.
-    have an ".update" method for .text and ".text[plane]" that will re-blit the contents into its .owner.data
-    .text rendering should be transparent on unused pixels by default
-    terminedia-image should resize to full screen-size when loading image (V))
-    add an --output parameter to terminedia image to render output as ansi-laden txt file(V)
-
 
 Color class Todo:
-    - Create a color class (V)
-    - Use color class in terminal commands(V)
-    - Add support for html/css color names (V)
-    - Add proper support for special constants: (default_bg, default_fg, etc...) (V)
-    - use color class in html commands (V)
-    - BUG: fix image-rendering to terminal using "default_fg" for black color.
     Future:
-
     - Add support for gray colors (single int)
     - Add support for alpha-component
     - Add support for HSL parsing/conversion
 
-
 HTML-Backend Steps (WIP)
-    find-out a working HTML model able to represent chars as in the terminal (V)
-        - recreate ScreenCommands equivalent to generate HTML(WIP):
-            - make minimal working version outputing colored blocks (V)
-            - Fix span-tag re-use over multiple characters in the same row (V)
-            - Implement text and character effects (V):
-                - apply "terminal effects" into html rendering with inline CSS (V)
-
-        - Refactor JornalingScreenCommands so that its logic can be reused by HTMLCommands (V)
-        - refactor Journaling...Commands to generate HTML(V)
-        - Add a mechanism to provide default actual colors for "default_fg" and "default_bg" (V)
-        - Rewire "screen.__setitem__" to only actually output data within a call to ".update()" if the output is not to terminal: so that other backends than terminal don't require writting to ".data" (?)
-    re-write functionalities of Commands and logic of Journaling commands for HTML (V)
-    Implement HTML render output for files in images.Shape (V)
-    Change terminedia-image example script to accept a "-backend HTML" option and create an HTML file.(V)
-
     future
     ------
     Hardwire a web-font to display braille characters as pixels (UNSCII?)
@@ -305,23 +229,17 @@ HTML-Backend Steps (WIP)
     create HTML Canvas output (?)
     create SVG output (?)
     Add text effects to take advantage of transforms available in HTML/SVG (rotate, rescale, transparency)
+    Ability to emulate Unix terminal on HTML comonent (posix_openpt)
+    Full-client-side implementation (using brython or similar)
 
-Bugs:
-    bug: CRITICAL: effects refactoring led rendering to be B&W (V)
-    bug: unicode_effects not being applied on direct "screen.print" call.(V)
-    Bug: current "inkey" is buggy as repeated keystrokes are bundled in the same inkey response. (completly bork at higher repeat rates)(V)
-    bug: re-entering a screen context and blitting  is not rendering the char at [0,0] (V)
-    bug: Terminedia-shape with custom shape may trigger "going left" after going up or down. (V)
-    bug: blitting full-shape to full-shape destroys characters and keep only blocks (V)
-    bug: RootContext repr not working (V)
-    bug: Terminedia-image not proper resampling images (getting out of range errors for full-sized images)(V)
+
+Bugs
+=====
+
     bug: plot example script prints completly bogus values on the y scale.
     bug:fix printing of colored double-width characters . (b0rk on konsole) (WIP)
-    bug: colors in the 0-255 range are not working as terminedia-text value for color option
     bug: when apple shows up over snake body, it is erased from screen (snake.py) (easy) (external) (hacktober)
-    bug: PGMShap class incorrectly using "default color" for black pixels (termined-image default loading is broken after refactoring to use Color class)
-
-Bugs-external (report issue):
-
-    Pypy3 regular expressions'split does not work with forward look-ahead (used in terminal rendering to slice a string at ESCape sequences) (resolved - not a PyPy3 Py3.6 bug: re.split is a nw thing in Python 3.7
-
+    bug: Screen.clear() should clear the associated shape in Screen.data.
+    bug: Effects.super_script not working for letters 'n' and 'q' - check if there is a suitable custom glyph
+    bug: Pallette shapes need to be overhauled - currently tests are broken due to reading from it back just yielding "True" and "False"
+    bug: (big issue): workaround stdout blocking and raising error when in realtime_keyb reading mode.

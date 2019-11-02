@@ -30,7 +30,6 @@ close_tag = """</span\n>"""
 D = lambda str: " ".join(str.split())
 
 
-
 class HTMLCommands:
     """Backend for generating HTML monospace content with character rendition for a terminedia image.
 
@@ -46,24 +45,25 @@ class HTMLCommands:
 
     def __init__(self):
         self.active_unicode_effects = Effects.none
-        self.__class__.last_pos = (0,0)
-        self.next_pos = V2(0,0)
+        self.__class__.last_pos = V2(0, 0)
+        self.next_pos = V2(0, 0)
 
         self.current_foreground = None
         self.current_background = None
         self.current_effects = None
-        self.next_foreground = Color((0,0,0))
+        self.next_foreground = Color((0, 0, 0))
         self.next_background = Color((255, 255, 255))
         self.next_effects = Effects.none
 
         self.tag_is_open = False
 
-
     @property
     def dirty(self):
-        return self.current_foreground != self.next_foreground or \
-            self.current_background != self.next_background or \
-            self.current_effects != self.next_effects
+        return (
+            self.current_foreground != self.next_foreground
+            or self.current_background != self.next_background
+            or self.current_effects != self.next_effects
+        )
 
     def update_state(self):
         self.current_foreground = self.next_foreground
@@ -71,20 +71,23 @@ class HTMLCommands:
         self.current_effects = self.next_effects
         self.last_pos = self.next_pos
 
-    def print(self, *args, sep='', end='', flush=False, file=None, count=0):
+    def print(self, *args, sep="", end="", flush=False, file=None, count=0):
         """Write needed HTML tags with inline style to positin and color given text"""
         if file is None:
             file = sys.stdout
-        if end == "\n":
-            break_line = True
-            end = ""
-        else:
-            break_line = False
-        content = sep.join(args) + end
+        if self.last_pos and  self.next_pos.y == self.last_pos.y + 1 and self.next_pos.x == 0:
+            if self.tag_is_open:
+                file.write(close_tag)
+                self.tag_is_open = False
+            file.write("<br/>")
+        break_line = args and args[-1] == "\n"
+        content = (sep.join(args) + end).strip("\n")
         if self.active_unicode_effects:
             txt = self.apply_unicode_effects(content)
         if self.next_pos == self.last_pos and self.tag_is_open and not self.dirty:
             file.write(content)
+        elif not content:
+            pass
         else:
             if self.tag_is_open:
                 file.write(close_tag)
@@ -105,32 +108,54 @@ class HTMLCommands:
                 background: {background};
             """
             tag_attrs += (
-                "text-decoration: " +
-                    ("underline" if self.next_effects & (Effects.underline | Effects.double_underline) else "") +
-                    ("double" if self.next_effects & Effects.double_underline else "") +
-                    ("overline" if self.next_effects & Effects.overlined else "") +
-                    ("line-through" if self.next_effects & Effects.crossed_out else "") +
-                    ("blink" if self.next_effects & (Effects.blink | Effects.fast_blink) else "")
-
-            ) if self.next_effects & (
-                Effects.underline | Effects.overlined | Effects.crossed_out | Effects.double_underline |
-                Effects.blink | Effects.fast_blink
-            ) else ""
+                (
+                    "text-decoration: "
+                    + (
+                        "underline"
+                        if self.next_effects
+                        & (Effects.underline | Effects.double_underline)
+                        else ""
+                    )
+                    + ("double" if self.next_effects & Effects.double_underline else "")
+                    + ("overline" if self.next_effects & Effects.overlined else "")
+                    + (
+                        "line-through"
+                        if self.next_effects & Effects.crossed_out
+                        else ""
+                    )
+                    + (
+                        "blink"
+                        if self.next_effects & (Effects.blink | Effects.fast_blink)
+                        else ""
+                    )
+                )
+                if self.next_effects
+                & (
+                    Effects.underline
+                    | Effects.overlined
+                    | Effects.crossed_out
+                    | Effects.double_underline
+                    | Effects.blink
+                    | Effects.fast_blink
+                )
+                else ""
+            )
             tag = open_tag.format(style=D(tag_attrs))
             file.write(tag + content)
             self.tag_is_open = True
         self.last_pos += (len(content), 0)
-        if flush or break_line:
+        if (flush or break_line) and self.tag_is_open:
             file.write(close_tag)
             self.tag_is_open = False
         if break_line:
             file.write("<br>\n")
             self.next_pos = V2(0, self.last_pos.y + 1)
         else:
-            self.next_pos = self.last_pos # V2(self.last_pos if self.last_pos else (0,0))
+            self.next_pos = (
+                self.last_pos
+            )  # V2(self.last_pos if self.last_pos else (0,0))
         if flush:
             file.flush()
-
 
     def moveto(self, pos, file=None):
         """Set internal state so that next character rendering is at the new coordinates;
@@ -140,7 +165,6 @@ class HTMLCommands:
 
         """
         self.next_pos = V2(pos)
-
 
     def print_at(self, pos, txt, file=None):
         """Positions the cursor and prints a text sequence
@@ -153,7 +177,6 @@ class HTMLCommands:
 
         self.moveto(pos, file=file)
         self.print(txt, file=file)
-
 
     @lru_cache()
     def _normalize_color(self, color):
@@ -192,12 +215,10 @@ class HTMLCommands:
         """
         self.next_foreground = Color(color)
 
-
     def set_bg_color(self, color, file=None):
         """
         """
         self.next_background = Color(color)
-
 
     def set_effects(self, effects, *, update_active_only=False, file=None):
         """Sets internal state so that next characters rendered have character effects applied
@@ -219,9 +240,7 @@ class HTMLCommands:
         pass
 
 
-
 class JournalingHTMLCommands(JournalingCommandsMixin, HTMLCommands):
-
     def replay(self, file=None, single_write=False):
         """Renders the buffered output to the given stream.
 

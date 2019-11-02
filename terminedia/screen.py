@@ -126,14 +126,20 @@ class Screen:
 
     def __enter__(self):
         """Enters a fresh screen context"""
+        if self.clear_screen:
+            self.commands.toggle_buffer()
         self.clear(self.clear_screen)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         """Leaves the screen context and reset terminal colors."""
         if self.clear_screen:
-            self.commands.clear()
-            self.commands.moveto((0, 0))
+            if self.commands.alternate_terminal_buffer:
+                self.commands.toggle_buffer()
+            else:
+                #self.commands.clear()
+                #self.commands.moveto((0, 0))
+                pass
         self.commands.cursor_show()
         self.commands.reset_colors()
 
@@ -159,7 +165,9 @@ class Screen:
         with self.lock:
             if wet_run:
                 self.commands.clear()
+                # self.commands.home()
             self.commands.cursor_hide()
+        # self.data.clear()  # TODO: implement proper Shape.clear()
 
     def set_at(self, pos, pixel=None):
         """Sets pixel at given coordinate

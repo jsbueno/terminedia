@@ -5,7 +5,7 @@ import click
 from terminedia import Screen, realtime_keyb, inkey, pause
 
 
-def arange(start, stop = None, step = 1):
+def arange(start, stop=None, step=1):
     if stop is None:
         stop, start = start, 0
     while (start < stop) if step > 0 else (stop < start):
@@ -33,8 +33,7 @@ def test_plot(scr, func, domain=(-2, 2)):
     image = min(data_points), max(data_points)
     scale_y = h * 1 / (image[1] - image[0])
 
-
-    scr.context.color = 1, .5, 0
+    scr.context.color = 1, 0.5, 0
     for x, y in zip(range(w), data_points):
         scr.high.draw.set((x, int(y * scale_y)))
 
@@ -42,19 +41,30 @@ def test_plot(scr, func, domain=(-2, 2)):
     y_ticks = 6
 
     scr.context.color = 0, 1, 0
-    for x, x_tick in zip(range(0, w, w // x_ticks), arange(domain[0], domain[1], (domain[1] - domain[0]) / x_ticks)):
-        scr.print_at ((x // 2, h // 4 + 1), f"{x_tick:0.02f}")
+    for x, x_tick in zip(
+        range(0, w, w // x_ticks),
+        arange(domain[0], domain[1], (domain[1] - domain[0]) / x_ticks),
+    ):
+        scr.print_at((x // 2, h // 4 + 1), f"{x_tick:0.02f}")
 
-    for y, y_tick in zip(range(0, h, h // y_ticks), arange(image[1], image[0], -(image[1] - image[0]) / y_ticks)):
+    for y, y_tick in zip(
+        range(0, h, h // y_ticks),
+        arange(image[1], image[0], -(image[1] - image[0]) / y_ticks),
+    ):
 
-        scr.print_at ((w // 4 + 1, y // 2), f"{y_tick:0.02f}")
+        scr.print_at((w // 4 + 1, y // 2), f"{y_tick:0.02f}")
 
-    scr.print_at((w // 2 - 33, 0), f"f(x) = {func.replace('**3', '³').replace('**2', '²')}")
+    scr.print_at(
+        (w // 2 - 33, 0), f"f(x) = {func.replace('**3', '³').replace('**2', '²')}"
+    )
 
 
 @click.command()
-@click.option("--func", type=str, help=
-              "Function to draw. It should be given as a Python expression using 'x' as a variable.")
+@click.option(
+    "--func",
+    type=str,
+    help="Function to draw. It should be given as a Python expression using 'x' as a variable.",
+)
 def main(func=None, domain=(-2, 2)):
     if func is None:
         func = "-2 * x**3 - 3 * x**2 + x - 1"
@@ -62,6 +72,6 @@ def main(func=None, domain=(-2, 2)):
         test_plot(scr, func, domain)
         pause()
 
+
 if __name__ == "__main__":
     main()
-

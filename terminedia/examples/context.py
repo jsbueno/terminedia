@@ -18,6 +18,7 @@ def worker(scr, base_x, base_color, num_workers):
     time.sleep(1 / num_workers)
     scr.draw.line((base_x, 12), (base_x + 20, 12))
 
+
 @click.command()
 def main():
     """Example and test for multi-threaded terminal output
@@ -29,8 +30,12 @@ def main():
         scr.draw.line((0, 0), (100, 0))
         threads = []
         with scr.context(color=(1, 0, 0)) as ctx:
-            for i, color in enumerate([(.1, 0, 0), (.1, 0.05, 0), (0, .1, 0), (0, .1, .1), (.1, 0, .1)]):
-                threads.append(threading.Thread(target=worker, args=(scr, i * 20, color, 5)))
+            for i, color in enumerate(
+                [(0.1, 0, 0), (0.1, 0.05, 0), (0, 0.1, 0), (0, 0.1, 0.1), (0.1, 0, 0.1)]
+            ):
+                threads.append(
+                    threading.Thread(target=worker, args=(scr, i * 20, color, 5))
+                )
                 threads[-1].start()
                 time.sleep(1 / 10)
 
@@ -40,10 +45,10 @@ def main():
 
         while True:
             key = inkey()
-            if key == '\x1b':
+            if key == "\x1b":
                 break
-            time.sleep(1/30)
+            time.sleep(1 / 30)
+
 
 if __name__ == "__main__":
     main()
-

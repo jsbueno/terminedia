@@ -1,4 +1,5 @@
 import unicodedata
+from functools import lru_cache
 
 
 def mirror_dict(dct):
@@ -454,6 +455,7 @@ def create_transformer(context, slots, clear=False):
     context.transformer = transformer
 
 
+@lru_cache()
 def char_width(char):
     from terminedia.subpixels import BlockChars
 

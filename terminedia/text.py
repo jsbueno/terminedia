@@ -5,6 +5,7 @@ from pathlib import Path
 from terminedia.image import Shape, PalettedShape
 from terminedia.utils import V2
 from terminedia.values import Directions, EMPTY
+
 try:
     # This is the only Py 3.7+ specific thing in the project
     from importlib import resources
@@ -14,12 +15,13 @@ except ImportError:
 
 font_registry = {}
 
+
 def _normalize_font_path(font_path):
     font_is_resource = font_path == "" or not Path(font_path).exists()
     if font_is_resource:
         if font_path == "16":
             font_path = "unscii-16-full.hex"
-        elif  "unscii-8" not in font_path:
+        elif "unscii-8" not in font_path:
             if font_path in ("", "fantasy", "mcr", "thin"):
                 font_path = f"unscii-8{'-' if font_path else ''}{font_path}.hex"
     return font_path, font_is_resource
@@ -42,7 +44,7 @@ def list_fonts():
         path = Path(__file__).parent / "data"
         files = [str(f) for f in path.iterdir()]
     else:
-        files =  list(resources.contents("terminedia.data"))
+        files = list(resources.contents("terminedia.data"))
     return [f for f in files if f.endswith(".hex")]
 
 
@@ -63,9 +65,9 @@ def load_font(font_path, font_is_resource, initial=0, last=256, ch1=EMPTY, ch2="
     for i, line in enumerate(data[initial:last], initial):
         line = line.split(":")[1].strip()
         line = binascii.unhexlify(line)
-        char  = "\n".join(f"{bin(v).split('b')[1]}".zfill(8)  for v in line)
+        char = "\n".join(f"{bin(v).split('b')[1]}".zfill(8) for v in line)
         char = char.replace("0", ch1).replace("1", ch2)
-        font [chr(i)] = char
+        font[chr(i)] = char
 
     return font
 
@@ -81,7 +83,7 @@ def render(text, font=None, shape_cls=PalettedShape, direction=Directions.RIGHT)
     font = font_registry[font]
     phrase = [shape_cls(font[chr]) for chr in text]
     if len(text) == 0:
-        return shape_cls.new((0,0))
+        return shape_cls.new((0, 0))
     elif len(text) == 1:
         return phrase[0]
     return phrase[0].concat(*phrase[1:], direction=direction)
@@ -92,6 +94,7 @@ class CharPlaneData(dict):
 
     Indices should be a V2 (or 2 sequence) within width and height ranges
     """
+
     __slots__ = ("_size",)
 
     def __new__(cls, size):
@@ -156,7 +159,9 @@ class Text:
     @property
     def current_plane(self):
         if not isinstance(self.__dict__.get("current_plane"), int):
-            raise TypeError("Please select the character plane with `.text[#]` before using this method")
+            raise TypeError(
+                "Please select the character plane with `.text[#]` before using this method"
+            )
         return self.__dict__["current_plane"]
 
     def set_ctx(self, key, value):
@@ -185,7 +190,9 @@ class Text:
 
     def _checkplane(self, index):
         if not isinstance(index, int):
-            raise TypeError("Use an integer index to retrieve the corresponding character plane for the current target")
+            raise TypeError(
+                "Use an integer index to retrieve the corresponding character plane for the current target"
+            )
         if index not in self.planes:
             self._build_plane(index)
         return self.planes[index]
@@ -213,7 +220,9 @@ class Text:
             target[index] = self.plane["data"][index]
             return
 
-        char = render(self.plane["data"][index], font=target.context.font or self.plane["font"])
+        char = render(
+            self.plane["data"][index], font=target.context.font or self.plane["font"]
+        )
         index = (V2(index) * 8).as_int
         if self.current_plane == 2:
             target.braille.draw.blit(index, char)
@@ -247,8 +256,6 @@ class Text:
         self.at(last_pos, text)
 
     def __repr__(self):
-        return "".join(["Text [\n",
-                        f"owner = {self.owner}\n",
-                        f"planes = {self.planes}\n",
-                        "]",
-                        ])
+        return "".join(
+            ["Text [\n", f"owner = {self.owner}\n", f"planes = {self.planes}\n", "]"]
+        )

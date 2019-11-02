@@ -41,14 +41,14 @@ class JournalingCommandsMixin:
 
     """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
         """__init__ initializes internal attributes"""
         self.in_block = 0
         self.current_color = DEFAULT_FG
         self.current_background = DEFAULT_BG
         self.current_effect = Effects.none
         self.current_pos = 0, 0
-        super().__init__()
+        super().__init__(**kwargs)
 
     def __enter__(self):
         """Enters a context where screen writes are collected together.
@@ -78,7 +78,13 @@ class JournalingCommandsMixin:
         if not self.in_block:
             raise RuntimeError("Journal not open")
         self.journal.setdefault(pos, []).append(
-            (self.tick, char, self.current_color, self.current_background, self.current_effect)
+            (
+                self.tick,
+                char,
+                self.current_color,
+                self.current_background,
+                self.current_effect,
+            )
         )
         self.tick += 1
 
@@ -131,6 +137,11 @@ class JournalingCommandsMixin:
         original_file = file
         file = StringIO() if not original_file else original_file
 
+        if single_write:
+            writer = file.write
+        else:
+            writer = lambda char: self.print(char, file=file)
+
         for pos in sorted(self.journal, key=lambda pos: (pos[1], pos[0])):
             tick, char, color, bg, effect = self.journal[pos][-1]
             call = []
@@ -154,12 +165,12 @@ class JournalingCommandsMixin:
             if call:
                 for func, arg in call:
                     func(arg, file=file)
-            if single_write:
-                file.write(char) #buffer += char
-            else:
-                self.print(char, file=file)
-            last_pos += (1, 0)
-            self.__class__.last_pos += (1, 0)
+
+            writer(char)
+
+            width = (char_width(char), 0)
+            last_pos += width
+            self.__class__.last_pos += width
 
         if not original_file and single_write:
             self.print(file.getvalue())
@@ -206,7 +217,7 @@ class JournalingCommandsMixin:
         self.current_background = color
 
     def set_effects(self, effects, file=None):
-        super().set_effects(effects, update_active_only = self.in_block, file=file)
+        super().set_effects(effects, update_active_only=self.in_block, file=file)
         self.current_effect = effects
 
     def apply_unicode_effects(self, txt):

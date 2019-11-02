@@ -9,7 +9,6 @@ from terminedia.subpixels import BlockChars
 from terminedia.values import DEFAULT_BG, DEFAULT_FG, Directions, Effects
 
 
-
 _sentinel = object()
 
 
@@ -37,7 +36,7 @@ class ContextVar:
             return self
         value = getattr(instance._locals, self.name, _sentinel)
         if value is _sentinel:
-            value=self.default
+            value = self.default
             if callable(value):
                 value = value()
             setattr(instance._locals, self.name, value)
@@ -124,8 +123,8 @@ class Context:
         self._update(data)
 
     def __repr__(self):
-        return "Context[\n{}\n]".format("\n".join(
-            f"   {key} = {value!r}" for key, value in self)
+        return "Context[\n{}\n]".format(
+            "\n".join(f"   {key} = {value!r}" for key, value in self)
         )
 
     def __iter__(self):
@@ -142,6 +141,7 @@ class Context:
 
     def _update_from_global(self):
         import terminedia
+
         if not hasattr(terminedia, "context"):
             # global initialization not complete - we may be initializing the root context itself
             return
@@ -168,6 +168,7 @@ class RootContext(Context):
     @default_fg.setter
     def default_fg(self, value):
         from terminedia.values import DEFAULT_FG
+
         if value is DEFAULT_FG:
             raise ValueError("The source for default_fg can't be set as DEFAULT_FG")
         self._default_fg = Color(value)
@@ -179,6 +180,7 @@ class RootContext(Context):
     @default_bg.setter
     def default_bg(self, value):
         from terminedia.values import DEFAULT_BG
+
         if value is DEFAULT_BG:
             raise ValueError("The source for default_bg can't be set as DEFAULT_BG")
         self._default_bg = Color(value)
