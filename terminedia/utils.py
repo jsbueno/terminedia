@@ -1,7 +1,6 @@
 import unicodedata
 from functools import lru_cache
 
-
 def mirror_dict(dct):
     """Creates a new dictionary exchanging values for keys
     Args:
