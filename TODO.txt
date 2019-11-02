@@ -1,9 +1,54 @@
-raw-data backend (terminal independent)
-Block-smoothing with half triangle block chars
+Targeted for next release (0.3):
+=================================
+Partial windows support (cmder and maybe microsoft's new terminal):
+    - install and activate colorama if under windows
+    - create a non-blocking keybard reading system using mscrvt api
+
+Resolve "can't output a lot of things to terminal if stdin set to non blocking" bug on windows
+
+smaller features:
+    - have an ".update" method for .text and ".text[plane]" that will re-blit the contents into its .owner.data
+    - improve interactive usage of Screen on the repl: option to move the cursor to the bottom and prevent attribute caching when under interactive use.
+    - add an option so that rectangular area rendering to files be '"relocatable" - suppressing absolute cursor movement sequences
+    - use the same option of suppressing absolute cursor movement for the html backend.
+    - uniformize "size", "get", "set" and __getitem__ & __setitem__ on screen, shape, high and braille namespaces.
+    - accept context attributes (color, background, effects) as keyword arguments on all .draw methods
+    - fix palleted shapes:
+        - create proper booleanshape (true/false + color) - used by default to render fonts.
+        - reading with __getitem__ should get back a pixel with the original character, but when blitting, only the color and boolean information should be blitted (color.TRANSPARENT should imply in "False" pixels)
+        - on drawing, context.char should be respected - and auto-appended to the color_map if not there.
+    - make emoji's and unicode chars easier to use:
+        - expose unicodedata databases as plain dictionaries
+        - implement basic search for character names with partial match
+            (eg: so that one can search for all characters containing "square" or "chess" in the name)
+    - enable "debug" flag in root context and display internal information on object's repr based on that
+            (currently Screen's repr is showing last_pos, last_color, and other internal state attrs by default)
+    - shape "clear" call:
+        - optional parameter to reset text information
+        - method to redraw text from a given plane/roi.
+    - bug: Screen.clear() should clear the associated shape in Screen.data.
+
+
+Transformers:
+    Improve context transformers to become a friendly, stackable class with defined API
+    create some filters as ready-made transformers (maybe not all for 0.3.0):
+        - threshold: yield true/false pixels and strip color information
+        - convert colorred fullblock pixels to "transparent" pixels: keep the existing char, and apply the color as background
+        - color-value to different unicode-circles
+        - color-value to different unicode-squares
+        - linear gradients
+
+breaking-changes:
+    - use "keyboard" instead of "realtime_keyb" to enable realtime keyboard reading
+    - rename unicode effects so that their name matchs their unicode names (at least "super_bold" -> "regional_indicator")
+
+3.1:
+========
+Write some real nice docs, with tutorials and use suggestions
+
 
 Future
 ========
-    HTML backend (WIP)
     Image 'screenshot' backend
     image backend (pixels are simple color-only boring, image pixels)
     postscript backend
@@ -46,8 +91,6 @@ support to z-index, and background keeping on blitting ("sprite" api)
 MS-Windows support (colorama/mscrvt/color reducing)
 
 "business" framed-window api
-
-Postscriptish/Turtleish drawing api
 
 Basic image transform API: resize, rotate, flip.
 
@@ -92,6 +135,11 @@ gaming framework in general:
     animation support
     main loop
 
+"main loop":
+    - event system
+    - loop dependant 'blink like" animations: cicle colors, characters, text based on timing
+
+
 space invaders implementation (hint: it would be already feasible - but it is still a "landmark" of the roadmap)
 
 
@@ -105,13 +153,7 @@ Advanced terminal handling features
     implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change
         check if there is a ms-windows equivalent
 
-HTML Backend:
-    generate static html files with inline style
-    server/mini app to live update a terminal HTML component
-    Ability to emulate Unix terminal on HTML comonent (posix_openpt)
-    Full-client-side implementation (using brython)
-
-Ongoing
+more features
 ###############
     Add text formatting and flowing primitives into ".text" namespace:
         method to allow text insertion and flowing inside a shape or ROI
@@ -126,38 +168,27 @@ Ongoing
     create a "blit fast path" for value/palette shapes to target (avoid overhead of pixel creation)
     make "Alpha" value work for value-shapes.
     make "intensity" rendering for values (B&W shapes)
-    improve "blit" to allow optional source and destination ROI (WIP)
     (them proceed to write the different backends.)
         - Accept 0-255 or 0-1.0 3 [4] sequences for RGB color [Alpha]
         - conversion to 1-byte standard 216 color palette for terminals
         - make use of 1byte color on terminal.py
     Assume `set` method passed to drawing.Drawing can always accept pixels. Simplify workarounds in "image.ShapeApiMixin" and "screen.set_at" to accept pixels. (API breaking - change this before making a release)
-PalettedShape:
-    - create proper booleanshape (true/false + color) - used by default to render fonts.
-    - reading with __getitem__ should get back a pixel with the original character, but when blitting, only the color and boolean information should be blitted (color.TRANSPARENT should imply in "False" pixels)
-    - on drawing, context.char should be respected - and auto-appended to the color_map if not there.
+
 
 Enhance EMOJI and multi-language support:
     - handle combining characters properly
-    - document which terminal applications will have the best emoji experience
+    - document which terminal applications will have the best emoji experience (check kitty terminal app)
 
 shape and page capabilities:
     create full fledged shape with char, fg, bg, effects (WIP - only missing example script):
         Add example script using FullShape and transformers(terminedia-text)
     create "Page" class: contaning several z-ordered shape or ROIs for text layout
 
-Transformers:
-    Improve context transformers to become a friendly, stackable class
-    create some filters as ready-made transformers:
-        - threshold: yield true/false pixels and strip color information
-        - convert colorred fullblock pixels to "transparent" pixels: keep the existing char, and apply the color as background
-        - color-value to different unicode-circles
-        - color-value to different unicod-squares
-        - implement fix at drawing.blit (N/A - blit simply copies CONTINUATION constant normally)
-        - implement fix at terminal.Commands.print (N/A - 'CONTINUATION' constant never reaches terminal functions)
-        - [future]:
-            - check double width chars at UNSCII 16 for proper use at other text scales
-            - if needed implement the logic above at text[4], [8], etc...
+- implement fix at drawing.blit (N/A - blit simply copies CONTINUATION constant normally)
+- implement fix at terminal.Commands.print (N/A - 'CONTINUATION' constant never reaches terminal functions)
+- [future]:
+    - check double width chars at UNSCII 16 for proper use at other text scales
+    - if needed implement the logic above at text[4], [8], etc...
 
 Features and improvements
 =========================
@@ -179,12 +210,6 @@ Features and improvements
     add "callback" or early event system so that context parameters can be changed after printing a character, or other event.
     set up internal state on which terminal program is running, basd on env-vars (so that terminal behaviors bugs can be work-around)
     work on special methods to allow pickle serialization of shapes and maybe screens.
-    have an ".update" method for .text and ".text[plane]" that will re-blit the contents into its .owner.data
-    improve interactive usage of Screen on the repl: option to move the cursor to the bottom and prevent attribute caching when under interactive use.
-    add an option so that rectangular area rendering to files be '"relocatable" - suppressing absolute cursor movement sequences
-    use the same option of suppressing absolute cursor movement for the html backend.
-    uniformize "size", "get", "set" and __getitem__ & __setitem__ on screen, shape, high and braille namespaces.
-    accept context attributes (color, background, effects) as keyword arguments on all .draw methods
 
 Color class Todo:
     Future:
@@ -193,7 +218,6 @@ Color class Todo:
     - Add support for HSL parsing/conversion
 
 HTML-Backend Steps (WIP)
-        - Rewire "screen.__setitem__" to only actually output data within a call to ".update()" if the output is not to terminal: so that other backends than terminal don't require writting to ".data" (?)
     future
     ------
     Hardwire a web-font to display braille characters as pixels (UNSCII?)
@@ -204,6 +228,9 @@ HTML-Backend Steps (WIP)
     create HTML Canvas output (?)
     create SVG output (?)
     Add text effects to take advantage of transforms available in HTML/SVG (rotate, rescale, transparency)
+    Ability to emulate Unix terminal on HTML comonent (posix_openpt)
+    Full-client-side implementation (using brython or similar)
+
 
 Bugs
 =====
