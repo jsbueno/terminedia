@@ -26,8 +26,9 @@ smaller features:
         - method to redraw text from a given plane/roi.
     - bug: Screen.clear() should clear the associated shape in Screen.data
 
-    - bug: html rendering not respecting contxt colors, on starting empty space characters
-    - bug: with terminal in relativ movement, snake-game is faulty,, suggesting terminal-context bugs
+    - bug: html rendering not respecting context colors, on starting empty space characters
+    - bug: with terminal in relative movement, snake-game is faulty,, suggesting terminal-context bugs
+    - bug: (may be postponed) - shape.render does not respect shapesviews (slices): the parent shape is rendered instead
 
 
 Transformers:

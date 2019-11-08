@@ -124,6 +124,7 @@ Improvements and small features:
         - enable relative positioning in Terminal class (V) (but not perfect, see bellow)
         - Add state attribute to terminal backend indicating relative positioning should be used (V)
         - change 'shape.render' to use relative positioning for ansi and not home cursor to 0,0 (V)
+    Rename "realtime_keyb" to "keyboard" (and keyboard.py to input.py) (V)
 
 Color class:
     - Create a color class (V)

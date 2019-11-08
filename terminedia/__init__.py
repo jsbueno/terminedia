@@ -7,7 +7,7 @@ non-blocking keyboard reading.
 """
 
 from terminedia.contexts import Context, RootContext
-from terminedia.keyboard import realtime_keyb, inkey, pause, KeyCodes
+from terminedia.input import keyboard, inkey, pause, KeyCodes
 from terminedia.utils import Color, Rect, V2, create_transformer
 from terminedia.terminal import ScreenCommands, JournalingScreenCommands
 from terminedia.values import (

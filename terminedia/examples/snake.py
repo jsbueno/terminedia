@@ -67,7 +67,7 @@ def main():
 
     snake = Snake((2, 2), direction=D.RIGHT)
 
-    with terminedia.Screen() as scr, terminedia.realtime_keyb():
+    with terminedia.Screen() as scr, terminedia.keyboard():
         try:
             game = Game(scr, snake)
             game.run()

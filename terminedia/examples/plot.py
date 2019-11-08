@@ -2,7 +2,7 @@ import time
 
 import click
 
-from terminedia import Screen, realtime_keyb, inkey, pause
+from terminedia import Screen, keyboard, inkey, pause
 
 
 def arange(start, stop=None, step=1):

@@ -3,7 +3,7 @@ import time
 
 import click
 
-from terminedia import inkey, realtime_keyb, Screen
+from terminedia import inkey, keyboard, Screen
 
 
 def worker(scr, base_x, base_color, num_workers):
@@ -23,7 +23,7 @@ def worker(scr, base_x, base_color, num_workers):
 def main():
     """Example and test for multi-threaded terminal output
     """
-    with realtime_keyb(), Screen() as scr:
+    with keyboard(), Screen() as scr:
 
         scr.context.color = 1, 1, 1
 

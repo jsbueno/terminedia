@@ -18,7 +18,7 @@ from terminedia.utils import mirror_dict
 
 
 @contextmanager
-def realtime_keyb():
+def keyboard():
     """
     This context manager reconfigures `stdin` so that key presses
     are read in a non-blocking way.
@@ -77,8 +77,8 @@ def inkey(break_=True, clear=True):
         (\x03) should raise KeyboardInterrupt or be returned as a
         keycode. Defaults to True.
 
-    *Important*: For this function only works inside a
-    :any:`realtime_keyb` managed context. (Posix)
+    *Important*: This function only works inside a
+    :any:`keyboard` managed context. (Posix)
 
     Code values or code sequences for non-character keys,
     like ESC, direction arrows, fkeys are kept as constants
@@ -123,7 +123,7 @@ def pause(timeout=0):
     """
     step = 1 / 30
     ellapsed = step
-    with realtime_keyb():
+    with keyboard():
         time.sleep(step)
         while not inkey():
             time.sleep(step)
@@ -134,7 +134,7 @@ def pause(timeout=0):
 
 def _testkeys():
     """Debug function to print out keycodes as read by :any:`inkey`"""
-    with realtime_keyb():
+    with keyboard():
         while True:
             try:
                 key = inkey()

@@ -69,7 +69,7 @@ of 1/4 character "pixels" to draw in a seamless way. Just use the ``.high.draw``
 to access the drawing primitives the same way the ``.draw`` namespace allows
 drawing with full-block characters.
 
-For input, the available functionalities are the :any:`realtime_keyb` context manager,
+For input, the available functionalities are the :any:`keyboard` context manager,
 which enables non-blocking use of the keyboard, and the :any:`inkey` and :any:`pause`
 functions which make use of this feature.
 

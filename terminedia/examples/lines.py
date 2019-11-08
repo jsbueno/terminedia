@@ -1,6 +1,6 @@
 import click
 
-from terminedia import Screen, realtime_keyb, inkey
+from terminedia import Screen, keyboard, inkey
 
 
 def test_lines(scr):
@@ -14,7 +14,7 @@ def test_lines(scr):
 def main():
     """Example for drawing straight lines with the API, using the 1/4 block resolution.
     """
-    with realtime_keyb(), Screen() as scr:
+    with keyboard(), Screen() as scr:
         test_lines(scr.high)
         while True:
             if inkey() == "\x1b":

@@ -2,7 +2,7 @@ import time
 
 import click
 
-from terminedia import Screen, realtime_keyb, pause, inkey
+from terminedia import Screen, keyboard, pause, inkey
 
 
 def test_ellipses(scr, sleep=0.2):
@@ -41,7 +41,7 @@ def test_ellipses(scr, sleep=0.2):
 def main(sleep=0.2):
     """Example and benchmark tests for the drawing API using ellipses
     """
-    with realtime_keyb(), Screen() as scr:
+    with keyboard(), Screen() as scr:
         test_ellipses(scr, sleep)
         pause()
 

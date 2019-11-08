@@ -2,7 +2,7 @@ import time
 
 import click
 
-from terminedia import Screen, realtime_keyb, inkey, DEFAULT_FG, V2
+from terminedia import Screen, keyboard, inkey, DEFAULT_FG, V2
 from terminedia import KeyCodes as K
 
 
@@ -77,7 +77,7 @@ def main(shape, high=False, braille=False):
         (shape.find("\n") if "\n" in shape else len(shape)), shape.count("\n") + 1
     )
     factor = 1
-    with realtime_keyb(), Screen(clear_screen=False) as scr:
+    with keyboard(), Screen(clear_screen=False) as scr:
         parent_scr = scr
         if high:
             scr = scr.high
