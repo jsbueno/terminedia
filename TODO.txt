@@ -32,7 +32,12 @@ smaller features:
 
 
 Transformers:
-    Improve context transformers to become a friendly, stackable class with defined API
+    Transformers are a generic word for filters, which include attached shapes that will work as extra layers.
+    Improve context transformers to become a friendly, stackable class with defined API:
+        - a Transformer container class is attached to each context in "transformers"
+        - if enabled, shape data will be kept in a "shadow" buffer with the original content, all write operations are to the "shadow" and all read operations from the parent shape read the transformed content.
+        - (The 'Shadow" buffer is a Shape object - an extra flag should be added to shapes so that only the base Shape have "transformers" applied to it. Otherwise, the shadow buffer uses the same context as the parent)
+        - This design should allow a filter to read random pixels from the shadow buffer, and not the pixel being written - this will enable the creation of convolution filters
     create some filters as ready-made transformers (maybe not all for 0.3.0):
         - threshold: yield true/false pixels and strip color information
         - convert colorred fullblock pixels to "transparent" pixels: keep the existing char, and apply the color as background
@@ -41,7 +46,6 @@ Transformers:
         - linear gradients
 
 breaking-changes:
-    - use "keyboard" instead of "realtime_keyb" to enable realtime keyboard reading
     - rename unicode effects so that their name matchs their unicode names (at least "super_bold" -> "regional_indicator")
 
 3.1:
@@ -243,4 +247,4 @@ Bugs
     bug: Screen.clear() should clear the associated shape in Screen.data.
     bug: Effects.super_script not working for letters 'n' and 'q' - check if there is a suitable custom glyph
     bug: Pallette shapes need to be overhauled - currently tests are broken due to reading from it back just yielding "True" and "False"
-    bug: (big issue): workaround stdout blocking and raising error when in realtime_keyb reading mode.
+    bug: (big issue): workaround stdout blocking and raising error when in input.keyboard reading mode.
