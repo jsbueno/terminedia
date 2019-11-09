@@ -151,7 +151,17 @@ class Context:
             setattr(self, name, attr)
 
 
-class RootContext(Context):
+class _RootContext(Context):
+    """This is meant to be used as a Singleton - that is instantiated when the library
+    is first imported and lives on as "terminedia.context".
+    The main difference for ordinary contexts is that it is the authoritative source for
+    the colors to be used as "DEFAULT_BG" and "DEFAULT_FG" on non-ANSI backends.
+    ANSI backends have default values supplied by the terminal-emulator program itself,
+    which can't be easily guessed by running applications. (Like White or Green foreground
+    and Black background, depending on the terminal theme).
+
+
+    """
     def __init__(self, default_fg, default_bg, **kwargs):
         super().__init__(**kwargs)
         # These are ordinary instance parameters, but are used as the default

@@ -6,7 +6,7 @@ Drawing primitives that operate with block chars are provided, as well as
 non-blocking keyboard reading.
 """
 
-from terminedia.contexts import Context, RootContext
+from terminedia.contexts import Context, _RootContext
 from terminedia.input import keyboard, inkey, pause, KeyCodes
 from terminedia.utils import Color, Rect, V2, create_transformer
 from terminedia.terminal import ScreenCommands, JournalingScreenCommands
@@ -29,6 +29,6 @@ __author__ = "João S. O. Bueno"
 
 
 # These will be used for other backends than terminal rendering:
-context = RootContext(default_fg="white", default_bg="black")
+context = _RootContext(default_fg="white", default_bg="black")
 
-del RootContext
+del _RootContext
