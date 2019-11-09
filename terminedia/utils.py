@@ -379,6 +379,56 @@ def init_context_for_thread(
     context.transformer = None
 
 
+class Spatial:
+    def __init__(self):
+        self.data = [
+            1, 0, 0,
+            0, 1, 0,
+            0, 0, 1,
+        ]
+        self.is_identity = True
+
+
+
+class Transformer:
+    def __init__(self, char=None, foreground=None, background=None, effect=None, spatial=None, source=None):
+        """
+        Each slot can be None, a static value, or a callable.
+
+        """
+        self.char_s = char
+        self.foreground_s = foreground
+        self.background_s = background
+        self.effect_s = effect
+        self.spatial = spatial
+        self.source = source
+        self.container = None
+
+
+
+
+from collections import UserList
+
+
+class TransformersContainer:
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.stack = self.data
+
+    def _init_item(self, item):
+        if not isinstance(item, Transformer):
+            raise TypeError("Only Transformer instances can be added to a TransformersContainer")
+        item.container = self
+
+    def __setitem__(self, index, item):
+        self._init_item(item)
+        super().__setitem__(index, item)
+
+    def insert(index, item):
+        self._init_item(item)
+        super().insert(index, item)
+
+
 def create_transformer(context, slots, clear=False):
     """Attach a specialized callable to a drawing context to transform pixel values during rendering
 

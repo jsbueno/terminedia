@@ -4,16 +4,12 @@ import threading
 from copy import copy
 from types import FunctionType
 
-from terminedia.utils import Color, V2
+from terminedia.utils import Color, V2, TransformersContainer
 from terminedia.subpixels import BlockChars
 from terminedia.values import DEFAULT_BG, DEFAULT_FG, Directions, Effects
 
 
 _sentinel = object()
-
-
-class Transformer:
-    pass
 
 
 class ContextVar:
@@ -83,7 +79,7 @@ class Context:
     background = ContextVar(Color, DEFAULT_BG)
     effects = ContextVar(Effects, Effects.none)
     direction = ContextVar(V2, Directions.RIGHT)
-    transformer = ContextVar((Transformer, FunctionType, type(None)), None)
+    transformer = ContextVar((TransformersContainer, type(None)), None)
     font = ContextVar(str, "")
 
     def __init__(self, **kw):
@@ -152,7 +148,9 @@ class Context:
 
 
 class _RootContext(Context):
-    """This is meant to be used as a Singleton - that is instantiated when the library
+    """Internal Use - provide the default context values for the application.
+
+    This is meant to be used as a Singleton - that is instantiated when the library
     is first imported and lives on as "terminedia.context".
     The main difference for ordinary contexts is that it is the authoritative source for
     the colors to be used as "DEFAULT_BG" and "DEFAULT_FG" on non-ANSI backends.
@@ -170,7 +168,7 @@ class _RootContext(Context):
         self._default_fg = Color(default_fg)
         self._default_bg = Color(default_bg)
 
-    # These dummy propertis bypass the __setattr__ code in the superclass
+    # These dummy properties bypass the __setattr__ code in the superclass
     @property
     def default_fg(self):
         return self._default_fg

@@ -64,7 +64,7 @@ class Effects(IntFlag):
 
     Some of these are implemented in most terminal programs -
     the codes used here are so that their value can be ORed.
-    (The "real" codes for terminal rendering are issed
+    (The "real" codes for terminal rendering are issued
     in ``terminal.py``).
 
     The somewhat arbitrary order tries to put first
