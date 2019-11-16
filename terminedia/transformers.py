@@ -18,6 +18,7 @@ class Transformer:
             Each of these named parameters will be injected as an argument when the
             function is called.
                 - "self": Transformer instance (it is, as the others, optional)
+                - "value": the current value for this channel
                 - "char, foreground, background, effects": the content of the respective channel
                 - "pos": the pixel position,
                 - "pixel" meaning the source pixel as transformed to this point on the pipeline ,
@@ -66,12 +67,55 @@ class TransformersContainer(UserList):
         self._init_item(item)
         super().__setitem__(index, item)
 
-    def insert(index, item):
+    def insert(self, index, item):
         self._init_item(item)
         super().insert(index, item)
 
-    def process(self, source,):
-        pass
+    def process(self, source, pos, pixel):
+        """Called automatically by FullShape.__getitem__
+
+        Only implemented for pixels with all attributes (used by fullshape)
+        """
+        pcls = type(pixel)
+        values = list(pixel)
+
+        def build_args(channel, signature):
+            nonlocal transformer, pixel, values, ch_num
+            args = {}
+            for parameter in signature:
+                if parameter == "self":
+                    args["self"] = transformer
+                elif parameter == "value":
+                    args["value"] = values[ch_num]
+                elif parameter in Transformer.channels:
+                    args[channel] = getattr(pixel, channel if channel != "char" else "value")
+                elif parameter == "pos":
+                    args["pos"] = pos
+                elif parameter == "pixel":
+                    args["pixel"] = pixel
+                elif parameter == "source":
+                    args["source"] = source
+                elif parameter == "tick":
+                    args["tick"] = getattr(context, "tick", 0)
+                elif parameter == "context":
+                    args["context"] = source.context
+            return args
+
+        # TODO: if composite spatial != identity, fetch each pixel from source.
+
+        for transformer in self.data:
+            values = list(pixel)
+            for ch_num, channel in enumerate(Transformer.channels):
+                transformer_channel = getattr(transformer, channel, None)
+                if not transformer_channel:
+                    continue
+                if not callable(transformer_channel):
+                    values[ch_num] = transformer_channel
+                    continue
+                params = build_args(transformer_channel, transformer.signatures[channel])
+                values[ch_num] = transformer_channel(**params)
+            pixel = pcls(*values)
+        return pixel
 
 
 """

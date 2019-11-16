@@ -537,6 +537,11 @@ class Color:
                 return False
         return self.components == other.components
 
+    def __getitem__(self, index):
+        return self.components[index]
+
+    red, green, blue = [property(lambda self, i=i: self.components[i]) for i in (0, 1, 2)]
+
     @classmethod
     def normalize_color(cls, components):
         """Converts RGB colors to use 0-255 integers.

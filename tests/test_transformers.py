@@ -3,6 +3,8 @@ import terminedia.image as IMG
 import terminedia as TM
 from terminedia.values import DEFAULT_FG, Directions as D
 
+Color = TM.Color
+
 
 
 def test_transformer_character_channel_works():
@@ -18,7 +20,7 @@ def test_transformer_foreground_channel_works():
     sh.context.color = "red"
     sh[0,0] = "*"
     assert sh[0,0].foreground == Color("red")
-    sh.context.transformers.append(TM.Transformer(foreground=lambda value: TM.Color(value.green, value.blue, value.red)))
+    sh.context.transformers.append(TM.Transformer(foreground=lambda value: TM.Color((value.green, value.blue, value.red))))
     assert sh[0,0].value == "*"
     assert sh[0,0].foreground == Color("blue")
 
@@ -28,7 +30,7 @@ def test_transformer_background_channel_works():
     sh.context.background = "red"
     sh[0,0] = "*"
     assert sh[0,0].background == Color("red")
-    sh.context.transformers.append(TM.Transformer(background=lambda value: TM.Color(value.green, value.blue, value.red)))
+    sh.context.transformers.append(TM.Transformer(background=lambda value: TM.Color((value.green, value.blue, value.red))))
     assert sh[0,0].value == "*"
     assert sh[0,0].background == Color("blue")
 
@@ -45,22 +47,25 @@ def test_transformer_effects_channel_works():
 
 def test_transformers_can_be_stacked():
     sh = TM.shape((1,1))
+    green = Color((0, 255, 0))
     sh.context.color = "red"
-    sh.context.background = "green"
+    sh.context.background = green
     sh.context.effects = TM.Effects.underline
     sh[0,0] = "*"
     res = tuple(sh[0,0])
-    assert res == ("*", Color("red"), Color("green"), TM.Effects.underline)
+    # in SVG land, from where we get the color names, 'green' is 0, 128, 0.
+    green = Color((0, 255, 0))
+    assert res == ("*", Color("red"), green, TM.Effects.underline)
 
     sh.context.transformers.append(TM.Transformer(char=lambda value: "."))
     res = tuple(sh[0,0])
-    assert res == (".", Color("red"), Color("green"), TM.Effects.underline)
+    assert res == (".", Color("red"), green, TM.Effects.underline)
 
-    sh.context.transformers.append(TM.Transformer(foreground=lambda value: TM.Color(value.green, value.blue, value.red)))
+    sh.context.transformers.append(TM.Transformer(foreground=lambda value: TM.Color((value.green, value.blue, value.red))))
     res = tuple(sh[0,0])
-    assert res == (".", Color("blue"), Color("green"), TM.Effects.underline)
+    assert res == (".", Color("blue"), green, TM.Effects.underline)
 
-    sh.context.transformers.append(TM.Transformer(background=lambda value: TM.Color(value.green, value.blue, value.red)))
+    sh.context.transformers.append(TM.Transformer(background=lambda value: TM.Color((value.green, value.blue, value.red))))
     res = tuple(sh[0,0])
     assert res == (".", Color("blue"), Color("red"), TM.Effects.underline)
 
@@ -77,7 +82,7 @@ def test_transformers_stacked_are_run_in_order():
     sh[0,0] = "*"
     sh.context.transformers.append(TM.Transformer(char=lambda value: "."))
     sh.context.transformers.append(TM.Transformer(char=lambda value: "-" if value == "." else value))
-    assert sh[0,0] == "-"
+    assert sh[0,0].value == "-"
 
 
 def test_transformers_stack_accepts_insertions():
@@ -87,9 +92,9 @@ def test_transformers_stack_accepts_insertions():
     sh.context.effects = TM.Effects.underline
     sh[0,0] = "*"
     sh.context.transformers.append(TM.Transformer(char=lambda value: "-" if value == "." else "#"))
-    assert sh[0,0] == "#"
+    assert sh[0,0].value == "#"
     sh.context.transformers.insert(0, TM.Transformer(char=lambda value: "."))
-    assert sh[0,0] == "-"
+    assert sh[0,0].value == "-"
 
 
 def test_transformer_dependency_injection_pixel_parameter():

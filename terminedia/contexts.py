@@ -80,12 +80,13 @@ class Context:
     background = ContextVar(Color, DEFAULT_BG)
     effects = ContextVar(Effects, Effects.none)
     direction = ContextVar(V2, Directions.RIGHT)
-    transformers = ContextVar(TransformersContainer, TransformersContainer())
+    transformers = ContextVar(TransformersContainer, None)
     font = ContextVar(str, "")
 
     def __init__(self, **kw):
         self._locals = threading.local()
         self._update_from_global()
+        self.transformers = TransformersContainer()
         self._update(kw)
         self._dirty = False
 
@@ -143,7 +144,7 @@ class Context:
             # global initialization not complete - we may be initializing the root context itself
             return
         for name, attr in terminedia.context:
-            if name in ("default_bg", "default_fg"):
+            if name in ("default_bg", "default_fg", "transformers"):
                 continue
             setattr(self, name, attr)
 

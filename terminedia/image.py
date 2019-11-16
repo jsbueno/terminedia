@@ -849,8 +849,10 @@ class FullShape(Shape):
             return v
 
         value = self.get_raw(pos)
-
-        return self.PixelCls(*value)
+        pixel = self.PixelCls(*value)
+        if self.context.transformers:
+            pixel =  self.context.transformers.process(self, pos, pixel)
+        return pixel
 
     def __setitem__(self, pos, value):
         """
