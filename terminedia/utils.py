@@ -73,6 +73,16 @@ class V2(tuple):
         """multiplies a V2 by an scalar"""
         return self.__class__(self[0] * other, self[1] * other)
 
+    def __truediv__(self, other):
+        from terminedia.transformers import Spatial
+        if isinstance(other, Spatial):
+            return NotImplemented
+        try:
+            other = 1 / other
+        except (ValueError, TypeError):
+            return NotImplemented
+        return self * other
+
     def __abs__(self):
         """Returns Vector length
            Returns:
@@ -330,6 +340,67 @@ class Rect:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({tuple(self.c1)}, {tuple(self.c2)})"
+
+
+class Spatial:
+    """2D transformation matrix to be applied in transformers"""
+    def __init__(self, *, translate=None, scale=None, rotate=None, data=None):
+        if data:
+            self.data = data
+        else:
+            self.data = [
+                1, 0, 0,
+                0, 1, 0,
+                0, 0, 1,
+            ]
+            self.is_identity = True
+        if translate:
+            self.translate(translate)
+        if scale:
+            self.scale(scale)
+        if rotate:
+            self.rotate(rotate)
+
+    def __getitem__(self, index):
+        if hasattr(index, "__len__"):
+            index = 3 * index[1] + index[0]
+        return self.data[index]
+
+    def translate(self, ammount):
+        self.data[6] += ammount[0]
+        self.data[7] += ammount[1]
+
+    def scale(self, ammount):
+        raise NotImplementedError()
+
+    def rotate(self, ammount):
+        raise NotImplementedError()
+
+    def __mul__(self, pos):
+        # return the forward transform
+        # FIXME: using hardcoded translation values:
+        return V2(pos) + (self.data[6], self.data[7])
+
+    def __rmul__(self, pos):
+        # return the forward transform
+        # FIXME: using hardcoded translation values:
+        return V2(pos) + (self.data[6], self.data[7])
+
+    def __rtruediv__(self, pos):
+        # return the backward transform
+        # FIXME: using hardcoded translation values:
+        return V2(pos) + (-self.data[6], -self.data[7])
+
+    def __matmul__(self, other):
+        """Combine one or more matrices"""
+        # FIXME: hardcoded operation for translation
+        new_data = self.data.copy()
+        new_data[6] += other.data[6]
+        new_data[7] += other.data[7]
+        return Spatial(data=new_data)
+
+    def __repr__(self):
+        return repr(self.data)
 
 
 class LazyBindProperty:

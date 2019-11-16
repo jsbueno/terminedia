@@ -1,36 +1,55 @@
 from collections import UserList
+from inspect import signature
 
-
-class Spatial:
-    def __init__(self):
-        self.data = [
-            1, 0, 0,
-            0, 1, 0,
-            0, 0, 1,
-        ]
-        self.is_identity = True
+from terminedia.utils import V2, Spatial
 
 
 class Transformer:
+
+    channels = "char foreground background effects".split()
+
     def __init__(self, char=None, foreground=None, background=None, effects=None, spatial=None, source=None, mode="normal"):
         """
         Each slot can be None, a static value, or a callable.
 
-        Each of these callables have the signature:
-            pos: V2, values: Union[Char, Color, Effects], context: Context, source: Shape
+        Each of these callables can have in the signature named parameters with any combination of
 
-        It should return the value
+            "self, value, char, foreground, background, effects, pixel, pos, source, context, tick"
+            Each of these named parameters will be injected as an argument when the
+            function is called.
+                - "self": Transformer instance (it is, as the others, optional)
+                - "char, foreground, background, effects": the content of the respective channel
+                - "pos": the pixel position,
+                - "pixel" meaning the source pixel as transformed to this point on the pipeline ,
+                - "source" meaning
+                    the whole source shape. The callable should be careful to read the shape
+                    with "get_raw", and not using __getitem__ to avoid an infinite loop
+                    (an evolution of this may give a 'transformed down to here' view
+                    of the shape, or a 3x3 and 5x5 kernel options)
+                - "tick" meaning the "frame number" from app start, and in the future
+                    will be used for animations. It is currently injected as "0".
+
+        It should return the value to be used downstream of the named channel.
 
         """
-        self.char_s = char
-        self.foreground_f = foreground
-        self.background_f = background
-        self.effects_f = effects
+        self.char = char
+        self.foreground = foreground
+        self.background = background
+        self.effects = effects
         self.spatial = spatial
         self.source = source
         self.mode = mode
 
-        self.container = None
+        self.signatures = {
+            channel: frozenset(signature(getattr(self, channel)).parameters.keys()) if getattr(self, channel) else () for channel in self.channels
+        }
+
+
+    def __repr__(self):
+        return "Transformer <{}{}>".format(
+            ", ".join(channel for channel in self.channels if getattr(self, channel + "_f", None)),
+            f", source={self.source!r},  mode={self.mode!r}" if self.source else "",
+        )
 
 
 class TransformersContainer(UserList):
@@ -51,82 +70,35 @@ class TransformersContainer(UserList):
         self._init_item(item)
         super().insert(index, item)
 
+    def process(self, source,):
+        pass
 
-def create_transformer(context, slots, clear=False):
-    """
-    DEPRECATED - use the "Transformer" class instead.
-    (this will be removed in a few commits - transformers are becoming a lazy "on read" action,
-    instead of "on write")
-    Attach a specialized callable to a drawing context to transform pixel values during rendering
 
-    Args:
-      - context (Drawing context namespace): the context
-      - slots (Optional[Union[Constant, Callable[pos, values, context]]]): a sequence of callables that will perform the transform on each channel.
-      - clear (bool): if True will replace existing transformers.
-                      if False, the new transformation will be appended to the existing transformations in
-                      the context.
+"""
+Doc string of old-style "transform-on-write" 'create_transformer'  - kept transitionally
+due to the examples and ideas for transformers.
 
-      The callables passed to "slots" receive the full Pixel values as a sequence
-      (for full capability pixels: char, foreground, background, text effects).
-      Each callable have to return the final constant that will be applied as
-      that component on the drawing target data.
 
-      If one member of "slots" is not callable, it self is used
-      as a constant for that channel. The special value `NOP`
-      (``terminedia.values.NOP`` means no change to that channel.)
 
-      Slot callables can return the special  `TRANSPARENT` constant to
-      indicate the target value at the corresponding plane is preserved.
+    ex. to install a transformer to force all text effects off:
+    ```
+    from terminedia values import create_transformer, NOP, Effects
+    ...
+    create_transformer(shape.context, [NOP, NOP, NOP, Effects.none])
+    ```
 
-      Having fewer slots than are planes in the drawing context, means the
-      remaining planes are left empty.
+    For a transformer that will force all color rendering
+    to be done to the background instead of foreground:
+    ```
+    create_transformer(shape.context, [NOP, TRANSPARENT, lambda pos, values, context: values[1], NOP])
+    ```
 
-      ex. to install a transformer to force all text effects off:
-      ```
-      from terminedia values import create_transformer, NOP, Effects
-      ...
-      create_transformer(shape.context, [NOP, NOP, NOP, Effects.none])
-      ```
+    Transfomer to make all printed numbers be printed blinking:
 
-      For a transformer that will force all color rendering
-      to be done to the background instead of foreground:
-      ```
-      create_transformer(shape.context, [NOP, TRANSPARENT, lambda pos, values, context: values[1], NOP])
-      ```
+    ```
+    create_transformer(shape.context, [NOP, NOP, NOP, lambda pos, values, context: Effects.blink if values[0].isdigit() else TRANSPARENT])
+    ```
 
-      Transfomer to make all printed numbers be printed blinking:
 
-      ```
-      create_transformer(shape.context, [NOP, NOP, NOP, lambda pos, values, context: Effects.blink if values[0].isdigit() else TRANSPARENT])
-      ```
 
-      To uninstall a transformer, just set it to `None`
-      (that is: `shape.context.transformer = None`) or call this with slots=None.
-
-      # TODO -make transformer into a class that allows post-creation introspection and manipulation
-
-    """
-    from terminedia.values import NOP
-
-    if not slots:
-        context.transformer = None
-        return
-
-    previous_transformer = getattr(context, "transformer", None)
-    if clear:
-        previous_transformer = None
-
-    def transformer(pos, values):
-        if previous_transformer:
-            values = previous_transformer(pos, values)
-        return [
-            slot(pos, values, context)
-            if callable(slot)
-            else slot
-            if slot is not NOP
-            else values[i]
-            for i, slot in enumerate(slots)
-        ]
-
-    context.transformer = transformer
-
+"""

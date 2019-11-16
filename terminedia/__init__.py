@@ -8,7 +8,7 @@ non-blocking keyboard reading.
 
 from terminedia.contexts import Context, _RootContext
 from terminedia.input import keyboard, inkey, pause, KeyCodes
-from terminedia.utils import Color, Rect, V2
+from terminedia.utils import Color, Rect, V2, Spatial
 from terminedia.terminal import ScreenCommands, JournalingScreenCommands
 from terminedia.values import (
     Directions,
