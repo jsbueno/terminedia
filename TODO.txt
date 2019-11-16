@@ -44,7 +44,7 @@ Transformers [WIP]:
             - yield the final value for a pixel in a given position when it is read via "__getitem__" in a Shape
         - Transformer:
             a class with slots for each possible transformation a pixel might go through:
-                - char, foreground, background, effect, filter, spatial and source
+                - char, foreground, background, effect, spatial, source and mode
                     - spatial is a specialized object containing a 3x3 transformation matrix - which is applied in reverse
                     order to fetch the pixel (nearest neighbour) on the source data-shape.
 

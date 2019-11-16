@@ -30,6 +30,12 @@ try:
 except ImportError:
     PILImage = None
 
+
+#: Special value that can be sent (.send()) during interaction
+#: on Shape areas, so that the inner iterator does not go up to
+#: the end of a line in the internal buffer is those values
+#: will no longer be used. The `drawing.Drawing.blit` method
+#: has the code that sends this.
 SKIP_LINE = object()
 
 PixelClasses = {}
@@ -300,7 +306,9 @@ class Shape(ABC, ShapeApiMixin):
 
     @abstractmethod
     def __getitem__(self, pos):
-        """Values for each pixel are: character, fg_color, bg_color, effects.
+        """Common logic to create ShapeViews from slices.
+
+        Pixel data retrieving is implemented in the subclasses.
         """
         if isinstance(pos, Rect):
             roi = pos
@@ -862,8 +870,8 @@ class FullShape(Shape):
                 self.context.effects,
             ][len(value) - 1 :]
 
-        if self.context.transformer:
-            value = self.context.transformer(pos, value)
+        #if self.context.transformer:
+            #value = self.context.transformer(pos, value)
 
         ############
         # Check final width (have to apply transformation effect)

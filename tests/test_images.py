@@ -4,6 +4,8 @@ import terminedia as TM
 from terminedia.values import DEFAULT_FG, Directions as D
 
 
+# Paletted shape is pending rewrite. Data reading from it should yield a characterless pixel
+@pytest.mark.skip
 def test_palettedshape_new_works():
 
     a = IMG.PalettedShape.new((10, 10))
@@ -267,3 +269,8 @@ def test_create_pixel_from_pixel_str_bool_pick_color_discard_effect():
     px1 = PXT1("#", TM.Effects.underline)
     px2 = PXT2(px1, context=Context(color=(255, 0, 0)))
     assert px2.get_values(capabilities=PXT2.capabilities) == [True, (255, 0, 0)]
+
+
+def test_shape_factory_yields_full_shape_on_size_parameter():
+    sh = TM.shape((1,1))
+    assert sh.__class__ is TM.image.FullShape

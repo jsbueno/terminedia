@@ -8,7 +8,7 @@ non-blocking keyboard reading.
 
 from terminedia.contexts import Context, _RootContext
 from terminedia.input import keyboard, inkey, pause, KeyCodes
-from terminedia.utils import Color, Rect, V2, create_transformer
+from terminedia.utils import Color, Rect, V2
 from terminedia.terminal import ScreenCommands, JournalingScreenCommands
 from terminedia.values import (
     Directions,
@@ -23,6 +23,7 @@ from terminedia.image import shape, ValueShape, ImageShape, PalettedShape, FullS
 from terminedia.screen import Screen
 from terminedia.subpixels import BlockChars
 from terminedia.text import render
+from terminedia.transformers import Transformer
 
 __version__ = "0.3.dev0"
 __author__ = "João S. O. Bueno"

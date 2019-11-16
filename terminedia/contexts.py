@@ -4,7 +4,8 @@ import threading
 from copy import copy
 from types import FunctionType
 
-from terminedia.utils import Color, V2, TransformersContainer
+from terminedia.utils import Color, V2
+from terminedia.transformers import TransformersContainer
 from terminedia.subpixels import BlockChars
 from terminedia.values import DEFAULT_BG, DEFAULT_FG, Directions, Effects
 
@@ -79,7 +80,7 @@ class Context:
     background = ContextVar(Color, DEFAULT_BG)
     effects = ContextVar(Effects, Effects.none)
     direction = ContextVar(V2, Directions.RIGHT)
-    transformer = ContextVar((TransformersContainer, type(None)), None)
+    transformers = ContextVar(TransformersContainer, TransformersContainer())
     font = ContextVar(str, "")
 
     def __init__(self, **kw):
