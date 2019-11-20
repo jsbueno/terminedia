@@ -21,7 +21,7 @@ setup(
     include_package_data=True,
     zip_safe=True,
     test_requires=[],
-    install_requires=["click", 'colorama >= 1.0;platform_system=="Windows"'],
+    install_requires=["click", 'colorama;platform_system=="Windows"'],
     extras_require={
         "doc": ["Sphinx==2.0.0"],
         "images": ["pillow>=6.0.0"],

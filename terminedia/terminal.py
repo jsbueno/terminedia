@@ -111,6 +111,9 @@ class ScreenCommands:
         """
         if file is None:
             file = sys.stdout
+        if sys.platform == "win32":
+            print(sep.join(args), end=end, flush=flush, file=file)
+            return
         try:
             if len(args) == 1 and "\x1b" in args[0] and file is sys.stdout:
                 # Separate a long sequence in one write operation for each

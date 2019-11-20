@@ -6,6 +6,12 @@ Drawing primitives that operate with block chars are provided, as well as
 non-blocking keyboard reading.
 """
 
+import sys
+
+if sys.platform == "win32":
+    import colorama
+    colorama.init(convert=True)
+
 from terminedia.contexts import Context, RootContext
 from terminedia.input import keyboard, inkey, pause, KeyCodes
 from terminedia.utils import Color, Rect, V2, create_transformer
