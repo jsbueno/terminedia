@@ -5,13 +5,14 @@ is if it is a multi-functional canvas.
 Drawing primitives that operate with block chars are provided, as well as
 non-blocking keyboard reading.
 """
-
+import os
 import sys
 
-if sys.platform == "win32":
+if sys.platform == "win32" and not "WT_SESSION" in os.environ:
+    # Activate ANSI emulation for Windows terminals - but for new 2019 terminals, which work (and break with colorama)
     import colorama
     colorama.init(convert=True)
-
+    
 from terminedia.contexts import Context, RootContext
 from terminedia.input import keyboard, inkey, pause, KeyCodes
 from terminedia.utils import Color, Rect, V2, create_transformer
