@@ -24,6 +24,14 @@ with the "terminedia-" prefix.
 The idea is to keep this as a lightweight install - with
 as little dependencies as possible.
 
+Usage
+-------
+
+Although targeted for programatic use, after install a few example
+programs exercizing the library capabilities are made available
+in the active Python environment. Try one of several "terminedia-xxxxx" 
+scripts installed, such as "terminedia-image" and "terminedia-snake"
+
 
 ![Messy screenshot with current capabilities](docs/screenshot_01.png)
 ![Graph plot output example](docs/screenshot_02.png)
@@ -66,7 +74,15 @@ to be able to load arbitrary image files.
 Compatibility
 --------------
 
-For the time being this is being built in a Posix terminal and relies
+Preliminary Windows support - by using the Colorama Python package,
+with proper fonts configuration on the terminal, it is possible
+to experiment most of terminedia´s capabilities (the terminedia-snake
+example works).  There is still work to be done, but for a better
+experience under Windows install the CMDER console emulator
+and the UNSCII fonts for rendering pseudographics (links in the 
+FRIENDS.md file)
+
+On Linux and other posix systems, Terminedia relies
 on ANSI scape sequences for all terminal manipulation. It should work
 in most Linux and Mac OS terminal applications (including non-X11,
 "native" terminals on Linux)
@@ -75,6 +91,12 @@ The output result will vary according to the terminal
 and font used - a nice experience can be achieved
 with the "Terminus" font, specially if one is using
 the Braille characters for drawing.
+
+There is also an HTML backend that can output progrmatically
+created ASCII art to an HTML file, formatted with 
+mono-spaced fonts inside a `div` element. The
+"terminedia-image" example program makes use
+of this feature.
 
 
 License

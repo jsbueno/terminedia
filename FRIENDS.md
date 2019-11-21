@@ -1,7 +1,29 @@
 Related projects
 ================
 
-let's learn new ideas, use new tools:
+Related projects providing resources that enable a better use of Terminedia,
+or simply do similar things, or are essential for working with terminedia:
+
+# UNSCII font project:
+http://pelulamu.net/unscii/
+The UNSCII fonts are a few fonts created thinking in 
+vintage text-art, extending it to UNICODE. 
+Actually, terminedia currently _embedds_ the raster version
+of all UNSCII fonts, and those are used for drawing large-block
+text. Besides that, it is a very useful font, if not essential,
+to use terminedia under Windows, as it features the block-characters
+that are used as pixels.
+
+# CMDER terminl emulator
+https://cmder.net/
+Rather complete terminal experience made available under Windows.
+AMong other things, allow easy configuring of the fonts to be used
+for graphics (see UNSCII above), without which terminedia drawing
+simply won´t work. 
+
+
+And now for some similar projects
+=======================================
 
 # Plotting using Braille characters (Lua)
 https://github.com/asciimoo/lua-drawille

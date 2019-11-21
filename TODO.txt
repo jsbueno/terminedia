@@ -1,8 +1,13 @@
 Targeted for next release (0.3):
 =================================
-Partial windows support (cmder and maybe microsoft's new terminal):
-    - install and activate colorama if under windows
-    - create a non-blocking keybard reading system using mscrvt api
+Partial windows support (cmder and maybe microsoft's new terminal)[WIP]:
+    - install and activate colorama if under windows (V)
+    - create a non-blocking keybard reading system using mscrvt api (V)
+    - Document work around for use under windows (WIP)
+    - Create color-reducing code so that colors (mostly) work
+    - future: Windows terminal backend bypassing colorama, using full capabilities;
+    - Fix windows keyboard handling on new- MS terminal (2019)
+    - Known Issue: the rendering through colorama is super-slow. most animation applications will be just proof of concepts until another way is found.
 
 Resolve "can't output a lot of things to terminal if stdin set to non blocking" bug on windows
 
