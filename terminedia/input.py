@@ -1,9 +1,7 @@
 """non-blocking Keyboard reading and other input related code
 """
-import fcntl
 import os
 import sys
-import termios
 import time
 
 from collections import defaultdict, namedtuple
@@ -18,7 +16,7 @@ from terminedia.utils import mirror_dict
 
 
 @contextmanager
-def keyboard():
+def _posix_keyboard():
     """
     This context manager reconfigures `stdin` so that key presses
     are read in a non-blocking way.
@@ -69,13 +67,14 @@ def keyboard():
         fcntl.fcntl(fd, fcntl.F_SETFL, flags_save)
 
 
-def inkey(break_=True, clear=True):
+def _posix_inkey(break_=True, clear=True):
     """Return currently pressed key as a string
 
     Args:
       - break\_ (bool): Boolean parameter specifying whether "CTRL + C"
         (\x03) should raise KeyboardInterrupt or be returned as a
         keycode. Defaults to True.
+      -clear (bool): clears the keyboard buffer contents
 
     *Important*: This function only works inside a
     :any:`keyboard` managed context. (Posix)
@@ -146,7 +145,7 @@ def _testkeys():
             time.sleep(0.3)
 
 
-class KeyCodes:
+class _posix_KeyCodes:
     """Character keycodes as they appear in stdin
 
     (and as they are reported by :any:`inkey` function). This class
@@ -183,3 +182,120 @@ class KeyCodes:
     LEFT = "\x1b[D"
 
     codes = mirror_dict(locals())
+
+
+@contextmanager
+def _win32_keyboard():
+    """
+    This context manager is available to offer compatibility with the Posix equivalent. 
+
+    It is not really needed under Windows.
+
+    """
+    try:
+        yield
+    finally:
+        pass
+
+
+
+def _win32_inkey(break_=True, clear=True):
+    """Return currently pressed key as a string
+
+    Args:
+      - break\_ (bool): Boolean parameter specifying whether "CTRL + C"
+        (\x03) should raise KeyboardInterrupt or be returned as a
+        keycode. Defaults to True.
+      -clear (bool): clears the keyboard buffer contents
+
+    *Important*: This function only works inside a
+    :any:`keyboard` managed context. (Posix)
+
+    Code values or code sequences for non-character keys,
+    like ESC, direction arrows, fkeys are kept as constants
+    in the "KeyCodes" class.
+
+    Unfortunatelly, due to the nature of console streaming,
+    this can't receive "keypress" or "keyup" events, and repeat-rate
+    is not configurable, nor can it detect modifier keys, or
+    simultaneous key-presses.
+
+    """
+
+    if not msvcrt.kbhit():
+        return ""
+    
+    code = msvcrt.getwch()
+    if code in "\x00à" : # and msvcrt.kbhit():
+        code += msvcrt.getwch()
+
+    return code
+
+
+def _testkeys():
+    """Debug function to print out keycodes as read by :any:`inkey`"""
+    with keyboard():
+        while True:
+            try:
+                key = inkey()
+            except KeyboardInterrupt:
+                break
+            if key:
+                print("", key.encode("utf-8"), end="", flush=True)
+            print(".", end="", flush=True)
+            time.sleep(0.3)
+
+
+class _win32_KeyCodes:
+    """Character keycodes as they appear in stdin
+
+    (and as they are reported by :any:`inkey` function). This class
+    is used only as a namespace. Also note that printable-character
+    keys, such as upper and lower case letters, numbers and symbols
+    are not listed here, as their "code" is just a string containing
+    themselves.
+    """
+
+    F1 = "\x00;"
+    F2 = "\x00<"
+    F3 = "\x00="
+    F4 = "\x00>"
+    F5 = "\x00?"
+    F6 = "\x00@"
+    F7 = "\x00A"
+    F8 = "\x00B"
+    F9 = "\x00C"
+    F10 = "\x00D"
+    F11 = "á\x85"
+    F12 = "á\x86"
+    ESC = "\x1b"
+    BACK = "\x08"
+    DELETE = "à5"
+    ENTER = "\r"
+    PGUP = "àI"
+    PGDOWN = "àQ"
+    HOME = "àG"
+    END = "àO"
+    INSERT = "àR"
+    UP = "àH"
+    RIGHT = "àM"
+    DOWN = "àP"
+    LEFT = "àK"
+
+    codes = mirror_dict(locals())
+
+
+if sys.platform != "win32":
+    import fcntl
+    import termios
+
+    inkey = _posix_inkey
+    keyboard = _posix_keyboard
+    KeyCodes = _posix_KeyCodes
+else:
+    import msvcrt
+    inkey = _win32_inkey
+    keyboard = _win32_keyboard
+    KeyCodes = _win32_KeyCodes
+
+
