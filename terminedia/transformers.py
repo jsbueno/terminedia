@@ -88,7 +88,7 @@ class TransformersContainer(UserList):
                 elif parameter == "value":
                     args["value"] = values[ch_num]
                 elif parameter in Transformer.channels:
-                    args[channel] = getattr(pixel, channel if channel != "char" else "value")
+                    args[parameter] = getattr(pixel, parameter if parameter != "char" else "value")
                 elif parameter == "pos":
                     args["pos"] = pos
                 elif parameter == "pixel":
