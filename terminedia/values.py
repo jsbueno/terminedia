@@ -2,6 +2,7 @@ from enum import Enum, IntFlag, EnumMeta
 
 from terminedia.utils import mirror_dict, V2, NamedV2, Color, SpecialColor
 
+ESC = "\x1b"
 
 def _lazy_app_context():
     from terminedia import context
@@ -113,6 +114,7 @@ class Effects(IntFlag):
     math_bold_italic = 2 ** 20
     super_bold = 2 ** 21
     super_script = 2 ** 22
+    upside_down = 2 ** 23
 
 
 # Effects that are rendered by character translation / unicode combining
@@ -128,13 +130,14 @@ unicode_effects = {
     Effects.math_bold_italic,
     Effects.super_bold,
     Effects.super_script,
+    Effects.upside_down
 }
+
 UNICODE_EFFECTS = Effects(
     sum(effect for effect in Effects if effect in unicode_effects)
 )
 
 # (encircled is actually defined as an ANSI effect, but no terminal
-# support for it was found at encoding time.)
+# support for it was found at codifiction time.)
 
 
-ESC = "\x1b"

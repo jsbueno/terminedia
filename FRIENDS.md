@@ -34,3 +34,14 @@ https://github.com/atanunq/viu
 # Extended API iterminal emulator  (C + Python):
 https://github.com/kovidgoyal/kitty
 
+Simpler projects dealing with subsets of character/effect mangling
+===================================================================
+
+We can use some ideas/data from these projects -
+proper credit is given on code inline comments where this happens:
+
+# Python upsidedown  by Christoph Burgmer
+Simpler converter/printer to upsidedown pseudo text:
+https://github.com/cburgmer/upsidedown by Christoph Burgmer
+
+(Pseudo upside down mapping originally lifted from fileformat.info/)

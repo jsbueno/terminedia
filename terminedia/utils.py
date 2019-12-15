@@ -463,7 +463,7 @@ def char_width(char):
     if len(char) > 1:
         return max(char_width(combining) for combining in char)
     v = unicodedata.east_asian_width(char)
-    return 1 if v in ("N", "Na") else 2  # (?) include "A" as single width?
+    return 1 if v in ("N", "Na", "A") else 2  # (?) include "A" as single width?
 
 
 css_colors = {
