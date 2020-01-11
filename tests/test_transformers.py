@@ -6,7 +6,6 @@ from terminedia.values import DEFAULT_FG, Directions as D
 Color = TM.Color
 
 
-
 def test_transformer_character_channel_works():
     sh = TM.shape((1,1))
     sh[0,0] = "*"
@@ -123,7 +122,7 @@ The "combination mode" transformer parameter indicates how the pixels
 in the other shape will be combined - at first only a  "normal" meaning override
 the target pixel, with TM.Empty (space - char(0x20)) being "transparent" glyph,
 and "TM.TRANSPARENT" on each of the foreground, background and effects channels
-to prserve the respective channel on the target image.
+to preserve the respective channel on the target image.
 
  A couple of the SVG blend modes
 may be implemented soon - https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators
