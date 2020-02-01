@@ -474,6 +474,11 @@ class Shape(ABC, ShapeApiMixin):
         )
         return rep
 
+    def clear(self):
+        with self.context:
+            self.context.char = EMPTY
+            self.draw.fill()
+
 
 # "Virtualsubclassing" - 2 days after I wrote there were no
 # practical uses for it.
@@ -712,6 +717,9 @@ class ImageShape(ValueShape):
     def _raw_setitem(self, pos, color):
         self.data.putpixel(pos, color)
 
+    def clear(self):
+        img = self.data
+        img.paste(tuple(self.context.background), [0,0, img.size[0], img.size[1]])
 
 class PalettedShape(Shape):
     """'Shape' class intended to represent images, using a color-map to map characters to block colors.
