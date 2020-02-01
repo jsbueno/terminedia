@@ -331,6 +331,18 @@ class Rect:
             return other.c1 in self and other.c2 in self
         return self.left <= other[0] < self.right and self.top <= other[1] < self.bottom
 
+    def collide(self, other):
+        return (
+            (other.top <= self.top <= other.bottom  or
+             other.top <= self.bottom <= other.bottom or
+             self.top <= other.top <= self.bottom
+             ) and
+            (other.left <= self.left <= other.right or
+             other.left <= self.right <= other.right or
+             self.left <= other.left <= self.right
+             )
+        )
+
     def __iter__(self):
         yield self.c1
         yield self.c2
