@@ -35,37 +35,18 @@ smaller features:
     - bug: with terminal in relative movement, snake-game is faulty,, suggesting terminal-context bugs
     - bug: (may be postponed) - shape.render does not respect shapesviews (slices): the parent shape is rendered instead
 
+    Transformers:
+        - include a variety of ready-to-use and easy to parametrize transformers for:
+             -applying gradient effects
+             - convolution filters
 
-Transformers [WIP]:
-    Transformers are a generic word for filters, which include attached shapes that will work as extra layers.
-    Improve context transformers to become a friendly, stackable class with defined API:
-        - a Transformer container class is attached to each context in "transformers"
-        - if enabled, shape data will be kept in a "shadow" buffer with the original content, all write operations are to the "shadow" and all read operations from the parent shape read the transformed content.
-        - (The 'Shadow" buffer is a Shape object - an extra flag should be added to shapes so that only the base Shape have "transformers" applied to it. Otherwise, the shadow buffer uses the same context as the parent)
-        - This design should allow a filter to read random pixels from the shadow buffer, and not the pixel being written - this will enable the creation of convolution filters
-        - TranformersContainer:
-            - a specialized sequence to hold a Transformers stack for each context
-            - exposes "char", "foreground", "background" and "effect" properties which
-            - yield the final value for a pixel in a given position when it is read via "__getitem__" in a Shape
-        - Transformer:
-            a class with slots for each possible transformation a pixel might go through:
-                - char, foreground, background, effect, spatial, source and mode
-                    - spatial is a specialized object containing a 3x3 transformation matrix - which is applied in reverse
-                    order to fetch the pixel (nearest neighbour) on the source data-shape.
+    Sprites:
+        - A stack of Shapes that can be attached to a shape
+        and be rendered over it, according to a combination-mode.
+        (Should be practical to use as game objects)
 
-                    - filter: (maybe not needed - the idea would be to look at neighbourhood pixels at the source
-                               and apply an effect depending on the neighbours. But possibly this should go straight
-                               in the "char ... effects" slots.)
-                    - source: if given, a shape that is blitted over the target
-                        shape (otherwise the source is a "shadow" shape). Pixels from a given source
-                        are combined with pixels from the shadow, according to
-                        some combination semantics. Default is "normal" which just replaces
-                        pixels comming from the shadow-shape in the transform pipeline with the values
-                        from the source-shape. This allows
-                        Transformer + Shape + Spatial work as a "sprite" mechanism.
-                        - *future* : combination and layer modes other than "normal".
 
-                - Spatial - class embedding a 2D (3X3) transformation matrix with friendly properties
+        - Spatial - class embedding a 2D (3X3) transformation matrix with friendly properties
                 to specify linear transformations in a friendly way.
 
     create some filters as ready-made transformers (maybe not all for 0.3.0):

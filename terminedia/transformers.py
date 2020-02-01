@@ -1,21 +1,26 @@
 from inspect import signature
 
-from terminedia.utils import V2, Spatial, HookList
+from terminedia.utils import V2, HookList
 
 
 class Transformer:
 
-    channels = "char foreground background effects".split()
+    channels = "pixel char foreground background effects".split()
 
-    def __init__(self, char=None, foreground=None, background=None, effects=None, spatial=None, source=None, mode="normal"):
+    def __init__(self, pixel=None, char=None, foreground=None, background=None, effects=None):
         """
+        Class implementing a generic filter to be applied on an shape's pixels when their value is read.
+
+        The parameters for __init__ are slots that will generate or transform the corresponding
+        value on the final pixel
+        -
         Each slot can be None, a static value, or a callable.
 
         Each of these callables can have in the signature named parameters with any combination of
 
             "self, value, char, foreground, background, effects, pixel, pos, source, context, tick"
             Each of these named parameters will be injected as an argument when the
-            function is called.
+            it is called.
                 - "self": Transformer instance (it is, as the others, optional)
                 - "value": the current value for this channel
                 - "char, foreground, background, effects": the content of the respective channel
@@ -32,13 +37,11 @@ class Transformer:
         It should return the value to be used downstream of the named channel.
 
         """
+        self.pixel = pixel
         self.char = char
         self.foreground = foreground
         self.background = background
         self.effects = effects
-        self.spatial = spatial
-        self.source = source
-        self.mode = mode
 
         self.signatures = {
             channel: frozenset(signature(getattr(self, channel)).parameters.keys()) if getattr(self, channel) else () for channel in self.channels
@@ -80,7 +83,7 @@ class TransformersContainer(HookList):
                     args["self"] = transformer
                 elif parameter == "value":
                     args["value"] = values[ch_num]
-                elif parameter in Transformer.channels:
+                elif parameter in Transformer.channels and parameter != "pixel":
                     args[parameter] = getattr(pixel, parameter if parameter != "char" else "value")
                 elif parameter == "pos":
                     args["pos"] = pos
@@ -94,48 +97,25 @@ class TransformersContainer(HookList):
                     args["context"] = source.context
             return args
 
-        # TODO: if composite spatial != identity, fetch each pixel from source.
-
+        values = list(pixel)
         for transformer in self.stack:
-            values = list(pixel)
-            for ch_num, channel in enumerate(Transformer.channels):
+            dest_values = values[:]
+            for ch_num, channel in enumerate(Transformer.channels, -1):
                 transformer_channel = getattr(transformer, channel, None)
-                if not transformer_channel:
+                if transformer_channel is None:
                     continue
                 if not callable(transformer_channel):
-                    values[ch_num] = transformer_channel
+                    if ch_num == -1:  # (pixel channel)
+                        continue
+                    dest_values[ch_num] = transformer_channel
                     continue
                 params = build_args(transformer_channel, transformer.signatures[channel])
-                values[ch_num] = transformer_channel(**params)
-            pixel = pcls(*values)
+                if ch_num == -1:  # (pixel channel)
+                    dest_values = list(transformer_channel(**params))
+                else:
+                    dest_values[ch_num] = transformer_channel(**params)
+            values = dest_values
+
+        pixel = pcls(*values)
         return pixel
 
-
-"""
-Doc string of old-style "transform-on-write" 'create_transformer'  - kept transitionally
-due to the examples and ideas for transformers.
-
-
-
-    ex. to install a transformer to force all text effects off:
-    ```
-    from terminedia values import create_transformer, NOP, Effects
-    ...
-    create_transformer(shape.context, [NOP, NOP, NOP, Effects.none])
-    ```
-
-    For a transformer that will force all color rendering
-    to be done to the background instead of foreground:
-    ```
-    create_transformer(shape.context, [NOP, TRANSPARENT, lambda pos, values, context: values[1], NOP])
-    ```
-
-    Transfomer to make all printed numbers be printed blinking:
-
-    ```
-    create_transformer(shape.context, [NOP, NOP, NOP, lambda pos, values, context: Effects.blink if values[0].isdigit() else TRANSPARENT])
-    ```
-
-
-
-"""

@@ -151,6 +151,45 @@ HTML-Backend Steps
     Change terminedia-image example script to accept a "-backend HTML" option and create an HTML file.(V)
 
 
+Transformers :
+    Transformers are a generic word for filters, which include attached shapes that will work as extra layers.
+    Improve context transformers to become a friendly, stackable class with defined API:
+        - a Transformer container class is attached to each context in "transformers"
+            - a specialized sequence to hold a Transformers stack for each context
+            - exposes "char", "foreground", "background" and "effect" properties which
+            yield the final value for a pixel in a given position when it is read via "__getitem__" in a Shape
+        - Transformer:
+            a class with slots for each possible transformation a pixel might go through:
+                - slots: pixel, char, foreground, background, effect:
+                    each slot is a callable - in which the parameters may take any combinations
+                    of the names "self, value, pos, pixel, source, tick, context":
+                        when each pixel is _read_ on the base-shape, its contents
+                        are processed in each of the slots in the transformer before
+                        its value is delivered. Thus, if the shape is used
+                        in a "blit" operation, all its values are processed.
+
+                        For example, a transformer with a "char" slot that have
+                        as parameters "char, foreground" will receive, for each pixel,
+                        the character and the color, and should return  a new character that
+                        will replace the character in that position.
+
+                        these are the input parameters valid for the slot characters:
+                            - self: the Transformer instance
+                            - value: the pixel value (character)
+                            - pos: the coordinates for the current pixel
+                            - pixel: the whole pixel (4-value consisting of char,fg, bg, effects)
+                            - source: the shape where the transformer is being applied
+                                      (NB: one can't read the shape's values with the "[ ]"
+                                       syntax from within a Transformer code - the values
+                                       read through that are processed in the transformers.
+                                       Use `shape.get_raw` instead)
+                            - tick: a frame count from the start of the process -
+                            currently not used - but idea is a monotonically growing
+                            number each time the shape is rendered.
+                            - context: the shape's current context
+
+
+
 Bugs:
     bug: CRITICAL: effects refactoring led rendering to be B&W (V)
     bug: unicode_effects not being applied on direct "screen.print" call.(V)

@@ -77,9 +77,6 @@ class V2(tuple):
         return self.__class__(self[0] * other, self[1] * other)
 
     def __truediv__(self, other):
-        from terminedia.transformers import Spatial
-        if isinstance(other, Spatial):
-            return NotImplemented
         try:
             other = 1 / other
         except (ValueError, TypeError):
@@ -345,150 +342,6 @@ class Rect:
         return f"{self.__class__.__name__}({tuple(self.c1)}, {tuple(self.c2)})"
 
 
-#class _V2MAT:
-    #"""Special wrapper for sequences, allowing then to work as 1D vertical  or horizontal matrices"""
-
-    #def __setitem__(self, item):
-        #pass
-
-    #def __getitem__(self, item):
-        #if hasattr(item, "__len__"):
-            #item = item[1]
-        #return super().__getitem__(item)
-
-
-class Matrix:
-    def __init__(self, size, data=None):
-        self.data = ([0] * size[0] * size[1]) if data is None else data
-        self.size = size
-
-    def __getitem__(self, index):
-        return self.data[index[1] + index[0] * self.size[1]]
-
-    def __setitem__(self, index, value):
-        self.data[index[1] + index[0] * self.size[1]] = value
-
-    def __delitem__(self, index):
-        raise NotImplementedError()
-
-    @classmethod
-    def identity(self, size):
-        result = Matrix(size)
-        for i in range(size[0]):
-            result[i, i] = 1
-        return result
-
-    def _by_element(self, other, op):
-        if self.size != other.size:
-            raise ValueError("Matrices must be the same size for sum")
-        new_data = [op(e1, e2) for e1, e2 in zip(self.data, other.data)]
-        result = Matrix(self.size, data=new_data)
-        return result
-
-
-    def __add__(self, other):
-        return self._by_element(other, operator.add)
-
-    def __sub__(self, other):
-        return self._by_element(other, operator.sub)
-
-    def __mul__(self, other):
-        new_data = [e1 * other for e1 in self.data]
-        result = Matrix(self.size, data=new_data)
-        return result
-
-    def __matmul__(self, other):
-        if self.size[0] != other.size[1]:
-            raise ValueError("Matrices size mismatch for multiplication")
-        result = Matrix((self.size[0], other.size[1]))
-        for i in range(self.size[0]):
-            for j in range(other.size[1]):
-                for k in range(self.size[1]):
-                    result[i, j] += self[i, k] * other[k, j]
-        return result
-
-    def __repr__(self):
-        return "\n".join(", ".join(str(self[i, j]) for j in range(self.size[1])) for i in range(self.size[0]))
-
-
-
-
-class Spatial:
-    """2D transformation matrix to be applied in transformers"""
-    def __init__(self, *, translate=None, scale=None, rotate=None, data=None):
-        if data:
-            self.data = data
-        else:
-            self.data = [
-                1, 0, 0,
-                0, 1, 0,
-                0, 0, 1,
-            ]
-            self.is_identity = True
-        if translate:
-            self.translate(translate)
-        if scale:
-            self.scale(scale)
-        if rotate:
-            self.rotate(rotate)
-
-    def __getitem__(self, index):
-        if hasattr(index, "__len__"):
-            index = 3 * index[1] + index[0]
-        return self.data[index]
-
-    def translate(self, ammount):
-        self.data[2] += ammount[0]
-        self.data[5] += ammount[1]
-
-    def scale(self, ammount):
-        raise NotImplementedError()
-
-    def rotate(self, ammount):
-        raise NotImplementedError()
-
-    def __mul__(self, pos):
-        # return the forward transform
-        # FIXME: using hardcoded translation values:
-        return V2(pos) + (self.data[2], self.data[5])
-
-    def __rmul__(self, pos):
-        # return the forward transform
-        # FIXME: using hardcoded translation values:
-        return V2(pos) + (self.data[2], self.data[5])
-
-    def __rtruediv__(self, pos):
-        # return the backward transform
-        # FIXME: using hardcoded translation values:
-        return V2(pos) + (-self.data[2], -self.data[5])
-
-    def __matmul__(self, other):
-        """Combine one or more matrices"""
-        if not isinstance(other, Spatial):
-            if len(other) == 2:
-              other = [list(other) + [0]]
-            result = [[0, 0, 0]]
-            j_max = 1
-        else:
-            result = Spatial()
-            j_max = 3
-        for i in range(3):
-            for j in range(j_max):
-                line_val = 0
-                for k in range(3):
-                    line_val += self[i, k] * other[k, j]
-
-        new_mat = Spatial() if isinstance(other, Spatial) else None
-
-        #new_data = self.data.copy()
-        #new_data[6] += other.data[6]
-        #new_data[7] += other.data[7]
-        return Spatial(data=new_data)
-
-    def __repr__(self):
-        return repr(self.data)
-
-
 class LazyBindProperty:
     def __init__(self, initializer):
         self.initializer = initializer
@@ -712,7 +565,7 @@ class HookList(MutableSequence):
         return item
 
     def __getitem__(self, index):
-        return self.data[item]
+        return self.data[index]
 
     def __setitem__(self, index, item):
         item = self.insert_hook(item)
