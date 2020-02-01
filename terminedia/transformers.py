@@ -44,7 +44,7 @@ class Transformer:
         self.effects = effects
 
         self.signatures = {
-            channel: frozenset(signature(getattr(self, channel)).parameters.keys()) if getattr(self, channel) else () for channel in self.channels
+            channel: frozenset(signature(getattr(self, channel)).parameters.keys()) if callable(getattr(self, channel)) else () for channel in self.channels
         }
 
 

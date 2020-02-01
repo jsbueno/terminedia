@@ -6,6 +6,13 @@ from terminedia.values import DEFAULT_FG, Directions as D
 Color = TM.Color
 
 
+def test_transformer_character_channel_works_with_static_transform():
+    sh = TM.shape((1,1))
+    sh[0,0] = "*"
+    assert sh[0,0].value == "*"
+    sh.context.transformers.append(TM.Transformer(char="."))
+    assert sh[0,0].value == "."
+
 def test_transformer_character_channel_works():
     sh = TM.shape((1,1))
     sh[0,0] = "*"
@@ -104,6 +111,14 @@ def test_transformer_dependency_injection_pixel_parameter():
     sh[0,0] = "A"
     assert sh[0,0].effects == TM.Effects.underline
 
+
+def test_transform_pixel_channel_works():
+    sh = TM.shape((1,1))
+    def new_pixel(value):
+        return "*", TM.Color("red"), TM.Color("blue"), TM.Effects.underline
+
+    sh.context.transformers.append(TM.Transformer(pixel=new_pixel, background=TM.Color("green")))
+    assert tuple(sh[0,0]) == ("*", TM.Color("red"), TM.Color("green"), TM.Effects.underline)
 
 # Test injection for "pos" parameter -
 """
