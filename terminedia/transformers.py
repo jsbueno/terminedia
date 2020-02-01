@@ -1,7 +1,6 @@
-from collections import UserList
 from inspect import signature
 
-from terminedia.utils import V2, Spatial
+from terminedia.utils import V2, Spatial, HookList
 
 
 class Transformer:
@@ -53,23 +52,17 @@ class Transformer:
         )
 
 
-class TransformersContainer(UserList):
+class TransformersContainer(HookList):
     def __init__(self, *args):
         super().__init__(*args)
         self.stack = self.data
 
-    def _init_item(self, item):
+    def insert_hook(self, item):
+        item = super().insert_hook(item)
         if not isinstance(item, Transformer):
             raise TypeError("Only Transformer instances can be added to a TransformersContainer")
         item.container = self
-
-    def __setitem__(self, index, item):
-        self._init_item(item)
-        super().__setitem__(index, item)
-
-    def insert(self, index, item):
-        self._init_item(item)
-        super().insert(index, item)
+        return item
 
     def process(self, source, pos, pixel):
         """Called automatically by FullShape.__getitem__
@@ -103,7 +96,7 @@ class TransformersContainer(UserList):
 
         # TODO: if composite spatial != identity, fetch each pixel from source.
 
-        for transformer in self.data:
+        for transformer in self.stack:
             values = list(pixel)
             for ch_num, channel in enumerate(Transformer.channels):
                 transformer_channel = getattr(transformer, channel, None)

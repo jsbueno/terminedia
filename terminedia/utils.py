@@ -1,6 +1,8 @@
 import operator
 import unicodedata
+from collections.abc import MutableSequence
 from functools import lru_cache
+
 
 def mirror_dict(dct):
     """Creates a new dictionary exchanging values for keys
@@ -697,3 +699,34 @@ class SpecialColor(Color):
         if callable(self.component_source):
             return self.component_source(self)
         return self.component_source
+
+
+
+class HookList(MutableSequence):
+    def __init__(self, initial=()):
+        self.data = list()
+        for item in initial:
+            self.append(initial)
+
+    def insert_hook(self, item):
+        return item
+
+    def __getitem__(self, index):
+        return self.data[item]
+
+    def __setitem__(self, index, item):
+        item = self.insert_hook(item)
+        self.data[index] = item
+
+    def __delitem__(self, index):
+        del self.data[index]
+
+    def __len__(self):
+        return len(self.data)
+
+    def insert(self, index, item):
+        item = self.insert_hook(item)
+        self.data.insert(index, item)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.data!r})"
