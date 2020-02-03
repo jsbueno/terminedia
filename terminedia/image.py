@@ -8,6 +8,7 @@ from io import StringIO
 from pathlib import Path
 
 from terminedia.contexts import Context
+from terminedia.sprites import SpriteContainer
 from terminedia.subpixels import BrailleChars
 from terminedia.utils import Color, Rect, V2, LazyBindProperty, char_width
 from terminedia.unicode_transforms import translate_chars
@@ -187,8 +188,14 @@ class ShapeApiMixin:
     def braille(self):
         return self._get_highres(block_class=BrailleChars, block_height=4)
 
+    sprites = LazyBindProperty(SpriteContainer)
+
     def get_size(self):
         return V2(self.width, self.height)
+
+    @property
+    def size(self):
+        return self.get_size()
 
     _data_func = staticmethod(lambda size: [EMPTY * size.x] * size.y)
 
@@ -215,6 +222,11 @@ class ShapeApiMixin:
         from terminedia.text import Text
 
         return Text(self)
+
+    def clear(self):
+        with self.context:
+            self.context.char = EMPTY
+            self.draw.fill()
 
 
 class Shape(ABC, ShapeApiMixin):
@@ -474,10 +486,6 @@ class Shape(ABC, ShapeApiMixin):
         )
         return rep
 
-    def clear(self):
-        with self.context:
-            self.context.char = EMPTY
-            self.draw.fill()
 
 
 # "Virtualsubclassing" - 2 days after I wrote there were no
@@ -809,7 +817,7 @@ class FullShape(Shape):
     Args:
       - data: a sequence with 4 planes (sequences), each a sequence with n-rows
             sequences of m-width elements. The first one should carry character
-            data: a unicode sequence representing a singl glyph. The second
+            data: a unicode sequence representing a single glyph. The second
             and 3rd should contain color values, and the 4th an integer
             representing text effects according to Effects values.
     """
