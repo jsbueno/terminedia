@@ -68,6 +68,8 @@ class V2(tuple):
         """Adds both components of a V2 or other 2-sequence"""
         return self.__class__(self[0] + other[0], self[1] + other[1])
 
+    __radd__ = __add__
+
     def __sub__(self, other):
         """Subtracts both components of a V2 or other 2-sequence"""
         return self.__class__(self[0] - other[0], self[1] - other[1])
