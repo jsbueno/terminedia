@@ -15,6 +15,7 @@ if sys.platform == "win32":
 
 from terminedia.input import keyboard, inkey, pause, KeyCodes, getch
 from terminedia.utils import Color, Rect, V2
+from terminedia.sprites import Sprite
 from terminedia.terminal import ScreenCommands, JournalingScreenCommands
 from terminedia.values import (
     Directions,

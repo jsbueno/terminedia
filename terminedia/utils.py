@@ -72,6 +72,10 @@ class V2(tuple):
         """Subtracts both components of a V2 or other 2-sequence"""
         return self.__class__(self[0] - other[0], self[1] - other[1])
 
+    def __rsub__(self, other):
+        """Subtracts both components of a V2 or other 2-sequence"""
+        return self.__class__(other[0] - self[0], other[1] - self[1])
+
     def __mul__(self, other):
         """multiplies a V2 by an scalar"""
         return self.__class__(self[0] * other, self[1] * other)

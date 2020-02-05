@@ -188,7 +188,12 @@ class ShapeApiMixin:
     def braille(self):
         return self._get_highres(block_class=BrailleChars, block_height=4)
 
-    sprites = LazyBindProperty(SpriteContainer)
+    @LazyBindProperty
+    def sprites(self):
+        self.has_sprites = True
+        return SpriteContainer(self)
+
+    has_sprites = False
 
     def get_size(self):
         return V2(self.width, self.height)
@@ -868,6 +873,8 @@ class FullShape(Shape):
         pixel = self.PixelCls(*value)
         if self.context.transformers:
             pixel =  self.context.transformers.process(self, pos, pixel)
+        if self.has_sprites:
+            pixel = self.sprites.get_at(pos, pixel)
         return pixel
 
     def __setitem__(self, pos, value):
