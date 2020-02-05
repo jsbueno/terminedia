@@ -283,8 +283,10 @@ class Drawing:
                 f"Unknown data argument passed to blit: {type(data)} instance"
             )
 
-        pos, extent = Rect(pos)
-        if extent == (0, 0):
+        if isinstance(pos, Rect):
+            extent = pos.width_height
+            pos = pos.c1
+        else:
             extent = None
 
         if roi is not None:

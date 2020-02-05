@@ -198,24 +198,28 @@ class Rect:
 
         if not width_height and width is not None and height is not None:
             width_height = width, height
-        self.c1 = (
+        c1 =(
             c1
             if c1
             else (left, top)
             if left is not None and top is not None
             else (0, 0)
         )
-        self.c2 = (
+        c2 =(
             c2
             if c2
             else (right, bottom)
             if right is not None and bottom is not None
             else (0, 0)
         )
+        self.c1 = (min(c1[0], c2[0]), min(c1[1], c2[1]))
+        self.c2 = (max(c1[0], c2[0]), max(c1[1], c2[1]))
+
         if width_height:
             self.width_height = width_height
         if center:
             self.center = center
+
 
     c1 = property(lambda s: s._c1)
 
