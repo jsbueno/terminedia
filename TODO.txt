@@ -39,11 +39,10 @@ smaller features:
         - include a variety of ready-to-use and easy to parametrize transformers for:
              -applying gradient effects
              - convolution filters
+        - add 'bake' operation: render a transformers stack into a shape
 
     Sprites:
-        - A stack of Shapes that can be attached to a shape
-        and be rendered over it, according to a combination-mode.
-        (Should be practical to use as game objects)
+        - Add Spatial transformation
 
 
         - Spatial - class embedding a 2D (3X3) transformation matrix with friendly properties
@@ -55,6 +54,11 @@ smaller features:
         - color-value to different unicode-circles
         - color-value to different unicode-squares
         - linear gradients
+
+- "plain stream mode": provide an easy way to use colors and character effects without
+breaking the exising flow on the tty - (no need to insantiate a Screen or print
+at a specfic position)
+
 
 breaking-changes:
     - rename unicode effects so that their name matchs their unicode names (at least "super_bold" -> "regional_indicator")
@@ -84,6 +88,11 @@ Future
     - refactor image loading to be able to use super-resolutions for B&W, while keeping color resolution low (Speccy way)
      - Update "text-effects" example to fit more effects to come.
 
+- Event system
+    Allow for CSS like animations, mainloop and callback registration
+    for events
+
+
 Find a way to find witch unicode-glyphs are available in system-wide fonts
     - suggest font-installation
     - (or) download free-fonts to terminedia data folder (but how to make the host terminal use them?)
@@ -97,13 +106,19 @@ Convolution-dependant effects:
     - Couple with "find border" filter(?)
 
 "page" abstraction expanding the "shape": including text regions, layers and animation effects
+    (possibly using sprites)
 
 easy way to pick unicode emojis and glyphs
 
-alpha channel support for images:
+Enhance color and composition:
+    alpha channel support for images:
     plot with spaces (" ") instead of full-block char, and compose color using background
+    "combination modes"
+    add easy color operations (modify RGB or HSL attributes of a given color in an easy way)
 
-support to z-index, and background keeping on blitting ("sprite" api)
+Sprites:
+    create tagging system
+    and easy tag-based event api
 
 MS-Windows support (colorama/mscrvt/color reducing)
 
