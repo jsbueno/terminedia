@@ -1,11 +1,15 @@
 from inspect import signature
 
-from terminedia.utils import V2, HookList
+from terminedia.utils import V2, HookList, get_current_tick
 
 
 class Transformer:
 
     channels = "pixel char foreground background effects".split()
+
+    for channel in channels:
+        setattr(locals(), channel, None)
+    del channel
 
     def __init__(self, pixel=None, char=None, foreground=None, background=None, effects=None):
         """
@@ -13,7 +17,7 @@ class Transformer:
 
         The parameters for __init__ are slots that will generate or transform the corresponding
         value on the final pixel
-        -
+
         Each slot can be None, a static value, or a callable.
 
         Each of these callables can have in the signature named parameters with any combination of
@@ -37,11 +41,10 @@ class Transformer:
         It should return the value to be used downstream of the named channel.
 
         """
-        self.pixel = pixel
-        self.char = char
-        self.foreground = foreground
-        self.background = background
-        self.effects = effects
+        for slotname in self.channels:
+            if locals()[slotname]:
+                setattr(self, slotname, locals()[slotname])
+
 
         self.signatures = {
             channel: frozenset(signature(getattr(self, channel)).parameters.keys()) if callable(getattr(self, channel)) else () for channel in self.channels
@@ -92,7 +95,7 @@ class TransformersContainer(HookList):
                 elif parameter == "source":
                     args["source"] = source
                 elif parameter == "tick":
-                    args["tick"] = getattr(context, "tick", 0)
+                    args["tick"] = get_current_tick()
                 elif parameter == "context":
                     args["context"] = source.context
             return args
@@ -118,4 +121,3 @@ class TransformersContainer(HookList):
 
         pixel = pcls(*values)
         return pixel
-

@@ -1,15 +1,7 @@
 from collections.abc import Sequence
 
-from terminedia.utils import  HookList, Rect, V2
+from terminedia.utils import  HookList, Rect, V2, get_current_tick
 from terminedia.values import EMPTY
-
-
-def get_current_tick():
-    """use a coutner global to Screen module, icreased on
-    calls to screen.updat()
-    """
-    from terminedia import context
-    return context.ticks if hasattr(context, "ticks") else 0
 
 
 tags = dict()
