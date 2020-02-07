@@ -55,10 +55,6 @@ smaller features:
         - color-value to different unicode-squares
         - linear gradients
 
-- "plain stream mode": provide an easy way to use colors and character effects without
-breaking the exising flow on the tty - (no need to insantiate a Screen or print
-at a specfic position)
-
 
 breaking-changes:
     - rename unicode effects so that their name matchs their unicode names (at least "super_bold" -> "regional_indicator")
