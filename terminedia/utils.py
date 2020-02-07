@@ -194,7 +194,7 @@ class Rect:
                 if isinstance(top_
 
 def get_current_tick():
-    """use a coutner global to Screen module, icreased on
+    """use a counter global to Screen module, icreased on
     calls to screen.updat()
     """
     from terminedia import context
