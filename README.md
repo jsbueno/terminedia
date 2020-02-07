@@ -28,10 +28,17 @@ Usage
 -------
 
 Although targeted for programatic use, after install a few example
-programs exercizing the library capabilities are made available
-in the active Python environment. Try one of several "terminedia-xxxxx" 
+programs exercising the library capabilities are made available
+in the active Python environment. Try one of several "terminedia-xxxxx"
 scripts installed, such as "terminedia-image" and "terminedia-snake"
 
+Some of the features are as easy to use as the `print` function
+from Python itself:
+
+![Demonstration of terminedia.print](docs/screenshot_00.png)
+
+Other, like the drawing API which emulates pixels with unicode
+block characters require a couple more calls:
 
 ![Messy screenshot with current capabilities](docs/screenshot_01.png)
 ![Graph plot output example](docs/screenshot_02.png)
@@ -40,8 +47,8 @@ scripts installed, such as "terminedia-image" and "terminedia-snake"
 Documentation
 --------------
 
-Check the full documentation at:
-    https://terminedia.readthedocs.io/en/stable/
+Check the in progress documentation at:
+    https://terminedia.readthedocs.io/en/latest/
 
 (nb. that documentation is currently for the 0.2 version,
 available from pypi. The project's capabilities
@@ -79,7 +86,7 @@ with proper fonts configuration on the terminal, it is possible
 to experiment most of terminedia´s capabilities (the terminedia-snake
 example works).  There is still work to be done, but for a better
 experience under Windows install the CMDER console emulator
-and the UNSCII fonts for rendering pseudographics (links in the 
+and the UNSCII fonts for rendering pseudographics (links in the
 FRIENDS.md file)
 
 On Linux and other posix systems, Terminedia relies
@@ -93,7 +100,7 @@ with the "Terminus" font, specially if one is using
 the Braille characters for drawing.
 
 There is also an HTML backend that can output progrmatically
-created ASCII art to an HTML file, formatted with 
+created ASCII art to an HTML file, formatted with
 mono-spaced fonts inside a `div` element. The
 "terminedia-image" example program makes use
 of this feature.
