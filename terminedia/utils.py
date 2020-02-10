@@ -191,16 +191,7 @@ class Rect:
             )
             bottom = (
                 top_or_corner2.stop
-                if isinstance(top_
-
-def get_current_tick():
-    """use a counter global to Screen module, icreased on
-    calls to screen.updat()
-    """
-    from terminedia import context
-    return context.ticks if hasattr(context, "ticks") else 0
-
-or_corner2, slice)
+                if isinstance(top_or_corner2, slice)
                 else top_or_corner2 + 1
             )
         else:
@@ -585,7 +576,6 @@ class SpecialColor(Color):
         return self.component_source
 
 
-
 class HookList(MutableSequence):
     def __init__(self, initial=()):
         self.data = list()
@@ -614,8 +604,6 @@ class HookList(MutableSequence):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.data!r})"
-
-
 
 
 def get_current_tick():

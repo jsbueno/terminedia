@@ -8,7 +8,7 @@ class Transformer:
     channels = "pixel char foreground background effects".split()
 
     for channel in channels:
-        setattr(locals(), channel, None)
+        locals().__setitem__(channel, None)
     del channel
 
     def __init__(self, pixel=None, char=None, foreground=None, background=None, effects=None):
