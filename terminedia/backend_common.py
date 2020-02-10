@@ -9,7 +9,56 @@ from terminedia.utils import char_width, V2, Color
 from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects, ESC
 
 
-class JournalingCommandsMixin:
+class BackendColorContextMixin:
+
+    def reset_colors(self, file=None):
+        """Writes ANSI sequence to reset terminal colors to the default"""
+        self.current_foreground = None
+        self.current_background = None
+
+    def set_colors(self, foreground, background, effects=Effects.none, file=None):
+        """Sets internal states foreground and background colors and character effects to apply
+        foreground: the foreground color
+        background: the background color
+        effects: Character effects t obe applied.
+        """
+        self.set_fg_color(foreground, file=file)
+        self.set_bg_color(background, file=file)
+        self.set_effects(effects, file=file)
+
+    def set_fg_color(self, color, file=None):
+        """
+        """
+        self.next_foreground = Color(color)
+
+    def set_bg_color(self, color, file=None):
+        """
+        """
+        self.next_background = Color(color)
+
+    def set_effects(self, effects, *, update_active_only=False, file=None):
+        """Sets internal state so that next characters rendered have character effects applied
+
+        update_active_only parameter is meant for low-level interactive
+        use of the terminal, and make no sense when rendering to HTML, but is kept
+        for signature compatibility
+        """
+        # effect_map = effect_off_map if turn_off else effect_on_map
+        active_unicode_effects = Effects.none
+        for effect in effects:
+            if effect in unicode_effects:
+                active_unicode_effects |= effect
+
+        self.active_unicode_effects = active_unicode_effects
+        self.next_effects = effects
+
+
+    def apply_unicode_effects(self, txt):
+        return translate_chars(txt, self.active_unicode_effects)
+
+
+
+class JournalingCommandsMixin(BackendColorContextMixin):
     """Internal use class to write ANSI-Sequence commands to the terminal
 
     This class implements a journaling technique to group commands to be
@@ -140,7 +189,7 @@ class JournalingCommandsMixin:
         if single_write:
             writer = file.write
         else:
-            writer = lambda char: self.print(char, file=file)
+            writer = lambda char: self._print(char, file=file)
 
         for pos in sorted(self.journal, key=lambda pos: (pos[1], pos[0])):
             tick, char, color, bg, effect = self.journal[pos][-1]
@@ -173,7 +222,7 @@ class JournalingCommandsMixin:
             self.__class__.last_pos += width
 
         if not original_file and single_write:
-            self.print(file.getvalue())
+            self._print(file.getvalue())
 
     def print_at(self, pos, txt, file=None):
         """Positions the cursor and prints a text sequence
@@ -219,6 +268,3 @@ class JournalingCommandsMixin:
     def set_effects(self, effects, file=None):
         super().set_effects(effects, update_active_only=self.in_block, file=file)
         self.current_effect = effects
-
-    def apply_unicode_effects(self, txt):
-        return translate_chars(txt, self.active_unicode_effects)

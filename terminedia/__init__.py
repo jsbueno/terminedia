@@ -36,6 +36,8 @@ __version__ = "0.3.dev0"
 __author__ = "João S. O. Bueno"
 
 
+print = ScreenCommands().print
+
 # These will be used for other backends than terminal rendering:
 context = _RootContext(default_fg="white", default_bg="black")
 

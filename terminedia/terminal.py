@@ -4,7 +4,7 @@ import sys
 from functools import lru_cache
 from io import StringIO
 
-from terminedia.backend_common import JournalingCommandsMixin
+from terminedia.backend_common import BackendColorContextMixin, JournalingCommandsMixin
 from terminedia.unicode_transforms import translate_chars
 from terminedia.utils import char_width, V2, Color
 from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects, ESC
@@ -65,7 +65,7 @@ effect_double_off = {
 }
 
 
-class ScreenCommands:
+class ScreenCommands(BackendColorContextMixin):
     """Low level functions to execute ANSI-Sequence-related tasks on the terminal.
 
     Although not private, this class is meant to be used internally by the higher level
@@ -93,7 +93,7 @@ class ScreenCommands:
             ]
         )
 
-    def print(self, *args, sep="", end="", flush=True, file=None, count=0):
+    def _print(self, *args, sep="", end="", flush=True, file=None, count=0):
         """Inner print method
 
         Args:
@@ -140,7 +140,7 @@ class ScreenCommands:
                 print("arrrrghhhh - stdout clogged out!!!", file=sys.stderr)
                 raise
             time.sleep(0.002 * 2 ** count)
-            self.print(*args, sep=sep, end=end, flush=flush, file=file, count=count + 1)
+            self._print(*args, sep=sep, end=end, flush=flush, file=file, count=count + 1)
 
     def CSI(self, *args, file=None):
         """Writes a CSI command to the terminal
@@ -156,7 +156,7 @@ class ScreenCommands:
         """
         command = args[-1]
         args = ";".join(str(arg) for arg in args[:-1]) if args else ""
-        self.print("\x1b[", args, command, file=file)
+        self._print("\x1b[", args, command, file=file)
 
     def SGR(self, *args, file=None):
         """Writes a SGR command (Select Graphic Rendition)
@@ -201,6 +201,9 @@ class ScreenCommands:
         """Writes ANSI Sequence to move cursor left"""
         self.CSI(amount, "D", file=file)
 
+    def apply_unicode_effects(self, txt):
+        return translate_chars(txt, self.active_unicode_effects)
+
     def home(self, file=None):
 
         self.CSI(f"0;0H", file=file)
@@ -224,7 +227,7 @@ class ScreenCommands:
             self.CSI(f"{pos.y + 1};{pos.x + 1}H", file=file)
         else:
             if pos.x == 0 and pos.y == self.__class__.last_pos.y + 1:
-                self.print("\n", file=file)
+                self._print("\n", file=file)
             else:
                 delta_x = pos.x - self.__class__.last_pos.x
                 delta_y = pos.y - self.__class__.last_pos.y
@@ -240,7 +243,40 @@ class ScreenCommands:
 
         self.__class__.last_pos = pos
 
-    def print_at(self, pos, txt, file=None):
+    def print(self, *texts, pos=None, context=None, color=None, background=None, effects=None,
+              file=None, flush=False, sep=" ", end="\n"
+              ):
+        """Method to print a straightforward rich-text string to the terminal
+
+        Params:
+          *texts: List[str]: strings to print
+          pos: Optional[Tuple[int, int]]: Terminal position to print to
+          context: Optional[terminedia.Context instance]
+          color: Union[terminedia.Color, str, Tuple[int, int, int], Tuple[float, float, float]] : foreground color to use
+          background: Union[terminedia.Color, str, Tuple[int, int, int], Tuple[float, float, float]] : background color to use
+          effects: terminedia.Effects : effect or effect combination to apply to characters before printing
+          file, flush, sep, end: The same as standard Python's `print`
+
+        """
+
+        if not context:
+            from terminedia import context
+
+        color = color or context.color
+        background = background or context.background
+        effects = effects or context.effects
+
+        self.set_colors(color, background, effects, file=file)
+
+        if self.active_unicode_effects:
+            texts = [self.apply_unicode_effects(text) if text[0] != ESC else text for text in texts]
+
+        if pos:
+            self.moveto(pos, file=file)
+
+        self._print(*texts, file=file, flush=flush, sep=sep, end=end)
+
+    def print_at(self, pos, text, file=None):
         """Positions the cursor and prints a text sequence
 
         Args:
@@ -254,29 +290,20 @@ class ScreenCommands:
         but might yield concurrency problems if appropriate
         locks are not in place in concurrent code.
         """
-        if txt[0] != ESC and self.active_unicode_effects:
-            txt = self.apply_unicode_effects(txt)
+        if text[0] != ESC and self.active_unicode_effects:
+            text = self.apply_unicode_effects(text)
 
         self.moveto(pos, file=file)
-        self.print(txt, file=file)
+        self._print(text, file=file)
 
         # (double width chars are ignored on purpose - as the repositioning
         # skipping one char to the left on the higher level classes will
         # re be reissued instead of skipped)
-        self.__class__.last_pos += (len(txt), 0)
+        self.__class__.last_pos += (len(text), 0)
 
     def reset_colors(self, file=None):
         """Writes ANSI sequence to reset terminal colors to the default"""
         self.SGR(0, file=file)
-
-    def set_colors(self, foreground, background, effects=Effects.none, file=None):
-        """Sets foreground and background colors on the terminal
-        foreground: the foreground color
-        background: the background color
-        """
-        self.set_fg_color(foreground, file=file)
-        self.set_bg_color(background, file=file)
-        self.set_effects(effects, file=file)
 
     def set_fg_color(self, color, file=None):
         """Writes ANSI sequence to set the foreground color

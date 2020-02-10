@@ -1,10 +1,9 @@
 import re
 import time
 import sys
-from functools import lru_cache
 from io import StringIO
 
-from terminedia.backend_common import JournalingCommandsMixin
+from terminedia.backend_common import BackendColorContextMixin, JournalingCommandsMixin
 from terminedia.unicode_transforms import translate_chars
 from terminedia.utils import char_width, V2, Color
 from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects, ESC
@@ -30,13 +29,13 @@ close_tag = """</span\n>"""
 D = lambda str: " ".join(str.split())
 
 
-class HTMLCommands:
+class HTMLCommands(BackendColorContextMixin):
     """Backend for generating HTML monospace content with character rendition for a terminedia image.
 
 
     Used indirectlly by Shape.render when the selected render backend is HTML. It is interesting
     to note that unlike the terminal "ANSI" backend, the output stream is only touched
-    by the ".print" method - the "file" parameter is ignored in other methods
+    by the "._print" method - the "file" parameter is ignored in other methods
     that just update the internal state of the instance so that the next character
     to be printed comes out correctly.
     """
@@ -71,7 +70,7 @@ class HTMLCommands:
         self.current_effects = self.next_effects
         self.last_pos = self.next_pos
 
-    def print(self, *args, sep="", end="", flush=False, file=None, count=0):
+    def _print(self, *args, sep="", end="", flush=False, file=None, count=0):
         """Write needed HTML tags with inline style to positin and color given text"""
         if file is None:
             file = sys.stdout
@@ -176,65 +175,7 @@ class HTMLCommands:
         """
 
         self.moveto(pos, file=file)
-        self.print(txt, file=file)
-
-    @lru_cache()
-    def _normalize_color(self, color):
-        """Converts RGB colors to use 0-255 integers.
-
-        Args:
-          - color: Either a color constant or a 3-sequence,
-              with float components on the range 0.0-1.0, or integer components
-              in the 0-255 range.
-
-        returns: Color constant, or 3-sequence normalized to 0-255 range.
-        """
-        if isinstance(color, int):
-            return color
-        if 0 <= color[0] < 1.0 or color[0] == 1.0 and all(c <= 1.0 for c in color[1:]):
-            color = tuple(int(c * 255) for c in color)
-        return color
-
-    def reset_colors(self, file=None):
-        """Writes ANSI sequence to reset terminal colors to the default"""
-        self.current_foreground = None
-        self.current_background = None
-
-    def set_colors(self, foreground, background, effects=Effects.none, file=None):
-        """Sets internal states foreground and background colors and character effects to apply
-        foreground: the foreground color
-        background: the background color
-        effects: Character effects t obe applied.
-        """
-        self.set_fg_color(foreground, file=file)
-        self.set_bg_color(background, file=file)
-        self.set_effects(effects, file=file)
-
-    def set_fg_color(self, color, file=None):
-        """
-        """
-        self.next_foreground = Color(color)
-
-    def set_bg_color(self, color, file=None):
-        """
-        """
-        self.next_background = Color(color)
-
-    def set_effects(self, effects, *, update_active_only=False, file=None):
-        """Sets internal state so that next characters rendered have character effects applied
-
-        update_active_only parameter is meant for low-level interactive
-        use of the terminal, and make no sense when rendering to HTML, but is kept
-        for signature compatibility
-        """
-        # effect_map = effect_off_map if turn_off else effect_on_map
-        active_unicode_effects = Effects.none
-        for effect in effects:
-            if effect in unicode_effects:
-                active_unicode_effects |= effect
-
-        self.active_unicode_effects = active_unicode_effects
-        self.next_effects = effects
+        self._print(txt, file=file)
 
     def clear(self):
         pass
@@ -244,7 +185,7 @@ class JournalingHTMLCommands(JournalingCommandsMixin, HTMLCommands):
     def replay(self, file=None, single_write=False):
         """Renders the buffered output to the given stream.
 
-        Force the Journaling mixin to call ".print" for
+        Force the Journaling mixin to call "._print" for
         each character to be printed, since colors, position
         and other context state only takes place in the output
         stream when a character is actually printed.
