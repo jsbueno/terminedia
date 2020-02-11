@@ -9,7 +9,8 @@ import terminedia as TM
 
 K = TM.KeyCodes
 
-def main():
+
+def setup():
     sc = TM.Screen()
     sc.data.sprites.append([(6, 3)] * 5)
     colors = "white green yellow red purple".split()
@@ -20,12 +21,21 @@ def main():
     sc.data.sprites[0].pos = (10,10)
     sc.data.sprites[0].active = True
 
+    return sc
+
+
+def iterate(sc):
     with TM.keyboard():
         while True:
             if TM.inkey() == K.ESC:
                 break
             sc.update()
             time.sleep(0.1)
+
+
+def main():
+    sc = setup()
+    iterate(sc)
 
 
 if __name__ == "__main__":
