@@ -613,3 +613,7 @@ def get_current_tick():
     from terminedia import context
     return context.ticks if hasattr(context, "ticks") else 0
 
+
+def tick_forward():
+    from terminedia import context
+    context.ticks = get_current_tick() + 1

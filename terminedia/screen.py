@@ -5,7 +5,7 @@ from math import ceil
 
 import terminedia.text
 from terminedia.contexts import Context
-from terminedia.utils import V2, Rect
+from terminedia.utils import V2, Rect, tick_forward
 from terminedia.subpixels import BrailleChars
 from terminedia.values import (
     CONTINUATION,
@@ -338,6 +338,7 @@ class Screen:
             for y in range(rect.top, rect.bottom):
                 for x in range(rect.left, rect.right):
                     self[x, y] = _REPLAY
+        tick_forward()
 
     def __repr__(self):
         return "".join(
