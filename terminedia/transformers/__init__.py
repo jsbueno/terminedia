@@ -1,7 +1,7 @@
 from inspect import signature
 
 from terminedia.utils import V2, HookList, get_current_tick
-
+from terminedia.values import EMPTY, FULL_BLOCK
 
 class Transformer:
 
@@ -54,8 +54,64 @@ class Transformer:
     def __repr__(self):
         return "Transformer <{}{}>".format(
             ", ".join(channel for channel in self.channels if getattr(self, channel + "_f", None)),
-            f", source={self.source!r},  mode={self.mode!r}" if self.source else "",
+            f", source={self.source!r},  mode={self.mode!r}" if getattr(self, "source", None) else "",
         )
+
+
+
+
+class KernelTransformer(Transformer):
+    policy = "abyss"
+
+    def __init__(self, kernel, **kwargs):
+        self.kernel = kernel
+        super().__init__(**kwargs)
+
+    def kernel_match(self, source, pos):
+        from terminedia.image import ImageShape
+        source_is_image = False
+        if  hasattr(source, "value_data"):
+            data = source.value_data
+            ...
+            # TODO: 'fastpath' made faster for fullshapes
+            value = ...
+        elif isinstance(source, ImageShape):
+            source_is_image = True
+        else:
+            data = source.data
+
+        value = ""
+
+        for y in -1, 0, 1:
+            for x in -1, 0, 1:
+                compare_pos = pos + (x, y)
+                offset = source.get_data_offset(compare_pos)
+                if offset is None:
+                    if self.policy == "abyss":
+                        value += " "
+                    else:
+                        raise NotImplementedError("Out of bound policy not implemented: {self.policy}")
+                    continue
+                if source_is_image:
+                    value += "#" if source.get_raw(pos) != source.context.background else " "
+                    continue
+                value += "#" if data[offset] != EMPTY else " "
+
+        return self.kernel.get(value, self.kernel.get("default", " "))
+
+    def char(self, source, pos):
+        return self.kernel_match(source, pos)
+
+
+kernel_dilate = {
+    "   "\
+    "   "\
+    "   ": " ",
+
+    "default": FULL_BLOCK,
+}
+
+dilate_transformer = KernelTransformer(kernel_dilate)
 
 
 class TransformersContainer(HookList):
@@ -89,7 +145,7 @@ class TransformersContainer(HookList):
                 elif parameter in Transformer.channels and parameter != "pixel":
                     args[parameter] = getattr(pixel, parameter if parameter != "char" else "value")
                 elif parameter == "pos":
-                    args["pos"] = pos
+                    args["pos"] = V2(pos)
                 elif parameter == "pixel":
                     args["pixel"] = pixel
                 elif parameter == "source":
