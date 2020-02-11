@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 
+
 from terminedia.utils import  HookList, Rect, V2, get_current_tick
 from terminedia.values import EMPTY
 
@@ -9,12 +10,32 @@ tags = dict()
 
 class Sprite:
     def __init__(self, shapes=None, pos=(0,0), active=False, tick_cycle=1, anchor="topleft"):
-        # from terminedia import shape as shape_factory
         self.shapes = shapes if isinstance(shapes, Sequence) else [shapes]
         self.pos = pos
         self.active = active
         self.tick_cycle = tick_cycle
         self.anchor = anchor
+        self._check_and_promote()
+        #TODO: think of a practical way of having the same context.transformers
+        # set to apply to all shapes in a sprite.
+        # without any further implementation, one can use an
+        # intermediate Sprite, with a single Shape, which
+        # in turn contains another sprite with all the other shapes.
+        # The shape context in this intermediate sprite will apply to all others.
+
+        # maybe the most straightforward thing is to just
+        # have a #TransformerContainer member in the Sprite class.
+
+
+    def _check_and_promote(self):
+        """called at initialization to try to promote any object that is not a Shape
+        to a Shape.
+
+        """
+        from terminedia.image import shape, Shape
+        for index, item in enumerate(self.shapes):
+            if not isinstance(item, Shape):
+                self.shapes[index] = shape(item)
 
     @property
     def pos(self):
@@ -45,7 +66,7 @@ class Sprite:
             if self.anchor == "topleft":
                 pos = container_pos - self.pos
             else:
-                raise NotImplementedError()
+                pos = container_pos - self.rect.c1
         return self.shape[pos]
 
 
@@ -55,6 +76,8 @@ class SpriteContainer(HookList):
         self.owner = owner
 
     def insert_hook(self, item):
+        if not isinstance(item, Sprite):
+            item = Sprite(item)
         item.owner = self.owner
         return item
 
