@@ -63,8 +63,9 @@ class Transformer:
 class KernelTransformer(Transformer):
     policy = "abyss"
 
-    def __init__(self, kernel, **kwargs):
+    def __init__(self, kernel, mask_diags=True, **kwargs):
         self.kernel = kernel
+        self.mask_diags = mask_diags
         super().__init__(**kwargs)
 
     def kernel_match(self, source, pos):
@@ -92,6 +93,10 @@ class KernelTransformer(Transformer):
                     else:
                         raise NotImplementedError("Out of bound policy not implemented: {self.policy}")
                     continue
+                if self.mask_diags and (x and y):
+                    value += " "
+                    continue
+
                 if source_is_image:
                     value += "#" if source.get_raw(pos) != source.context.background else " "
                     continue

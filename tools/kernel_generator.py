@@ -16,14 +16,16 @@ value_template = """\
 
 def main():
     values = []
-    count = 0
     total = int(sys.argv[1]) if len(sys.argv) > 1  else 512
+    include_empties = len(sys.argv) > 3
 
 
     for i in range(total):
         new = shape((3,3))
-        if i & 1:
+        if i & 1 :
             new[1,1] = "#"
+        elif not include_empties:
+            continue
         if i & 0b10:
             new[1,0] = "#"
         if i & 0b100:
