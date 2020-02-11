@@ -318,8 +318,17 @@ class Shape(ABC, ShapeApiMixin):
                 self.data.extend(list(line))
         return self.data
 
+    def get_data_offset(self, pos):
+        if pos[0] < 0 or pos[1] < 0 or pos[0] >= self.width or pos[1] >= self.height:
+            return None
+        return pos[1] * self.width + pos[0]
+
     def get_raw(self, pos):
-        return self.data[pos[1] * self.width + pos[0]]
+        offset = self.get_data_offset(pos)
+        if offset is None:
+            # TODO: implement abyss_policy in context?
+            return EMPTY
+        return self.data[offset]
 
     @abstractmethod
     def __getitem__(self, pos):
@@ -581,6 +590,8 @@ class ValueShape(Shape):
             return v
 
         color = self.get_raw(pos)
+        if color is EMPTY:
+            color = self.context.background
 
         return self.PixelCls(True, color)
 
@@ -598,7 +609,10 @@ class ValueShape(Shape):
         self._raw_setitem(pos, color)
 
     def _raw_setitem(self, pos, color):
-        self.data[pos[1] * self.width + pos[0]] = color
+        offset = self.get_data_offset(pos)
+        if offset is None:
+            return
+        self.data[offset] = color
 
 
 class PGMShape(ValueShape):
@@ -785,9 +799,6 @@ class PalettedShape(Shape):
 
         self.load_data(new_data, V2(width, height))
 
-    def get_raw(self, pos):
-        return self.data[pos[1] * self.width + pos[0]]
-
     def __getitem__(self, pos):
         """Values for each pixel are: character, fg_color, bg_color, effects.
         """
@@ -854,7 +865,9 @@ class FullShape(Shape):
         del self.data
 
     def get_raw(self, pos):
-        offset = pos[1] * self.width + pos[0]
+        offset = self.get_data_offset(pos)
+        if offset is None:
+            return (EMPTY, self.context.color, self.context.background, Effects.none)
         return (
             self.value_data[offset],
             self.fg_data[offset],
@@ -882,7 +895,9 @@ class FullShape(Shape):
         Values set for each pixel are: character - only spaces (0x20) or "non-spaces" are
         taken into account for PalettedShape
         """
-        offset = pos[1] * self.width + pos[0]
+        offset = self.get_data_offset(pos)
+        if offset is None:
+            return
         if isinstance(value, Pixel):
             value = value.get_values(self.context, self.PixelCls.capabilities)
         else:
