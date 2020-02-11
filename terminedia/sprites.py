@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 
 
+from terminedia.transformers import TransformersContainer
 from terminedia.utils import  HookList, Rect, V2, get_current_tick
 from terminedia.values import EMPTY
 
@@ -16,15 +17,7 @@ class Sprite:
         self.tick_cycle = tick_cycle
         self.anchor = anchor
         self._check_and_promote()
-        #TODO: think of a practical way of having the same context.transformers
-        # set to apply to all shapes in a sprite.
-        # without any further implementation, one can use an
-        # intermediate Sprite, with a single Shape, which
-        # in turn contains another sprite with all the other shapes.
-        # The shape context in this intermediate sprite will apply to all others.
-
-        # maybe the most straightforward thing is to just
-        # have a #TransformerContainer member in the Sprite class.
+        self.transformers = TransformersContainer()
 
 
     def _check_and_promote(self):
@@ -67,7 +60,10 @@ class Sprite:
                 pos = container_pos - self.pos
             else:
                 pos = container_pos - self.rect.c1
-        return self.shape[pos]
+        pixel = self.shape[pos]
+        if self.transformers:
+            pixel = self.transformers.process(self.shape, pos, pixel)
+        return pixel
 
 
 class SpriteContainer(HookList):

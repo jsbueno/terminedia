@@ -11,7 +11,8 @@ move examples to CLI-based standalone scripts available to pip-installs (v)
 refactor into full package (v)
 Big Font rendering - using multi-block for large characters composed of multiple pixels. (V)
 Bold, blink and underline text support (V)
-Basic support for 'sprites': independent imaages that can be repositioned (V)
+Basic support for 'sprites': independent images that can be repositioned (V)
+    - Added 'transformers' support to Sprite.
 
 multiple backends:
     ANSI backend (file or text string) (V)
@@ -192,6 +193,11 @@ Transformers :
                             currently not used - but idea is a monotonically growing
                             number each time the shape is rendered.
                             - context: the shape's current context
+            KernelTransformer:
+                - A subclass that makes easy to transform the current pixel
+                value based on the values of the surrounding pixels
+                    - preconfigured kernels:
+                        - can automatically make a blocky image drawn into unicode/ASCII line art (only simple, ASCII +|- kernel implemented for now)
 
 
 

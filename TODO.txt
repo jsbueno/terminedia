@@ -48,9 +48,6 @@ smaller features:
         - Spatial - class embedding a 2D (3X3) transformation matrix with friendly properties
                 to specify linear transformations in a friendly way.
 
-        - Add a Transformers attribute to the sprite class
-        -
-
     create some filters as ready-made transformers (maybe not all for 0.3.0):
         - threshold: yield true/false pixels and strip color information
         - convert colorred fullblock pixels to "transparent" pixels: keep the existing char, and apply the color as background
