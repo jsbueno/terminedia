@@ -577,8 +577,10 @@ class SpecialColor(Color):
 
 
 class HookList(MutableSequence):
-    def __init__(self, initial=()):
+    def __init__(self, initial=None):
         self.data = list()
+        if initial is None:
+            initial = []
         for item in initial:
             self.append(initial)
 

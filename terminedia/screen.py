@@ -331,6 +331,7 @@ class Screen:
             self.draw.blit(position, shape, **kwargs)
 
     def update(self, pos1=None, pos2=None):
+        from terminedia import context as root_context
         rect = Rect(pos1, pos2)
         if rect.c2 == (0, 0):
             rect.c2 = (self.width, self.height)
@@ -339,6 +340,10 @@ class Screen:
                 for x in range(rect.left, rect.right):
                     self[x, y] = _REPLAY
         tick_forward()
+        if root_context.interactive_mode:
+            # move cursor a couple lines from the bottom to avoid scrolling
+            for i in range(3):
+                self.commands.up()
 
     def __repr__(self):
         return "".join(
