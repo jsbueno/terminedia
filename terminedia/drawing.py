@@ -1,8 +1,46 @@
 import inspect
+from functools import wraps
 
 from terminedia.subpixels import BlockChars
 from terminedia.values import CONTEXT_COLORS, EMPTY
 from terminedia.utils import V2, Rect
+
+
+def contextkwords(func):
+    sig = inspect.signature(func)
+    @wraps(func)
+    def wrapper(
+        *args,
+        char=None,
+        color=None,
+        foreground=None,
+        effects=None,
+        transformers=None,
+        fill=None,
+        context=None,
+        **kwargs
+    ):
+        """
+        Decorator to pass decorated function an updated, stacked context
+        with all options passed in the call already set.
+
+        'transformers' if passed will be used to draw the pixels, if it makes sense
+        (i.e. the pixels are to be transformed on write, rather than on reading)
+        """
+        from terminedia import context as root_context
+        self = args[0] if args else None
+        self_context = getattr(self, "context", None)
+        context = context or self_context or root_context
+
+        color = color or foreground
+        with context:
+            for attr in ('char', 'color', 'foreground', 'effects', 'transformers', 'fill'):
+                if locals()[attr]:
+                    setattr(context, attr, locals()[attr])
+            if "context" in sig.parameters:
+                kwargs["context"] = context
+            return func(*args, **kwargs)
+    return wrapper
 
 
 class Drawing:
@@ -46,6 +84,7 @@ class Drawing:
     def size(self):
         return self._size()
 
+    @contextkwords
     def line(self, pos1, pos2, erase=False):
         """Draws a straight line connecting both coordinates.
 
@@ -56,27 +95,25 @@ class Drawing:
 
         Public call to draw an arbitrary line using character blocks
         on the terminal.
-        The color line is defined in the associated's screen context.color
-        attribute. In the case of high-resolution drawing, the background color
-        is also taken from the context.
+        The color line is defined in the passed parameter or from the context.
         """
 
         op = self.reset if erase else self.set
-        x1, y1 = pos1
-        x2, y2 = pos2
+        pos1 = V2(pos1)
+        pos2 = V2(pos2)
+
         op(pos1)
 
-        max_manh = max(abs(x2 - x1), abs(y2 - y1))
+        max_manh = max(abs(pos2.x - pos1.x), abs(pos2.y - pos1.y))
         if max_manh == 0:
             return
-        step_x = (x2 - x1) / max_manh
-        step_y = (y2 - y1) / max_manh
+        step_x = (pos2.x - pos1.x) / max_manh
+        step_y = (pos2.y - pos1.y) / max_manh
         total_manh = 0
         while total_manh < max_manh:
-            x1 += step_x
-            y1 += step_y
+            pos1 += (step_x, step_y)
             total_manh += max(abs(step_x), abs(step_y))
-            op((round(x1), round(y1)))
+            op(pos1.as_int)
 
     def rect(self, pos1, pos2=(), *, rel=(), fill=False, erase=False):
         """Draws a rectangle
