@@ -243,6 +243,19 @@ class ScreenCommands(BackendColorContextMixin):
 
         self.__class__.last_pos = pos
 
+
+    def save_cursor_position(self, file=None):
+        """Saves the current cursor position (in the TTY software)"""
+        self.CSI("s", file=file)
+
+    SCP = save_cursor_position
+
+    def restore_cursor_position(self, file=None):
+        """Restores saved cursor position (in the TTY software)"""
+        self.CSI("u", file=file)
+
+    RCP = restore_cursor_position
+
     def print(self, *texts, pos=None, context=None, color=None, background=None, effects=None,
               file=None, flush=False, sep=" ", end="\n"
               ):
@@ -272,6 +285,7 @@ class ScreenCommands(BackendColorContextMixin):
             texts = [self.apply_unicode_effects(text) if text[0] != ESC else text for text in texts]
 
         if pos:
+            self.__class__.last_pos = None
             self.moveto(pos, file=file)
 
         self._print(*texts, file=file, flush=flush, sep=sep, end=end)
