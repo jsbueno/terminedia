@@ -12,10 +12,10 @@ Partial windows support (cmder and maybe microsoft's new terminal)[WIP]:
 Resolve "can't output a lot of things to terminal if stdin set to non blocking" bug on windows
 
 smaller features:
-    - improve interactive usage of Screen on the repl: option to move the cursor to the bottom and prevent attribute caching when under interactive use.
+    - accept context attributes (color, background, effects) as keyword arguments on all .draw methods [WIP]
+    - Make local contexts default to root context if a value has not been explicitly set
     - use the same option of suppressing absolute cursor movement for the html backend.
     - uniformize "size", "get", "set" and __getitem__ & __setitem__ on screen, shape, high and braille namespaces.
-    - accept context attributes (color, background, effects) as keyword arguments on all .draw methods
     - fix palleted shapes:
         - create proper booleanshape (true/false + color) - used by default to render fonts.
         - reading with __getitem__ should get back a pixel with the original character, but when blitting, only the color and boolean information should be blitted (color.TRANSPARENT should imply in "False" pixels)
@@ -56,6 +56,8 @@ smaller features:
         - linear gradients
 
 
+
+
 breaking-changes:
     - rename unicode effects so that their name matchs their unicode names (at least "super_bold" -> "regional_indicator")
 
@@ -66,6 +68,18 @@ Write some real nice docs, with tutorials and use suggestions
 
 Future
 ========
+
+- MARKUP:
+    Accept a markup in all string-printing methods to enable interleaving
+    context changes during the print:
+        - Example: "TM.print("Hello [color:red]World[/color][effect:blink]!!!")
+        - Allow cursor movement commands into the markup
+        - promote the current side-effect that if "context.char" is set
+        to a string more than one glyph in length all the string is
+        placed instead of a single pixel to a full feature, accepting
+        this markup
+
+- BACKENDS:
     Image 'screenshot' backend
     image backend (pixels are simple color-only boring, image pixels)
     postscript backend
@@ -88,17 +102,17 @@ Future
     Allow for CSS like animations, mainloop and callback registration
     for events
 
-
-Find a way to find witch unicode-glyphs are available in system-wide fonts
+- System Font finding and auto-terminal config
+    - Find a way to find witch unicode-glyphs are available in system-wide fonts
     - suggest font-installation
     - (or) download free-fonts to terminedia data folder (but how to make the host terminal use them?)
     - refactor unicode-translations to include correct information about the characters used, with links back to proper unicode documentation (including the motivation for theis inclusion)
 
-Convolution-dependant effects:
+Convolution-dependant effects: [WIP]
     - smooth-out corners
     - use unicode circles and squares to denote intensity
-    - conversion to ASCII line-art with "/_\|" chars, and unicode version
-    - conversion to table chars (single and double-frame)
+    - conversion to ASCII line-art with "/_\|" chars, and unicode version [WIP]
+    - conversion to table chars (single and double-frame) [WIP]
     - Couple with "find border" filter(?)
 
 "page" abstraction expanding the "shape": including text regions, layers and animation effects
@@ -116,13 +130,13 @@ Sprites:
     create tagging system
     and easy tag-based event api
 
-MS-Windows support (colorama/mscrvt/color reducing)
+MS-Windows support (colorama/mscrvt/color reducing)[WIP]
 
 "business" framed-window api
 
 Basic image transform API: resize, rotate, flip.
 
-Table drawing chars drawing API (maybe convert chars with a convolution after block-line art?)
+Table drawing chars drawing API (maybe convert chars with a convolution after block-line art?) [WIP]
 
 Super-high resolution (Unicode vintage charset and "sextant" blocks)
 
@@ -178,8 +192,8 @@ Advanced terminal handling features
     animating and coloring text output ... monkey patching a subprocess stdin, stdout and stderr.
     handle scrolling capabilities and pre-post buffer
     terminal agnostic screen commands (terminfo and infocmp to de-hardcode ANSI sequences)
-    implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change
-        check if there is a ms-windows equivalent
+    implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change:
+        - check if there is a ms-windows equivalent
 
 more features
 ###############
@@ -200,6 +214,7 @@ more features
         - Accept 0-255 or 0-1.0 3 [4] sequences for RGB color [Alpha]
         - conversion to 1-byte standard 216 color palette for terminals
         - make use of 1byte color on terminal.py
+
     Assume `set` method passed to drawing.Drawing can always accept pixels. Simplify workarounds in "image.ShapeApiMixin" and "screen.set_at" to accept pixels. (API breaking - change this before making a release)
 
 
@@ -233,10 +248,9 @@ Features and improvements
     Make internal FullShape planes (and maybe other Shapes) specialized containers (they are plain lists): enable direct attribute setting on plane (rename  attributes in the process) (maybe trim further down shape class, and make internal planes for shapes, shapes as well?)
     create a few ready-made, parametrized transformers for effects like: plane select, color gradients, mask blit,
     Update "Context" to use context-locals (async aware) instead of thread-locals
-    Add a "clear" draw method to empty-up a target.
     Drawing APIs not respecting ShapeView limits (V)
     add "callback" or early event system so that context parameters can be changed after printing a character, or other event.
-    set up internal state on which terminal program is running, basd on env-vars (so that terminal behaviors bugs can be work-around)
+    set up internal state on which terminal program is running, basd on env-vars (so that terminal behaviors bugs can be worked-around)
     work on special methods to allow pickle serialization of shapes and maybe screens.
 
 Color class Todo:

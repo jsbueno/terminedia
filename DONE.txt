@@ -131,6 +131,7 @@ Improvements and small features:
         - change 'shape.render' to use relative positioning for ansi and not home cursor to 0,0 (V)
     Rename "realtime_keyb" to "keyboard" (and keyboard.py to input.py) (V)
     Added "input.getch" function, which pauses until a key is pressed
+    Added a "clear" shape method to empty-up a target.
 
 Color class:
     - Create a color class (V)
