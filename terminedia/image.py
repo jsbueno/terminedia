@@ -515,7 +515,7 @@ class ShapeView(ShapeApiMixin):
 
     width = property(lambda s: s.roi.width)
     height = property(lambda s: s.roi.height)
-    size = property(lambda s: s.roi.width_height)
+    get_size = lambda s: s.roi.width_height
 
     def __getitem__(self, index):
         roi = self.roi
@@ -540,12 +540,14 @@ class ShapeView(ShapeApiMixin):
     __iter__ = Shape.__iter__
 
     def __getattribute__(self, attr):
+        # Attributes not proxied in ShapeView
         if attr in {
             "roi",
             "original",
             "width",
             "height",
             "size",
+            "get_size",
             "draw",
             "high",
             "text",

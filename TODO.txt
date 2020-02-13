@@ -18,7 +18,8 @@ smaller features:
         - optimize decorator not to enter a 'with' context block if not needed
                 (it slows down certain operations)[V]
         - fix bug that prevents temporary context drawing with the same color
-                (context is reset to black on a second call)[WIP]
+                (context is reset to black on a second call)[V]
+        - fix subshape slicing drawing (fill is broken)[V]
         - refactor various 'print', 'at' and 'set_at' around
         - change decorator (and possibly context) to allow using a whole
             context as parameter to update the current context
@@ -26,7 +27,6 @@ smaller features:
             to pixels at writting time in a separate context transformers stack
         - improve decorator to proper fix the signature of the decorated functions
             (and then record resulting hack as an answer to https://stackoverflow.com/questions/34402773/signature-changing-decorator-properly-documenting-additional-argument)
-        - fix subshape slicing drawing (fill is broken)
     - Make local contexts default to root context if a value has not been explicitly set
     - use the same option of suppressing absolute cursor movement for the html backend.
     - uniformize "size", "get", "set" and __getitem__ & __setitem__ on screen, shape, high and braille namespaces.
