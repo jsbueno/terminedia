@@ -14,6 +14,7 @@ def contextkwords(func):
         char=None,
         color=None,
         foreground=None,
+        background=None,
         effects=None,
         # write_transformers=None,
         fill=None,
@@ -38,7 +39,7 @@ def contextkwords(func):
 
         color = color or foreground
         with context:
-            for attr in ('char', 'color', 'foreground', 'effects', #'write_transformers',
+            for attr in ('char', 'color', 'foreground', 'background', 'effects', #'write_transformers',
                          'fill'):
                 if locals()[attr]:
                     setattr(context, attr, locals()[attr])
@@ -177,14 +178,14 @@ class Drawing:
                 self.set((pos[0] + j, pos[1]))
                 mask[j] = True
 
-    def ellipse(self, pos1, pos2=(), *, rel=(), fill=False):
+    @contextkwords
+    def ellipse(self, pos1, pos2=(), *, rel=()):
         """Draws an ellipse
 
         Args:
           - pos1 (Union[Rectangle, 2-tuple]): top-left coordinates
           - pos2 (Optional[2-tuple]): bottom-right limit coordinates. If not given, pass "rel" instead
           - rel (Optional[2-tuple]): (width, height) of rectangle. Ignored if "pos2" is given
-          - fill (bool): Whether fill-in the rectangle, or only draw the outline. Defaults to False.
 
         Public call to draw an ellipse using character blocks
         on the terminal.
@@ -198,7 +199,7 @@ class Drawing:
 
         return (
             self._empty_ellipse(pos1, pos2)
-            if not fill
+            if not self.context.fill
             else self._filled_ellipse(pos1, pos2)
         )
 
