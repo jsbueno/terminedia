@@ -33,6 +33,11 @@ def contextkwords(func):
         Existing transformers on the current context will be ignored
         """
         from terminedia import context as root_context
+        if not any((char, color, foreground, background, effects, #write_transformers,
+                   fill, context)):
+            return func(*args, **kwargs)
+
+
         self = args[0] if args else None
         self_context = getattr(self, "context", None)
         context = context or self_context or root_context

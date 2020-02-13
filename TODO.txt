@@ -14,17 +14,16 @@ Resolve "can't output a lot of things to terminal if stdin set to non blocking" 
 smaller features:
     - accept context attributes (color, background, effects) as keyword arguments on all .draw methods [WIP]:
         - reate contextkwords decorator [V]
-        - refactor methods in drawing.py [WIP]
+        - refactor methods in drawing.py [V]
+        - optimize decorator not to enter a 'with' context block if not needed
+                (it slows down certain operations)[V]
         - fix bug that prevents temporary context drawing with the same color
-                (context is reset to black on a second call)
-                - bug likely in terminal.py caching stuff
+                (context is reset to black on a second call)[WIP]
         - refactor various 'print', 'at' and 'set_at' around
         - change decorator (and possibly context) to allow using a whole
             context as parameter to update the current context
         - create the concept of 'write_transformers': transformations
             to pixels at writting time in a separate context transformers stack
-        - optimize decorator not to enter a 'with' context block if not needed
-                (it would slow down certain operations)
         - improve decorator to proper fix the signature of the decorated functions
             (and then record resulting hack as an answer to https://stackoverflow.com/questions/34402773/signature-changing-decorator-properly-documenting-additional-argument)
         - fix subshape slicing drawing (fill is broken)

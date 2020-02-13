@@ -179,27 +179,10 @@ class Screen:
         To be used as a callback to ``.draw.set`` - but there are no drawbacks
         in being called directly.
         """
-        if pixel is not None:
-            cap = pixel.capabilities
-            char = pixel.value if issubclass(cap.value_type, str) else self.context.char
-            if issubclass(cap.value_type, bool) and not pixel.value:
-                char = EMPTY
-            for attr in ("foreground", "background", "effects"):
-                if getattr(cap, "has_" + attr):
-                    value = getattr(pixel, attr)
-                    if value == CONTEXT_COLORS:
-                        if attr == "foreground":
-                            value = self.context.color_stack[-1]
-                        elif attr == "background":
-                            value = self.context.background_stack[-1]
-
-                    setattr(
-                        self.context, attr if attr != "foreground" else "color", value
-                    )
+        if pixel:
+            self[pos] = pixel
         else:
-            char = self.context.char
-
-        self[pos] = char
+            self[pos] = self.context.char
 
     def reset_at(self, pos):
         """Resets pixel at given coordinate
