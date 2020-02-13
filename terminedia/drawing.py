@@ -262,7 +262,8 @@ class Drawing:
             self.set((x, y))
             ox, oy = x, y
 
-    def bezier(self, pos1, pos2, pos3, pos4):
+    @contextkwords
+    def bezier(self, pos1, pos2, pos3, pos4, *extra):
         """Draws a bezier curve given the control points
 
         Args:
@@ -270,6 +271,7 @@ class Drawing:
             pos2 (2-sequence): Second control point
             pos3 (2-sequence): Third control point
             pos4 (2-sequence): Fourth control point
+            extra Tuple[2-sequence]: n-sets of 3 more control points to keep drawing.
         """
         pos1 = V2(pos1)
         pos2 = V2(pos2)
@@ -291,6 +293,9 @@ class Drawing:
 
             self.set((round(x), round(y)))
             t += step
+        if len(extra) >= 3:
+            self.bezier(pos4, extra[0], extra[1], extra[2], *extra[3:])
+
 
     def blit(self, pos, data, *, roi=None, color_map=None, erase=False):
         """Blits a blocky image in the associated screen at POS
