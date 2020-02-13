@@ -53,8 +53,8 @@ class Drawing:
     """Drawing and rendering API
 
     An instance of this class is attached to :any:`Screen` and :any:`Shape`
-    instances as the :any:`draw` attribute, and as the `.high.draw`
-    attribute for drawing with 1/4 block characters.
+    instances as the :any:`draw` attribute, and as the `.high.draw` and `.braile.draw`
+    attributed for drawing with 1/4 and 1/8 block characters.
     All context-related information is kept on the associated screen instance,
     the public methods here issue pixel setting and resetting at the owner -
     using that owners's context colors and other attributes.
@@ -156,16 +156,13 @@ class Drawing:
             self.line(pos1, (x1, y2))
             self.line((x2, y1), pos2)
 
-    def fill(self, color=None):
+    @contextkwords
+    def fill(self):
         """Fills the associated target with a solid color.
         Args:
-          - color (Optional[Color]): color to set the context, before filling.
 
-        If color is given, the context color is changed to it before filling.
-        The context color and char are used to fill the target area.
+        The context attributes are used to fill the target area.
         """
-        if color:
-            self.context.color = color
         self.rect((0, 0), self.size, fill=True)
 
     def _link_prev(self, pos, i, limits, mask):
