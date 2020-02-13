@@ -166,10 +166,10 @@ class Text:
         return self.__dict__["current_plane"]
 
     def set_ctx(self, key, value):
-        return setattr(self.owner.context, f"text_{self.current_plane}_{key}", value)
+        return setattr(self.owner.context, f"local_storage_text_{self.current_plane}_{key}", value)
 
     def get_ctx(self, key, default=None):
-        return getattr(self.owner.context, f"text_{self.current_plane}_{key}", default)
+        return getattr(self.owner.context, f"local_storage_text_{self.current_plane}_{key}", default)
 
     @current_plane.setter
     def current_plane(self, value):
@@ -253,6 +253,7 @@ class Text:
 
         self.set_ctx("last_pos", pos)
 
+    @contextkwords(context_path="owner.context")
     def print(self, text):
         last_pos = self.get_ctx("last_pos", default=(0, 0))
         self.at(last_pos, text)

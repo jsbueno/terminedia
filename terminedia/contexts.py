@@ -96,6 +96,9 @@ class Context:
 
     def _update(self, params):
         for attr, value in params.items():
+            if attr.startswith("local_storage"):
+                # not to be updated on __exit__
+                continue
             setattr(self, attr, value)
 
     def __setattr__(self, name, value):
@@ -125,6 +128,11 @@ class Context:
         data = self._locals._stack.pop()
         to_remove = set(self._locals.__dict__.keys()) - data.pop("_previously_existing", set())
         for extra_key in to_remove:
+            # .text shape namespaces have to persist data in the parent's context,
+            # which may be in a context-manager (with) block due to
+            # 'mundane' attribute settings.
+            if extra_key.startswith("local_storage"):
+                continue
             delattr(self._locals, extra_key)
         self._update(data)
 
