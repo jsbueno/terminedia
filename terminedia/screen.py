@@ -1,6 +1,7 @@
 import logging
 import os
 import threading
+import time
 from math import ceil
 
 import terminedia.text
@@ -123,6 +124,9 @@ class Screen:
         self.data = FullShape.new((self.width, self.height))
         # Synchronize context for data and screen painting.
         self.data.context = self.context
+        from terminedia import context
+        self.root_context = context
+        self._last_setitem = 0
 
     def __enter__(self):
         """Enters a fresh screen context"""
@@ -299,6 +303,11 @@ class Screen:
                 or cls.last_background != pixel.background
                 or cls.last_effects != pixel.effects
             )
+
+            if self.root_context.interactive_mode and time.time() - self._last_setitem > 0.1:
+                update_colors = True
+                self._last_setitem = time.time()
+
             if update_colors:
                 colors = pixel.foreground, pixel.background, pixel.effects
                 self.commands.set_colors(*colors)
@@ -314,7 +323,6 @@ class Screen:
             self.draw.blit(position, shape, **kwargs)
 
     def update(self, pos1=None, pos2=None):
-        from terminedia import context as root_context
         rect = Rect(pos1, pos2)
         if rect.c2 == (0, 0):
             rect.c2 = (self.width, self.height)
@@ -323,7 +331,7 @@ class Screen:
                 for x in range(rect.left, rect.right):
                     self[x, y] = _REPLAY
         tick_forward()
-        if root_context.interactive_mode:
+        if self.root_context.interactive_mode:
             # move cursor a couple lines from the bottom to avoid scrolling
             for i in range(3):
                 self.commands.up()
