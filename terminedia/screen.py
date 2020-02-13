@@ -6,7 +6,7 @@ from math import ceil
 
 import terminedia.text
 from terminedia.contexts import Context
-from terminedia.utils import V2, Rect, tick_forward
+from terminedia.utils import contextkwords, V2, Rect, tick_forward
 from terminedia.subpixels import BrailleChars
 from terminedia.values import (
     CONTINUATION,
@@ -224,35 +224,29 @@ class Screen:
             self[pos.as_int] = char
             pos += direction
 
-    def print_at(self, pos, text, **kwargs):
+    @contextkwords
+    def print_at(self, pos, text):
         """Positions the cursor and prints a text sequence
 
         Args:
           - pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
           - text: Text to render at position
-          - **kwargs: Arguments to be applied to context prior to printing
 
         Context's attributes are respected when printing
         """
-        with self.context(**kwargs):
-            self.text[1].at(pos, text)
-            last_pos = self.text[1].get_ctx("last_pos")
-        self.text[1].set_ctx("last_pos", last_pos)
+        self.text[1].at(pos, text)
 
+    @contextkwords
     def print(self, text, **kwargs):
         """Prints a text sequence following the last character printed
 
         Args:
           - text: Text to render at position
-          - **kwargs: Arguments to be applied to context prior to printing
 
         Context's attributes are respected when printing
         """
         """Prints text picking at the last position that were printed to."""
-        with self.context(**kwargs):
-            self.text[1].print(text)
-            last_pos = self.text[1].get_ctx("last_pos")
-        self.text[1].set_ctx("last_pos", last_pos)
+        self.text[1].print(text)
 
     def __getitem__(self, pos):
         """Retrieves character data at pos
@@ -306,6 +300,7 @@ class Screen:
 
             if self.root_context.interactive_mode and time.time() - self._last_setitem > 0.1:
                 update_colors = True
+                self.commands.__class__.last_pos = None
                 self._last_setitem = time.time()
 
             if update_colors:

@@ -72,6 +72,15 @@ Text and big-text capabilities:
         FEATURE: being able to draw in differing planes (value, FG, BG, effects) independent way(V)
         write a refresh method to redraw a Screen rectangle - allowing double-buffering drawing (V)
     Add "render" method or other API for early implementation of other backends (not terminal)
+    - accept context attributes (color, background, effects) as keyword arguments on all .draw methods [V]:
+        - reate contextkwords decorator [V]
+        - refactor methods in drawing.py [V]
+        - optimize decorator not to enter a 'with' context block if not needed
+                (it slows down certain operations)[V]
+        - fix bug that prevents temporary context drawing with the same color
+                (context is reset to black on a second call)[V]
+        - fix subshape slicing drawing (fill is broken)[V]
+        - refactor various 'print', 'at' and 'set_at' around[V]
 
 
 Imaging capabilities:
