@@ -40,6 +40,9 @@ class ContextVar:
         return value
 
 
+_EmptySentinel = object()
+
+
 class Context:
     """Context class for Screen and Shape objects. Instances should live as ".context" on those
 
@@ -81,6 +84,7 @@ class Context:
     effects = ContextVar(Effects, Effects.none)
     direction = ContextVar(V2, Directions.RIGHT)
     transformers = ContextVar(TransformersContainer, None)
+    fill = ContextVar(bool, False)
     font = ContextVar(str, "")
 
     def __init__(self, **kw):
@@ -112,12 +116,16 @@ class Context:
     def __enter__(self):
         new_parameters = self._locals.__dict__.pop("_new_parameters", {})
         data = copy(self._locals.__dict__)
+        data["_previously_existing"] = set(data.keys())
         self._locals.__dict__.setdefault("_stack", []).append(data)
         self._update(new_parameters)
         return self
 
     def __exit__(self, exc_name, traceback, frame):
         data = self._locals._stack.pop()
+        to_remove = set(self._locals.__dict__.keys()) - data.pop("_previously_existing", set())
+        for extra_key in to_remove:
+            delattr(self._locals, extra_key)
         self._update(data)
 
     def __repr__(self):

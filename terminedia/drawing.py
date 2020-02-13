@@ -15,7 +15,7 @@ def contextkwords(func):
         color=None,
         foreground=None,
         effects=None,
-        transformers=None,
+        write_transformers=None,
         fill=None,
         context=None,
         **kwargs
@@ -24,8 +24,12 @@ def contextkwords(func):
         Decorator to pass decorated function an updated, stacked context
         with all options passed in the call already set.
 
+        If an explicit
         'transformers' if passed will be used to draw the pixels, if it makes sense
-        (i.e. the pixels are to be transformed on write, rather than on reading)
+        (i.e. the pixels are t    Add a "clear" draw method to empty-up a target.o
+        be transformed on write, rather than on reading)
+
+        Existing transformers on the current context will be ignored
         """
         from terminedia import context as root_context
         self = args[0] if args else None
@@ -34,7 +38,7 @@ def contextkwords(func):
 
         color = color or foreground
         with context:
-            for attr in ('char', 'color', 'foreground', 'effects', 'transformers', 'fill'):
+            for attr in ('char', 'color', 'foreground', 'effects', 'write_transformers', 'fill'):
                 if locals()[attr]:
                     setattr(context, attr, locals()[attr])
             if "context" in sig.parameters:
