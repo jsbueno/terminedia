@@ -5,7 +5,7 @@ from terminedia.subpixels import BlockChars
 from terminedia.values import CONTEXT_COLORS, EMPTY
 from terminedia.utils import V2, Rect
 
-
+# TODO: move this into .utils
 def contextkwords(func):
     sig = inspect.signature(func)
     @wraps(func)
@@ -15,7 +15,7 @@ def contextkwords(func):
         color=None,
         foreground=None,
         effects=None,
-        write_transformers=None,
+        # write_transformers=None,
         fill=None,
         context=None,
         **kwargs
@@ -38,7 +38,8 @@ def contextkwords(func):
 
         color = color or foreground
         with context:
-            for attr in ('char', 'color', 'foreground', 'effects', 'write_transformers', 'fill'):
+            for attr in ('char', 'color', 'foreground', 'effects', #'write_transformers',
+                         'fill'):
                 if locals()[attr]:
                     setattr(context, attr, locals()[attr])
             if "context" in sig.parameters:
@@ -119,7 +120,8 @@ class Drawing:
             total_manh += max(abs(step_x), abs(step_y))
             op(pos1.as_int)
 
-    def rect(self, pos1, pos2=(), *, rel=(), fill=False, erase=False):
+    @contextkwords
+    def rect(self, pos1, pos2=(), *, rel=(), erase=False):
         """Draws a rectangle
 
         Args:
@@ -138,6 +140,8 @@ class Drawing:
         pos1, pos2 = Rect(pos1, pos2, width_height=rel)
         # Ending interval is open, just as Python works with intervals.
         pos2 -= (1, 1)
+
+        fill = self.context.fill
 
         x1, y1 = pos1
         x2, y2 = pos2
