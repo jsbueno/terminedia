@@ -1,7 +1,8 @@
+import inspect
 import operator
 import unicodedata
 from collections.abc import MutableSequence
-from functools import lru_cache
+from functools import lru_cache, wraps, partial
 
 
 def mirror_dict(dct):
@@ -619,3 +620,58 @@ def get_current_tick():
 def tick_forward():
     from terminedia import context
     context.ticks = get_current_tick() + 1
+
+
+def contextkwords(func=None, context_path=None):
+    if func is None:
+        return partial(contextkwords, context_path=context_path)
+    sig = inspect.signature(func)
+    @wraps(func)
+    def wrapper(
+        *args,
+        char=None,
+        color=None,
+        foreground=None,
+        background=None,
+        effects=None,
+        # write_transformers=None,
+        fill=None,
+        context=None,
+        **kwargs
+    ):
+        """
+        Decorator to pass decorated function an updated, stacked context
+        with all options passed in the call already set.
+
+        If an explicit
+        'transformers' if passed will be used to draw the pixels, if it makes sense
+        (i.e. the pixels are t    Add a "clear" draw method to empty-up a target.o
+        be transformed on write, rather than on reading)
+
+        Existing transformers on the current context will be ignored
+        """
+        from terminedia import context as root_context
+        if not any((char, color, foreground, background, effects, #write_transformers,
+                   fill, context)):
+            return func(*args, **kwargs)
+
+        self = args[0] if args else None
+        if self and not context_path:
+            self_context = getattr(self, "context", None)
+        else:
+            self_context = self
+            for comp in context_path.split("."):
+                self_context = getattr(self_context, comp)
+
+        context = context or self_context or root_context
+
+        color = color or foreground
+        with context:
+            for attr in ('char', 'color', 'foreground', 'background', 'effects', #'write_transformers',
+                         'fill'):
+                if locals()[attr]:
+                    setattr(context, attr, locals()[attr])
+            if "context" in sig.parameters:
+                kwargs["context"] = context
+            return func(*args, **kwargs)
+    return wrapper

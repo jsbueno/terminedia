@@ -4,6 +4,7 @@ from pathlib import Path
 
 from terminedia.image import Shape, PalettedShape
 from terminedia.utils import V2
+from terminedia.utils import contextkwords
 from terminedia.values import Directions, EMPTY
 
 try:
@@ -233,6 +234,7 @@ class Text:
         else:
             raise ValueError(f"Size {self.current_plane} not implemented for rendering")
 
+    @contextkwords(context_path="owner.context")
     def at(self, pos, text):
         pos = V2(pos)
         for char in text:

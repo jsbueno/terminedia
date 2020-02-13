@@ -1,57 +1,8 @@
 import inspect
-from functools import wraps
 
 from terminedia.subpixels import BlockChars
 from terminedia.values import CONTEXT_COLORS, EMPTY
-from terminedia.utils import V2, Rect
-
-# TODO: move this into .utils
-def contextkwords(func):
-    sig = inspect.signature(func)
-    @wraps(func)
-    def wrapper(
-        *args,
-        char=None,
-        color=None,
-        foreground=None,
-        background=None,
-        effects=None,
-        # write_transformers=None,
-        fill=None,
-        context=None,
-        **kwargs
-    ):
-        """
-        Decorator to pass decorated function an updated, stacked context
-        with all options passed in the call already set.
-
-        If an explicit
-        'transformers' if passed will be used to draw the pixels, if it makes sense
-        (i.e. the pixels are t    Add a "clear" draw method to empty-up a target.o
-        be transformed on write, rather than on reading)
-
-        Existing transformers on the current context will be ignored
-        """
-        from terminedia import context as root_context
-        if not any((char, color, foreground, background, effects, #write_transformers,
-                   fill, context)):
-            return func(*args, **kwargs)
-
-
-        self = args[0] if args else None
-        self_context = getattr(self, "context", None)
-        context = context or self_context or root_context
-
-        color = color or foreground
-        with context:
-            for attr in ('char', 'color', 'foreground', 'background', 'effects', #'write_transformers',
-                         'fill'):
-                if locals()[attr]:
-                    setattr(context, attr, locals()[attr])
-            if "context" in sig.parameters:
-                kwargs["context"] = context
-            return func(*args, **kwargs)
-    return wrapper
+from terminedia.utils import V2, Rect, contextkwords
 
 
 class Drawing:

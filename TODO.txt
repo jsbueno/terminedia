@@ -20,7 +20,7 @@ smaller features:
         - fix bug that prevents temporary context drawing with the same color
                 (context is reset to black on a second call)[V]
         - fix subshape slicing drawing (fill is broken)[V]
-        - refactor various 'print', 'at' and 'set_at' around
+        - refactor various 'print', 'at' and 'set_at' around[WIP]
         - change decorator (and possibly context) to allow using a whole
             context as parameter to update the current context
         - create the concept of 'write_transformers': transformations
