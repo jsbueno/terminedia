@@ -706,7 +706,7 @@ def contextkwords(func=None, context_path=None):
     if func is None:
         return partial(contextkwords, context_path=context_path)
     sig = inspect.signature(func)
-    @wraps(func)
+    @combine_signatures(func)
     def wrapper(
         *args,
         char=None,

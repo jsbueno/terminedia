@@ -14,11 +14,11 @@ Resolve "can't output a lot of things to terminal if stdin set to non blocking" 
 smaller features:
     - accept context attributes (color, background, effects) as keyword arguments on all .draw methods [WIP]:
         - change decorator (and possibly context) to allow using a whole
-            context as parameter to update the current context
+            context as parameter to update the current context (WIP)
+        - improve decorator to proper fix the signature of the decorated functions (V)
+            (and then record resulting hack as an answer to https://stackoverflow.com/questions/34402773/signature-changing-decorator-properly-documenting-additional-argument) (V)
         - create the concept of 'write_transformers': transformations
             to pixels at writting time in a separate context transformers stack
-        - improve decorator to proper fix the signature of the decorated functions
-            (and then record resulting hack as an answer to https://stackoverflow.com/questions/34402773/signature-changing-decorator-properly-documenting-additional-argument)
     - Make local contexts default to root context if a value has not been explicitly set
     - use the same option of suppressing absolute cursor movement for the html backend.
     - uniformize "size", "get", "set" and __getitem__ & __setitem__ on screen, shape, high and braille namespaces.
