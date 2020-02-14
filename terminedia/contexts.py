@@ -204,6 +204,8 @@ class _RootContext(Context):
 
 
     """
+    interactive_mode = ContextVar(bool, False)
+
     def __init__(self, default_fg, default_bg, **kwargs):
         super().__init__(**kwargs)
         # These are ordinary instance parameters, but are used as the default
