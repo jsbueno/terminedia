@@ -743,15 +743,21 @@ def contextkwords(func=None, context_path=None):
             for comp in context_path.split("."):
                 self_context = getattr(self_context, comp)
 
-        context = context or self_context or root_context
-
         color = color or foreground
-        with context:
-            for attr in ('char', 'color', 'foreground', 'background', 'effects', #'write_transformers',
-                         'fill'):
-                if locals()[attr]:
-                    setattr(context, attr, locals()[attr])
-            if "context" in sig.parameters:
-                kwargs["context"] = context
+
+        parameters = locals().copy()
+        context_kw = {attr: parameters[attr] for attr in (
+            'char', 'color', 'background', 'effects', #'write_transformers',
+            'fill', 'context'
+            )
+            if parameters[attr]
+        }
+
+        work_context = self_context or root_context
+
+        if "context" in sig.parameters:
+            kwargs["context"] = work_context
+
+        with work_context(**context_kw):
             return func(*args, **kwargs)
     return wrapper

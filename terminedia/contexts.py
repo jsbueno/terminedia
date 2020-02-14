@@ -22,6 +22,8 @@ class ContextVar:
         self.name = name
 
     def __set__(self, instance, value):
+        if getattr(instance._locals, "_context_stack", None):
+            return setattr(instance._locals._context_stack[-1], self.name, value)
         if not isinstance(value, self.type):
             # May generate ValueError TypeError: expected behavior
             type_ = self.type[0] if isinstance(self.type, tuple) else self.type
@@ -31,6 +33,8 @@ class ContextVar:
     def __get__(self, instance, owner):
         if not instance:
             return self
+        if getattr(instance._locals, "_context_stack", None):
+            return getattr(instance._locals._context_stack[-1], self.name)
         value = getattr(instance._locals, self.name, _sentinel)
         if value is _sentinel:
             value = self.default
@@ -102,13 +106,22 @@ class Context:
             setattr(self, attr, value)
 
     def __setattr__(self, name, value):
-        if name.startswith("_") or getattr(self.__class__, name, None):
+        if name.startswith("_"):
+            return super().__setattr__(name, value)
+
+        if getattr(self._locals, "_context_stack", None):
+            return setattr(self._locals._context_stack[-1], name, value)
+
+        if getattr(self.__class__, name, None):
+            # Use descriptor
             super().__setattr__(name, value)
         else:
             self._dirty = True
             setattr(self._locals, name, value)
 
     def __getattr__(self, name):
+        if getattr(self._locals, "_context_stack", None):
+            return getattr(self._locals._context_stack[-1], name)
         return getattr(self._locals, name)
 
     def __call__(self, **kw):
@@ -121,11 +134,19 @@ class Context:
         data = copy(self._locals.__dict__)
         data["_previously_existing"] = set(data.keys())
         self._locals.__dict__.setdefault("_stack", []).append(data)
+        if "context" in new_parameters:
+            self._locals.__dict__.setdefault("_context_stack", []).append(new_parameters.pop("context"))
+            # Use this to signal that the stacked context should be popped on exit:
+            self._locals._stack.append(_EmptySentinel)
         self._update(new_parameters)
         return self
 
     def __exit__(self, exc_name, traceback, frame):
         data = self._locals._stack.pop()
+        if data is _EmptySentinel:
+            self._locals._context_stack.pop()
+            data = self._locals._stack.pop()
+
         to_remove = set(self._locals.__dict__.keys()) - data.pop("_previously_existing", set())
         for extra_key in to_remove:
             # .text shape namespaces have to persist data in the parent's context,
@@ -163,6 +184,11 @@ class Context:
             if name in ("default_bg", "default_fg", "transformers"):
                 continue
             setattr(self, name, attr)
+
+    def __dir__(self):
+        if getattr(self._locals, "_context_stack", None):
+            return dir(self._locals._context_stack[-1])
+        return sorted(set(super().__dir__() + list(self._locals.__dict__.keys())))
 
 
 class _RootContext(Context):
