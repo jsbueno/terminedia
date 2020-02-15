@@ -10,7 +10,7 @@ sc.data.sprites[0].active=True
 
 def pixel(pixel):
     fg = TM.Color(pixel.foreground)
-    char = "#*o.  "[int(fg.value * 5)]
+    char = "#*o.  "[int((1 - fg.value) * 5)]
     fg.value = 1
     return char, fg, pixel.background, pixel.effects
 
