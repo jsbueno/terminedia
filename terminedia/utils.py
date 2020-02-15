@@ -366,6 +366,14 @@ class Rect:
 
 
 class LazyBindProperty:
+    """Special Internal Use Descriptor
+
+    This creates the associated attribute in an instance only when the attribute is
+    acessed for the first time, in a dynamic way. This allows objcts such as Shapes
+    have specialized associated "draw", "high", "text", "sprites" attributes,
+    and still be able to be created lightweight for short uses that will use just
+    a few, or none, of these attributes.
+    """
     def __init__(self, initializer):
         self.initializer = initializer
 
@@ -386,31 +394,6 @@ class LazyBindProperty:
         if not self.name in instance.__dict__:
             instance.__dict__[self.name] = self.initializer(instance)
         return instance.__dict__[self.name]
-
-
-def init_context_for_thread(
-    context, char=None, color=None, background=None, effects=None, direction=None
-):
-    """Create all expected data inside a context in the current thread.
-
-    Multi-threaded apps should call this to update a Screen or Shape instance
-    before trying to use that instance in a different thread than its originating one.
-    """
-    from terminedia.values import (
-        DEFAULT_BG,
-        DEFAULT_FG,
-        FULL_BLOCK,
-        Directions,
-        Effects,
-    )
-    from terminedia.transformers import TransformersContainer
-
-    context.char = char or FULL_BLOCK
-    context.color = color or DEFAULT_FG
-    context.background = background or DEFAULT_BG
-    context.effects = effects or Effects.none
-    context.direction = direction or Directions.RIGHT
-    context.transformer = TransformersContainer()
 
 
 @lru_cache()
