@@ -375,8 +375,15 @@ class LazyBindProperty:
     and still be able to be created lightweight for short uses that will use just
     a few, or none, of these attributes.
     """
-    def __init__(self, initializer):
+    def __init__(self, initializer=None, type=None):
+        self.type = type
+        if not initializer:
+            return
         self.initializer = initializer
+
+    def __call__(self, initializer):
+        self.initializer = initializer
+        return self
 
     def __set_name__(self, owner, name):
         self.name = name
@@ -396,6 +403,10 @@ class LazyBindProperty:
             instance.__dict__[self.name] = self.initializer(instance)
         return instance.__dict__[self.name]
 
+    def __set__(self, instance, value):
+        if self.type and not isinstance(value, self.type):
+            raise AttributeError(f"{self.name!r} must be set to {self.type} instances on {instance.__class__.__name__} objects.")
+        instance.__dict__[self.name] = value
 
 @lru_cache()
 def char_width(char):

@@ -6,7 +6,7 @@ from math import ceil
 
 import terminedia.text
 from terminedia.contexts import Context
-from terminedia.utils import contextkwords, V2, Rect, tick_forward
+from terminedia.utils import contextkwords, V2, Rect, tick_forward, LazyBindProperty
 from terminedia.subpixels import BrailleChars
 from terminedia.values import (
     CONTINUATION,
@@ -127,6 +127,10 @@ class Screen:
         from terminedia import context
         self.root_context = context
         self._last_setitem = 0
+
+    @LazyBindProperty(type=Context)
+    def context(self):
+        return Context()
 
     def __enter__(self):
         """Enters a fresh screen context"""

@@ -167,10 +167,9 @@ def pixel_factory(
 class ShapeApiMixin:
     __slots__ = ()
 
-    @LazyBindProperty
+    @LazyBindProperty(type=Context)
     def context(self):
-        context = self.__dict__["context"] = Context()
-        return context
+        return Context()
 
     @LazyBindProperty
     def draw(self):

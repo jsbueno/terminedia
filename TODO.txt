@@ -91,6 +91,7 @@ Future
     postscript backend
     .rtf backend
     pdf backend
+    jupyter notebook backend
     Fallback terminal to 1-byte color setting for up to 216 colors + 24 grayscale
 
 - new "resolution modes":
