@@ -1,7 +1,7 @@
 from inspect import signature
 
 from terminedia.utils import V2, HookList, get_current_tick
-from terminedia.values import EMPTY, FULL_BLOCK
+from terminedia.values import EMPTY, FULL_BLOCK, Directions
 
 class Transformer:
 
@@ -117,6 +117,32 @@ kernel_dilate = {
 }
 
 dilate_transformer = KernelTransformer(kernel_dilate)
+
+
+class GradientTransformer(Transformer):
+
+    def __init__(self, gradient, direction=Directions.RIGHT, **kwargs):
+        self.gradient=gradient
+        self.direction = direction
+        super().__init__(**kwargs)
+
+    def h_rel_pos(self, source, pos):
+        return pos.x / source.width
+
+    def v_rel_pos(self, source, pos):
+        return pos.y / source.height
+
+    def foreground(self, source, pos):
+        if self.direction == Directions.RIGHT:
+            pos = self.h_rel_pos(source, pos)
+        elif self.direction == Directions.LEFT:
+            pos = 1 - self.h_rel_pos(source, pos)
+        elif self.direction == Directions.DOWN:
+            pos = self.v_rel_pos(source, pos)
+        elif self.direction == Directions.UP:
+            pos = 1 - self.v_rel_pos(source, pos)
+
+        return self.gradient[pos]
 
 
 class TransformersContainer(HookList):

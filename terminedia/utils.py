@@ -657,6 +657,8 @@ class Gradient:
 
         use __getitem__ (grdient[0.3]) to get the color value at that point.
         """
+        # Promote stops[1] to proper colors:
+        stops = [(stop[0], Color(stop[1]), *stop[2:]) for stop in stops]
         self.stops = sorted(stops, key=lambda stop: (stop[0], stops.index(stop)))
 
     def __getitem__(self, position):
