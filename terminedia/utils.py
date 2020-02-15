@@ -431,6 +431,29 @@ css_colors = {
 _colors_cache = {}
 
 
+class _ComponentDescriptor:
+    def __init__(self, position):
+        self.position = position
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        instance._components[self.position] = 0
+
+    def __set__(self, instance, value):
+        if isinstance(value, float) and 0.0 <= value <= 1.0:
+            value = int(value * 255)
+        if not 0 <= value <= 255:
+            raise f"Color component {self.name} out of range: {value}"
+        instance._components[self.position] = value
+
+    def __delete__(self, instance):
+        instance._components[self.position] = 0
+
+
 class Color:
     """One Color class to Rule then all
 
@@ -440,9 +463,22 @@ class Color:
 
     """
 
-    __slots__ = ("special", "components", "name")
+    __slots__ = ("special", "_components", "name")
+
+    red = _ComponentDescriptor(0)
+    green = _ComponentDescriptor(1)
+    blue = _ComponentDescriptor(2)
+    alpha = _ComponentDescriptor(3)
+
+    components = property(lambda s: tuple(s._components[:3]))
+
+    @components.setter
+    def components(self, seq):
+        for i, value in enumerate(seq):
+            self._components[i] = value
 
     def __init__(self, value=None):
+        self._components = bytearray(b"\x00\x00\x00\xff")
         self.special = None
         self.name = ""
         if isinstance(value, Color):
@@ -487,11 +523,23 @@ class Color:
                 return False
         return self.components == other.components
 
+    def __add__(self, other):
+        if not isinstance(other, Color):
+            other = Color(other)
+        return Color(min(255, c1 + c2) for c1, c2 in zip(self, other))
+
+    def __sub__(self, other):
+        if not isinstance(other, Color):
+            other = Color(other)
+        return Color(max(0, c1 - c2) for c1, c2 in zip(self, other))
+
     def __getitem__(self, index):
-        return self.components[index]
+        return self._components[index]
 
-    red, green, blue = [property(lambda self, i=i: self.components[i]) for i in (0, 1, 2)]
+    def __setitem__(self, index, value):
+        self._components[index] = value
 
+    # red, green, blue = [property(lambda self, i=i: self.components[i]) for i in (0, 1, 2)]
     @classmethod
     def normalize_color(cls, components):
         """Converts RGB colors to use 0-255 integers.
@@ -504,6 +552,7 @@ class Color:
         returns: Color constant, or 3-sequence normalized to 0-255 range.
         """
 
+        components = tuple(components)
         if isinstance(components, tuple) and components in _colors_cache:
             return _colors_cache[components]
 
