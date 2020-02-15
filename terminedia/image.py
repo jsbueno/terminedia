@@ -955,6 +955,18 @@ class FullShape(Shape):
         # set information so higher level users can partake char width (text, blit)
         self.context.shape_lastchar_was_double = double_width
 
+    @classmethod
+    def promote(cls, other_shape):
+        """Makes a FullShape copy of the other shape
+
+        This allows the new shape to be used with Transformers,
+        Sprites, and other elements that might not be supported
+        in the other shape classes
+        """
+        new_shape = cls.new(other_shape.size)
+        new_shape.draw.blit((0,0), other_shape)
+        return new_shape
+
 
 def shape(data, color_map=None, **kwargs):
     """Factory for shape objects
