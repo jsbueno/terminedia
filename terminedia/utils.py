@@ -451,15 +451,7 @@ class Color:
 
         elif isinstance(value, str):
             if value.startswith("#"):
-                html = html.strip("#;")
-                if len(html) == 3:
-                    self.components = tuple(
-                        (int(comp[i], 16) << 8) + int(comp[i], 16) for i in (0, 1, 2)
-                    )
-                elif len(html == 6):
-                    self.components = tuple(
-                        int(comp[2 * i : 2 * i + 2], 16) for i in (0, 1, 2)
-                    )
+                self._from_html(value)
             elif value in css_colors:
                 self.name = value
                 self.components = css_colors[value]
@@ -467,6 +459,19 @@ class Color:
                 raise ValueError(f"Unrecognized color value or name: {value!r}")
         else:
             self.components = self.normalize_color(value)
+
+    def _from_html(self, html):
+        html = html.strip("#;")
+        if len(html) == 3:
+            self.components = tuple(
+                (int(html[i], 16) << 4) + int(html[i], 16) for i in (0, 1, 2)
+            )
+        elif len(html) == 6:
+            self.components = tuple(
+                int(html[i : i + 2], 16) for i in range(0, 6, 2)
+            )
+        else:
+            raise ValueError(f"Unrecognized color value or name: {value!r}")
 
     def __len__(self):
         return 3
@@ -510,6 +515,10 @@ class Color:
         return color
 
     @property
+    def normalized(self):
+        return tuple(c/255 for c in self.components)
+
+    @property
     def html(self):
         return "#{:02X}{:02X}{:02X}".format(*(self.components))
 
@@ -522,6 +531,7 @@ class Color:
             else self.components
         )
         return f"<Color {value!r}>"
+
 
 
 special_color_names = "DEFAULT_FG DEFAULT_BG CONTEXT_COLORS TRANSPARENT".split()
