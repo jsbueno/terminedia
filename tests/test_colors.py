@@ -30,10 +30,18 @@ def test_color_by_hex6_works():
     c = Color("#FF0000")
     assert tuple(c.components) == (255, 0, 0)
 
-def test_color_by_hex6_works():
+def test_color_by_hsv_works():
+    c = Color(hsv=(0, 1, 1))
+    assert tuple(c.components) == (255, 0, 0)
+
+def test_normalized_color_works():
     c = Color("red")
     assert tuple(c.components) == (255, 0, 0)
     assert c.normalized == (1.0, 0, 0)
+
+def test_can_get_color_component_by_name():
+    c = Color("red")
+    assert c.red == 255 and c.green == 0 and c.blue == 0
 
 def test_can_set_color_component_by_name():
     c = Color("red")
@@ -42,6 +50,18 @@ def test_can_set_color_component_by_name():
     c = Color("red")
     c.green = 1.0
     assert c.components == (255, 255, 0)
+
+def test_color_name_is_reset_on_any_change():
+    c = Color("red")
+    assert c.name == "red"
+    c.green = 255
+    assert not c.name
+    c = Color("red")
+    c[1] = 1.0
+    assert not c.name
+    c = Color("red")
+    c.components = (0,1,0)
+    assert not c.name
 
 def test_can_set_color_component_by_index():
     c = Color("red")
@@ -74,3 +94,16 @@ def test_adding_colors_dont_overflow():
     c += Color((200, 255, 0))
     assert c.components == (255, 255, 0)
 
+def test_html_rendering_of_color():
+    c = Color((255, 128, 0))
+    assert c.html == "#FF8000"
+
+def test_setting_hsv_component_works():
+    c1 = Color("red")
+    c1.hue = 0.5
+
+    assert c1.components == (0, 255, 255)
+    c1 = Color("red")
+    c1.saturation = 0.5
+
+    assert c1.components == (255, 127, 127)

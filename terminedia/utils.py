@@ -2,6 +2,7 @@ import inspect
 import operator
 import unicodedata
 from collections.abc import MutableSequence
+from colorsys import rgb_to_hsv, hsv_to_rgb
 from functools import lru_cache, wraps, partial
 
 
@@ -441,18 +442,29 @@ class _ComponentDescriptor:
     def __get__(self, instance, owner):
         if instance is None:
             return self
-        instance._components[self.position] = 0
+        return instance._components[self.position]
 
     def __set__(self, instance, value):
         if isinstance(value, float) and 0.0 <= value <= 1.0:
             value = int(value * 255)
-        if not 0 <= value <= 255:
-            raise f"Color component {self.name} out of range: {value}"
         instance._components[self.position] = value
+        instance.name = ""
 
     def __delete__(self, instance):
-        instance._components[self.position] = 0
+        self.__set__(instance, 0)
 
+
+class _ComponentHSVDescriptor(_ComponentDescriptor):
+
+    def __get__(self, instance, owner):
+        if instance is None:
+            return self
+        return instance.hsv[self.position]
+
+    def __set__(self, instance, value):
+        hsv = list(instance.hsv)
+        hsv[self.position] = value
+        instance.hsv = hsv
 
 class Color:
     """One Color class to Rule then all
@@ -470,17 +482,25 @@ class Color:
     blue = _ComponentDescriptor(2)
     alpha = _ComponentDescriptor(3)
 
+    hue = _ComponentHSVDescriptor(0)
+    saturation = _ComponentHSVDescriptor(1)
+    value = _ComponentHSVDescriptor(2)
+
     components = property(lambda s: tuple(s._components[:3]))
 
     @components.setter
     def components(self, seq):
         for i, value in enumerate(seq):
             self._components[i] = value
+        self.name = ""
 
-    def __init__(self, value=None):
+    def __init__(self, value=None, hsv=None):
         self._components = bytearray(b"\x00\x00\x00\xff")
         self.special = None
         self.name = ""
+        if value is None and hsv is not None:
+            self.hsv = hsv
+            return
         if isinstance(value, Color):
             self.components = value.components
             self.special = value.special
@@ -489,8 +509,8 @@ class Color:
             if value.startswith("#"):
                 self._from_html(value)
             elif value in css_colors:
-                self.name = value
                 self.components = css_colors[value]
+                self.name = value
             else:
                 raise ValueError(f"Unrecognized color value or name: {value!r}")
         else:
@@ -537,9 +557,11 @@ class Color:
         return self._components[index]
 
     def __setitem__(self, index, value):
+        if 0.0 <= value <= 1.0 and not (isinstance(value, int) and value == 1):
+            value = int(value * 255)
         self._components[index] = value
+        self.name = ""
 
-    # red, green, blue = [property(lambda self, i=i: self.components[i]) for i in (0, 1, 2)]
     @classmethod
     def normalize_color(cls, components):
         """Converts RGB colors to use 0-255 integers.
@@ -581,6 +603,13 @@ class Color:
         )
         return f"<Color {value!r}>"
 
+    @property
+    def hsv(self):
+        return rgb_to_hsv(*self.normalized)
+
+    @hsv.setter
+    def hsv(self, values):
+        self.components = self.normalize_color(hsv_to_rgb(*values))
 
 
 special_color_names = "DEFAULT_FG DEFAULT_BG CONTEXT_COLORS TRANSPARENT".split()
