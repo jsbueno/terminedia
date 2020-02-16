@@ -145,6 +145,7 @@ Improvements and small features:
     Rename "realtime_keyb" to "keyboard" (and keyboard.py to input.py) (V)
     Added "input.getch" function, which pauses until a key is pressed
     Added a "clear" shape method to empty-up a target.
+    Made Character class returned by TM.unicode.lookup directly usable as a string (yay emoji!)
 
 Color class:
     - Create a color class (V)
