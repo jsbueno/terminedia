@@ -14,12 +14,14 @@ Resolve "can't output a lot of things to terminal if stdin set to non blocking" 
 smaller features:
     - accept context attributes (color, background, effects) as keyword arguments on all .draw methods [WIP]:
         - change decorator (and possibly context) to allow using a whole
-            context as parameter to update the current context (WIP)
+            context as parameter to update the current context (V)
         - improve decorator to proper fix the signature of the decorated functions (V)
             (and then record resulting hack as an answer to https://stackoverflow.com/questions/34402773/signature-changing-decorator-properly-documenting-additional-argument) (V)
         - create the concept of 'write_transformers': transformations
             to pixels at writting time in a separate context transformers stack
     - Make local contexts default to root context if a value has not been explicitly set
+        - more important: make thread-local contexts default to values on the main (interactive) thread
+        so that an event loop can be spawned in interactive mode and use proper context values
     - use the same option of suppressing absolute cursor movement for the html backend.
     - uniformize "size", "get", "set" and __getitem__ & __setitem__ on screen, shape, high and braille namespaces.
     - fix palleted shapes:
@@ -43,9 +45,17 @@ smaller features:
 
     Transformers:
         - include a variety of ready-to-use and easy to parametrize transformers for:
-             -applying gradient effects
-             - convolution filters
+             -applying gradient effects (POC done)
+             - convolution filters (POC done)
+             -  Mapping that allows key/value pairs to have attached tags
+                when using the tags in browsing (values, keys), a tag may be specifed
+                to filter out any pairs that do not have the same tag.
+                This should be useful for tagging sprites and the event system -
+                and also for providing a single "transformers library" object
+                using tags for the transformers categories.
+
         - add 'bake' operation: render a transformers stack into a shape
+
 
     Sprites:
         - Add Spatial transformation
@@ -264,7 +274,7 @@ Color class Todo:
     Future:
     - Add support for gray colors (single int)
     - Add support for alpha-component
-    - Add support for HSL parsing/conversion
+    - Add support for HSV parsing/convertion (V)
 
 HTML-Backend Steps (WIP)
     future
@@ -291,3 +301,5 @@ Bugs
     bug: Effects.super_script not working for letters 'n' and 'q' - check if there is a suitable custom glyph
     bug: Pallette shapes need to be overhauled - currently tests are broken due to reading from it back just yielding "True" and "False"
     bug: (big issue): workaround stdout blocking and raising error when in input.keyboard reading mode.
+    bug: terminedia-shapes example has stopped working properly, due to differences in how
+    whitespace is blitted. To fix: refactor script to use Sprites instead of raw shapes.

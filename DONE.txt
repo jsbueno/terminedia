@@ -175,10 +175,11 @@ HTML-Backend Steps
 Transformers :
     Transformers are a generic word for filters, which include attached shapes that will work as extra layers.
     Improve context transformers to become a friendly, stackable class with defined API:
-        - a Transformer container class is attached to each context in "transformers"
+        - a TransformerContainer class is attached to each context in "transformers"
             - a specialized sequence to hold a Transformers stack for each context
-            - exposes "char", "foreground", "background" and "effect" properties which
+            - exposes "pixel", "char", "foreground", "background" and "effect" properties which
             yield the final value for a pixel in a given position when it is read via "__getitem__" in a Shape
+            - a TransformerContainer is also attached to a Sprite and applies to all shapes within (Sprite.transformers)
         - Transformer:
             a class with slots for each possible transformation a pixel might go through:
                 - slots: pixel, char, foreground, background, effect:
