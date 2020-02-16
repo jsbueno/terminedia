@@ -58,8 +58,6 @@ class Transformer:
         )
 
 
-
-
 class KernelTransformer(Transformer):
     policy = "abyss"
 
