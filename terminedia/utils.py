@@ -934,7 +934,7 @@ class TaggedDictionary(MutableMapping):
 
     def _get_local_keys(self, keys):
         if not isinstance(keys, Iterable) or isinstance(keys, str):
-            keys = (keys,)
+            keys = {keys,}
         return frozenset((*self._filtering_keys, *keys))
 
     def __setitem__(self, keys, value):
@@ -948,16 +948,29 @@ class TaggedDictionary(MutableMapping):
     def _get_resolved_keys(self, keys):
         keys = self._get_local_keys(keys)
         if keys:
-            keysets = (self._keys[key] for key in keys)
-            resolved_keys = next(keysets)
+
+            keysets = [self._keys[key] for key in keys if key in self._keys]
+            if len(keysets) < len(keys):
+                unknown = set()
+                for key in keys:
+                    if key not in self._keys and key not in self._filtering_keys:
+                        unknown.add(key)
+                if unknown:
+                    raise KeyError(repr(unknown))
+
+            keysets = iter(keysets)
+            resolved_keys = next(keysets, set())
             for keyset in keysets:
                 resolved_keys = resolved_keys.intersection(keyset)
         else:
-            resolved_keys = self.data.keys()
+            resolved_keys = set(self.data.keys())
         return resolved_keys
 
     def __getitem__(self, keys):
-        return [self.data[keys] for keys in self._get_resolved_keys(keys)]
+        result = [self.data[keys] for keys in self._get_resolved_keys(keys)]
+        if not result:
+            raise KeyError(repr(keys))
+        return result
 
     def __delitem__(self, keys):
         keys = self._get_local_keys(keys)
@@ -969,7 +982,9 @@ class TaggedDictionary(MutableMapping):
                     if outter_key in inner_key:
                         to_remove.add(inner_key)
                 self._keys[outter_key] -= to_remove
-            for key in self._get_resolved_keys():
+                if not self._keys[outter_key]:
+                    del self._keys[outter_key]
+            for key in self._get_resolved_keys(()):
                 del self.data[key]
 
     def add(self, value):
@@ -984,13 +999,25 @@ class TaggedDictionary(MutableMapping):
         self[key] = value
         return key
 
-    remove = __delitem__
+    def remove(self, value):
+        key = sentinel = object()
+        for key, other_value in self.items():
+            if other_value == value:
+                break
+        else:
+            if key is not sentinel:
+                del self[key]
+                return
+        raise ValueError("Value not in TaggedDictionary")
 
     def __iter__(self):
         return iter(self._get_resolved_keys(()))
 
     def __len__(self):
         return len(self._get_resolved_keys(()))
+
+    def values(self):
+        return [item[0] for item in super().values()]
 
     def __repr__(self):
         keys = self._get_resolved_keys(())
