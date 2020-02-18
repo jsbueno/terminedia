@@ -854,8 +854,8 @@ def contextkwords(func=None, context_path=None):
         Existing transformers on the current context will be ignored
         """
         from terminedia import context as root_context
-        if not any((char, color, foreground, background, effects, #write_transformers,
-                   fill, context)):
+        if all(attr is not None for attr in(char, color, foreground, background, effects, #write_transformers,
+                   fill, font, context)):
             return func(*args, **kwargs)
 
         self = args[0] if args else None
