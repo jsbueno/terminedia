@@ -838,6 +838,7 @@ def contextkwords(func=None, context_path=None):
         effects=None,
         # write_transformers=None,
         fill=None,
+        font=None,
         context=None,
         **kwargs
     ):
@@ -870,9 +871,9 @@ def contextkwords(func=None, context_path=None):
         parameters = locals().copy()
         context_kw = {attr: parameters[attr] for attr in (
             'char', 'color', 'background', 'effects', #'write_transformers',
-            'fill', 'context'
+            'fill', 'font', 'context'
             )
-            if parameters[attr]
+            if parameters[attr] is not None
         }
 
         work_context = self_context or root_context

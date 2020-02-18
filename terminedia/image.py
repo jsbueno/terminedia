@@ -904,7 +904,7 @@ class FullShape(Shape):
         else:
             if isinstance(value, bool):
                 value = self.context.char if value else EMPTY
-            value = [value] if isinstance(value, str) else list(value)
+            value = [value] if isinstance(value, str) or value is TRANSPARENT else list(value)
             value += [
                 self.context.color,
                 self.context.background,

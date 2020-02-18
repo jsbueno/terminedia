@@ -4,7 +4,7 @@ import threading
 from copy import copy
 from types import FunctionType
 
-from terminedia.utils import Color, V2
+from terminedia.utils import Color, SpecialColor, V2
 from terminedia.transformers import TransformersContainer
 from terminedia.subpixels import BlockChars
 from terminedia.values import DEFAULT_BG, DEFAULT_FG, Directions, Effects
@@ -82,10 +82,10 @@ class Context:
         are reverted on `__exit__`.
     """
 
-    char = ContextVar(str, BlockChars.FULL_BLOCK)
+    char = ContextVar((str, SpecialColor), BlockChars.FULL_BLOCK)
     color = ContextVar(Color, DEFAULT_FG)
     background = ContextVar(Color, DEFAULT_BG)
-    effects = ContextVar(Effects, Effects.none)
+    effects = ContextVar((Effects, SpecialColor), Effects.none)
     direction = ContextVar(V2, Directions.RIGHT)
     transformers = ContextVar(TransformersContainer, None)
     fill = ContextVar(bool, False)

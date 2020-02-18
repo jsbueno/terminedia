@@ -74,7 +74,7 @@ create full fledged shape with char, fg, bg, effects
         class bound as internal storage for screen (V)
         bug: issues with internal data and rendering(V)
         Fix text rendering into FullShape(V)
-        FEATURE: being able to draw in differing planes (value, FG, BG, effects) independent way(V)
+        FEATURE: being able to draw in differing planes (value, FG, BG, effects) independent way(V) (Use TM.TRANSPARENT as value not to affect a given plane- even for "char")
         write a refresh method to redraw a Screen rectangle - allowing double-buffering drawing (V)
     Add "render" method or other API for early implementation of other backends (not terminal)
 - accept context attributes (color, background, effects) as keyword arguments on all .draw methods [V]:
