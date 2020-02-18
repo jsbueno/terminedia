@@ -49,7 +49,10 @@ def list_fonts():
     return [f for f in files if f.endswith(".hex")]
 
 
-def load_font(font_path, font_is_resource, initial=0, last=256, ch1=EMPTY, ch2="#"):
+def load_font(font_path, font_is_resource, page=0, ch1=EMPTY, ch2="#"):
+
+    initial = page << 8
+    last = initial + 0x100
 
     if font_is_resource and resources:
         data = list(resources.open_text("terminedia.data", font_path))
@@ -58,7 +61,8 @@ def load_font(font_path, font_is_resource, initial=0, last=256, ch1=EMPTY, ch2="
         path = Path(__file__).parent / "data" / font_path
         data = list(open(path).readlines())
     else:
-        # TODO: enable more font types
+        # TODO: enable more font types, and
+        # TODO: enable fallback to other fonts if glyphs not present in the requested one
         data = list(open(font_path).readlines())
 
     font = {}
@@ -76,13 +80,21 @@ def load_font(font_path, font_is_resource, initial=0, last=256, ch1=EMPTY, ch2="
 def render(text, font=None, shape_cls=PalettedShape, direction=Directions.RIGHT):
     if font is None:
         font = ""
-    font, is_resource = _normalize_font_path(font)
+    font_id, is_resource = _normalize_font_path(font)
 
-    if font not in font_registry:
-        font_registry.setdefault(font, {}).update(load_font(font, is_resource))
+    font = font_registry.get(font_id, None)
 
-    font = font_registry[font]
-    phrase = [shape_cls(font[chr]) for chr in text]
+    if not font:
+        # Always load page-0 (first 256 chars)
+        font_registry.setdefault(font_id, {}).update(load_font(font_id, is_resource))
+        font = font_registry[font_id]
+
+    phrase = []
+    for char in text:
+        if char not in font:
+            font.update(load_font(font_id, is_resource, page=ord(char)//0x100))
+        phrase.append(shape_cls(font[char]))
+
     if len(text) == 0:
         return shape_cls.new((0, 0))
     elif len(text) == 1:
@@ -139,17 +151,18 @@ class Text:
     Prior to issuing any text command, one should select a character "plane".
     Planes refer to the number of text blocks used for plotting each character
     on the final rendering target (Shape or Screen). Thus, the values
-    1 - for normal text, 4 for Latin characters rendered with 1/4 block
-    normal characters and 8 for characters rendered by block characters
+    1 - for normal text, 2 for text rendered with Braille unicode chars,
+    4 for characters rendered with 1/4 block
+    characters and 8 for characters rendered by block characters
     as pixels, are implemented with the default fonts.
     (as in `screen.text[4].at((3,4), "hello")` )
     the public methods here issue commands directly to the owner's
-    `draw` and `high.draw` drawing namespaces - or the owner's values
+    `draw`. `high.draw` and `braille.draw` drawing namespaces - or the owner's values
     for the text[1] plane.
     """
 
     def __init__(self, owner):
-        """Not intented to be instanced directly -
+        """Not intented to be instanced directly - instantiated as a Shape property.
 
         Args:
           - owner (Union[Screen, Shape]): owner instance, target of rendering methods

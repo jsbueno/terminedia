@@ -72,8 +72,6 @@ smaller features:
         - linear gradients
 
 
-
-
 breaking-changes:
     - rename unicode effects so that their name matchs their unicode names (at least "super_bold" -> "regional_indicator")
 
@@ -220,7 +218,6 @@ more features
     Add scrolling, rectangular text regions and flowing text
     All-side scrolling and flowing text from one region to the next
     (make text.at work with the @ operator?: `sc.text[4] @ (5,2)("hello!")(?)
-    read font "planes" on demand (WIP - only the first 256 chars are loaded)
     Find proper API do render 8x16 pixel fonts into 8x8 char "high-resolution" 1/4 block.
     Add arbitrary font handling by using PIL to cache rendered chars.
     Enable 16 x 8 double and 16 x 16 double width UNSCII fonts.

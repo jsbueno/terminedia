@@ -66,8 +66,9 @@ Text and big-text capabilities:
 
     Improve font selection and loading (V)
     Bundle 8x16 UNSCII font to packages (whooping 3.5MB) (V)
+    read font "planes" on demand(V) (characters are lazily loaded when the first char in a 256/char block is requested)
 
-    create full fledged shape with char, fg, bg, effects
+create full fledged shape with char, fg, bg, effects
         implement FullShape class (V):
         class with internal data planes for each attribute (V)
         class bound as internal storage for screen (V)
@@ -76,7 +77,7 @@ Text and big-text capabilities:
         FEATURE: being able to draw in differing planes (value, FG, BG, effects) independent way(V)
         write a refresh method to redraw a Screen rectangle - allowing double-buffering drawing (V)
     Add "render" method or other API for early implementation of other backends (not terminal)
-    - accept context attributes (color, background, effects) as keyword arguments on all .draw methods [V]:
+- accept context attributes (color, background, effects) as keyword arguments on all .draw methods [V]:
         - reate contextkwords decorator [V]
         - refactor methods in drawing.py [V]
         - optimize decorator not to enter a 'with' context block if not needed
