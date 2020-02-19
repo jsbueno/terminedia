@@ -64,12 +64,37 @@ smaller features:
         - Spatial - class embedding a 2D (3X3) transformation matrix with friendly properties
                 to specify linear transformations in a friendly way.
 
+
     create some filters as ready-made transformers (maybe not all for 0.3.0):
         - threshold: yield true/false pixels and strip color information
         - convert colorred fullblock pixels to "transparent" pixels: keep the existing char, and apply the color as background
         - color-value to different unicode-circles
         - color-value to different unicode-squares
         - linear gradients
+
+    - Reactive rendering
+        - Reactive rendering to update just screen parts where srawing activity took place
+        - update terminedia-shapes to naively use sprites with the existingv"eager fullscreen
+        update" per frame. take note of performance.
+
+        - per-backend "update_rects" method: called in place of the "_print" method, takes
+        a list of rectangles and an image data source - caches color, bg, effects by itself
+        inside a rectangle, and change status by calling ".csi" functions by itself
+
+        - all drawing api, shape creation, sprite method call or assignment, assignment to "transformerscontainers" or "transformers" itens, and spritecontainer objects
+        advance the "tick" counter and mark themselves as changed at that tick.
+            (the contextkwords method can be doubled as recursion marker and update the
+             tick just once, but still each method will know about its boundaries.
+             probably an extra attribute on whether each method should advance the tick
+             aand mark the rectangles it changed is better)
+            as a POC any call to a Draw method could mark all the owner as dirty.
+            )
+        - sprite-rect changes must mark dirty rects on their owner on their previous rects.
+
+        - screen.update should change its behavior to use rects marked as dirty.
+        a separate parameter will retain existing semantics, of pixel-by-pixel
+        rendering to a "journalingcommands" proxy to the backend. Interactive mode should
+        always mark all the screen as dirty, or retain current behavior.
 
 
 breaking-changes:
@@ -95,6 +120,7 @@ Future
 
 - BACKENDS:
     Image 'screenshot' backend
+        - including rendering animations as gifs or image-sequences
     image backend (pixels are simple color-only boring, image pixels)
     postscript backend
     .rtf backend
