@@ -100,15 +100,12 @@ def main(shape, high=False, braille=False):
     counter = 0
 
     with keyboard(), Screen(clear_screen=True) as scr:
-        scr.data.sprites.append(fshape)
-        sprite = scr.data.sprites[0]
-        sprite.active = True
 
         x = scr.get_size()[0] // 2 - 6
         y = 0
         pos = V2(x, y)
-        sprite.pos = pos
-        old_pos = pos
+        sprite = scr.data.sprites.add(fshape, pos, active=True)
+
         while True:
             key = inkey()
             if key in (K.ESC, "q"):
@@ -125,7 +122,7 @@ def main(shape, high=False, braille=False):
             counter += 1
             last_frame = current
             pause_time = max(FRAME_DELAY - ellapsed, 0)
-            time.sleep(1 / 30)
+            time.sleep(pause_time)
 
     print(f"\nTotal frames: {counter}\nAverage time per frame: {time_acumulator / counter:.04f}")
 
