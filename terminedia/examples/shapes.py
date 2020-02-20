@@ -2,6 +2,7 @@ import time
 
 import click
 
+import terminedia as TM
 from terminedia import Screen, keyboard, inkey, DEFAULT_FG, V2
 from terminedia import KeyCodes as K
 
@@ -17,19 +18,22 @@ shape1 = """\
 """
 
 shape2 = """\
-                   .
-    *    **    *   .
-   **   ****   **  .
-  **   **##**   ** .
-  **   **##**   ** .
-  **   **##**   ** .
-  **************** .
-  **************** .
-    !!   !!   !!   .
-    !!   !!   !!   .
-   %  % %  % %  %  .
+                    .
+     *    **    *   .
+    **   ****   **  .
+   **   **##**   ** .
+   **   **##**   ** .
+   **   **##**   ** .
+   **************** .
+   **************** .
+     !!   !!   !!   .
+     !!   !!   !!   .
+    %  % %  % %  %  .
                    .
 """
+
+
+FRAME_DELAY = 0.1
 
 c_map = {"*": DEFAULT_FG, "#": (0.5, 0.8, 0.8), "!": (1, 0, 0), "%": (1, 0.7, 0)}
 
@@ -72,45 +76,58 @@ def main(shape, high=False, braille=False):
     if "\\n" in shape:
         shape = shape.replace("\\n", "\n")
     original_shape = shape
-    shape = shape.rstrip("\n")
-    size_ = V2(
-        (shape.find("\n") if "\n" in shape else len(shape)), shape.count("\n") + 1
-    )
-    factor = 1
-    with keyboard(), Screen(clear_screen=False) as scr:
-        parent_scr = scr
-        if high:
-            scr = scr.high
-            factor = 2
-        elif braille:
-            scr = scr.braille
-            factor = 1
+    shape = TM.shape(original_shape, **({"color_map": c_map} if original_shape == shape2 else {})
+)
+    #shape = shape.rstrip("\n")
+    #size_ = V2(
+        #(shape.find("\n") if "\n" in shape else len(shape)), shape.count("\n") + 1
+    #)
+    #factor = 1
+
+
+
+    if high:
+        fshape = TM.shape((shape.size * 0.5).as_int)
+        fshape.high.draw.blit((0,0), shape)
+    elif braille:
+        fshape = TM.shape((shape.size.x // 2 + shape.size.x % 2, shape.size.y // 4 + int(shape.size.y % 4 != 0) ))
+        fshape.braille.draw.blit((0,0), shape)
+    else:
+        fshape = TM.FullShape.promote(shape)
+
+    last_frame = time.time()
+    time_acumulator = 0
+    counter = 0
+
+    with keyboard(), Screen(clear_screen=True) as scr:
+        scr.data.sprites.append(fshape)
+        sprite = scr.data.sprites[0]
+        sprite.active = True
 
         x = scr.get_size()[0] // 2 - 6
         y = 0
         pos = V2(x, y)
+        sprite.pos = pos
         old_pos = pos
         while True:
             key = inkey()
             if key in (K.ESC, "q"):
                 break
+            sprite.pos += (
+                ((key == K.RIGHT) - (key == K.LEFT)),
+                ((key == K.DOWN) - (key == K.UP)),
+            )
 
-            with parent_scr.commands:
-                scr.draw.rect(pos, rel=size_ + (1, 1), erase=True)
-
-                pos += (
-                    factor * ((key == K.RIGHT) - (key == K.LEFT)),
-                    factor * ((key == K.DOWN) - (key == K.UP)),
-                )
-
-                scr.draw.blit(
-                    pos,
-                    shape,
-                    **({"color_map": c_map} if original_shape == shape2 else {})
-                )
-
+            scr.update()
+            current = time.time()
+            ellapsed = current - last_frame
+            time_acumulator += ellapsed
+            counter += 1
+            last_frame = current
+            pause_time = max(FRAME_DELAY - ellapsed, 0)
             time.sleep(1 / 30)
 
+    print(f"\nTotal frames: {counter}\nAverage time per frame: {time_acumulator / counter:.04f}")
 
 if __name__ == "__main__":
     main()
