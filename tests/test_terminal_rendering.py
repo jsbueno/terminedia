@@ -126,3 +126,21 @@ def test_render_blocks_foreground_color():
 
     data = ansi_colors_to_markup(strip_ansi_movement((yield None)))
     assert data == "[foreground: (255, 0, 0)][background: DEFAULT]*[foreground: (0, 255, 0)]*[foreground: DEFAULT]*" + TM.values.EMPTY * 6
+
+
+@pytest.mark.parametrize(*fast_and_slow_render_mark)
+@rendering_test
+def test_render_blocks_background_color():
+
+    sc = TM.Screen(size=(3,3))
+    sc.data.context.color = (255, 0, 0)
+    sc.data.context.background = (255, 0, 0)
+    sc.data[0,0] = "*"
+    sc.data.context.color = (0, 255, 0)
+    sc.data[1,0] = "*"
+    sc.data.context.background = TM.DEFAULT_BG
+    sc.data[2,0] = "*"
+    sc.update()
+
+    data = ansi_colors_to_markup(strip_ansi_movement((yield None)))
+    assert data == "[foreground: (255, 0, 0)][background: (255, 0, 0)]*[foreground: (0, 255, 0)]*[background: DEFAULT]*[foreground: DEFAULT]" + TM.values.EMPTY * 6

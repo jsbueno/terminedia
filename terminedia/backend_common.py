@@ -6,7 +6,7 @@ from io import StringIO
 
 from terminedia.unicode_transforms import translate_chars
 from terminedia.utils import char_width, V2, Color
-from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects, ESC
+from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, UNICODE_EFFECTS, ESC
 
 
 class BackendColorContextMixin:
@@ -46,7 +46,7 @@ class BackendColorContextMixin:
         # effect_map = effect_off_map if turn_off else effect_on_map
         active_unicode_effects = Effects.none
         for effect in effects:
-            if effect in unicode_effects:
+            if effect in UNICODE_EFFECTS:
                 active_unicode_effects |= effect
 
         self.active_unicode_effects = active_unicode_effects

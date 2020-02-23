@@ -3,11 +3,12 @@ import time
 import sys
 from functools import lru_cache
 from io import StringIO
+from threading import Lock
 
 from terminedia.backend_common import BackendColorContextMixin, JournalingCommandsMixin
 from terminedia.unicode_transforms import translate_chars
 from terminedia.utils import char_width, V2, Color
-from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects, ESC
+from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects_set, ESC, UNICODE_EFFECTS, TERMINAL_EFFECTS, CONTINUATION, EMPTY
 
 use_re_split = sys.version_info >= (3, 7)
 
@@ -65,6 +66,8 @@ effect_double_off = {
 }
 
 
+unicode_effect_cache = {}
+
 class ScreenCommands(BackendColorContextMixin):
     """Low level functions to execute ANSI-Sequence-related tasks on the terminal.
 
@@ -75,6 +78,7 @@ class ScreenCommands(BackendColorContextMixin):
     API.
     """
 
+    locks = {}
     last_pos = None
 
     def __init__(self, absolute_movement=True):
@@ -143,6 +147,13 @@ class ScreenCommands(BackendColorContextMixin):
             self._print(*args, sep=sep, end=end, flush=flush, file=file, count=count + 1)
 
     def fast_render(self, data, rects=None, file=None):
+        key = getattr(file, "name", "<stdout>")
+        if key not in self.__class__.locks:
+            self.__class__.locks[key] = Lock()
+        with self.__class__.locks[key]:
+            return self._fast_render(data, rects, file)
+
+    def _fast_render(self, data, rects=None, file=None):
         if file is None:
             file = sys.stdout
         if not rects:
@@ -159,14 +170,15 @@ class ScreenCommands(BackendColorContextMixin):
                 for x in range(rect.left, rect.right):
                     # Fast render just for full-4tuple values.
                     char, fg, bg, effects = data[x, y]
-                    tm_effects = None #  TODO: render_tm_effects
+                    tm_effects = effects & TERMINAL_EFFECTS
+                    un_effects = effects & UNICODE_EFFECTS
+
                     if fg != last_fg:
                         outstr += CSI
                         if fg == DEFAULT_FG:
                             outstr += "39"
                         else:
-                            outstr += "38;2;"
-                            outstr += "{};{};{}".format(*fg)
+                            outstr += "38;2;{};{};{}".format(*fg)
 
                     if bg != last_bg:
                         if fg == last_fg:
@@ -176,26 +188,39 @@ class ScreenCommands(BackendColorContextMixin):
                         if bg == DEFAULT_BG:
                             outstr += "49"
                         else:
-                            outstr += "48;2;"
-                            outstr += "{};{};{}".format(*bg)
+                            outstr += "48;2;{};{};{}".format(*bg)
 
                     if tm_effects != last_tm_effects:
-                        if fg == last_fg or bg != last_bg:
+                        semic = ";"
+                        if fg == last_fg and bg == last_bg:
                             outstr += CSI
-                        else:
-                            outstr += ";"
-                        outstr += tm_effects
+                            semic = ""
+
+                        if last_tm_effects:
+                            for effect in last_tm_effects:
+                                if effect not in tm_effects:
+                                    outstr += f"{semic}{effect_off_map[effect]}"
+                                    semic = ";"
+                        for effect in tm_effects:
+                            outstr += f"{semic}{effect_on_map[effect]}"
+                            semic = ";"
 
                     if last_fg != fg or last_bg != bg or tm_effects != last_tm_effects:
                         outstr += "m"
                         last_fg = fg; last_bg = bg; last_tm_effects = tm_effects
-                    if (x, y) != last_pos:
+                    if char is CONTINUATION:
+                        # ensure two spaces for terminedia double-width chars -
+                        # can possibly be made more efficient if run in a terminal
+                        # that treat those correctly (not the case in current era konsole)
+                        outst += EMPTY
+                    if (x, y) != last_pos or char is CONTINUATION:
                         # TODO: relative movement?
                         outstr += CSI + f"{y + 1};{x + 1}H"
-                    final_char = char # TODO: apply unicode effects
-                    outstr += final_char
-                    char_width = 1 # TODO: check char width
-                    last_pos = (x + char_width, y)
+                    if char is not CONTINUATION:
+                        final_char = self.apply_unicode_effects(char, un_effects)
+                        outstr += final_char
+
+                    last_pos = (x + 1, y)
                     #if len(outstr) > 100:
                     #    file.write(outstr); file.flush()
 
@@ -265,8 +290,15 @@ class ScreenCommands(BackendColorContextMixin):
         """Writes ANSI Sequence to move cursor left"""
         self.CSI(amount, "D", file=file)
 
-    def apply_unicode_effects(self, txt):
-        return translate_chars(txt, self.active_unicode_effects)
+    def apply_unicode_effects(self, txt, effects=None):
+        effects = effects if effects is not None else self.active_unicode_effects
+
+        if (effects, txt) in unicode_effect_cache:
+            return unicode_effect_cache[effects, txt]
+
+        result = translate_chars(txt, effects)
+        unicode_effect_cache[effects, txt] = result
+        return result
 
     def home(self, file=None):
 
@@ -439,7 +471,7 @@ class ScreenCommands(BackendColorContextMixin):
         for effect_enum in Effects:
             if effect_enum is Effects.none:
                 continue
-            if effect_enum in unicode_effects:
+            if effect_enum in unicode_effects_set:
                 if effect_enum & effects:
                     active_unicode_effects |= effect_enum
                 continue

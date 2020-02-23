@@ -119,7 +119,7 @@ class Effects(IntFlag):
 
 # Effects that are rendered by character translation / unicode combining
 # rather than by ANSI terminal sequences
-unicode_effects = {
+unicode_effects_set = {
     Effects.encircled,
     Effects.squared,
     Effects.negative_squared,
@@ -134,10 +134,12 @@ unicode_effects = {
 }
 
 UNICODE_EFFECTS = Effects(
-    sum(effect for effect in Effects if effect in unicode_effects)
+    sum(effect for effect in Effects if effect in unicode_effects_set)
 )
 
+TERMINAL_EFFECTS =  Effects((max(Effects) * 2 -1) - UNICODE_EFFECTS)
+
 # (encircled is actually defined as an ANSI effect, but no terminal
-# support for it was found at codifiction time.)
+# support for it was found at codification time.)
 
 
