@@ -22,8 +22,6 @@ def ansi_colors_to_markup(text):
         foreground = background = ""
         setting_fg = setting_bg = 0
         for code in match.group(1).split(";"):
-            if not code:
-                continue
             if code == "39" and not setting_fg and not setting_bg:
                 foreground = "DEFAULT"
             elif code == "49" and not setting_fg and not setting_bg:
@@ -47,6 +45,8 @@ def ansi_colors_to_markup(text):
             elif 2 <= setting_bg <= 4:
                 setting_bg = setting_bg + 1 if setting_bg < 4 else 0
                 background += code + (", " if setting_bg else ")")
+            else:
+                return f"[ERROR in color code string: \\x1b[{match.group(1)}m"
         foreground = f"foreground: {foreground}" if foreground else ""
         background = f"background: {background}" if background else ""
 
@@ -125,5 +125,4 @@ def test_render_blocks_foreground_color():
     sc.update()
 
     data = ansi_colors_to_markup(strip_ansi_movement((yield None)))
-    breakpoint()
     assert data == "[foreground: (255, 0, 0)][background: DEFAULT]*[foreground: (0, 255, 0)]*[foreground: DEFAULT]*" + TM.values.EMPTY * 6

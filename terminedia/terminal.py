@@ -163,7 +163,7 @@ class ScreenCommands(BackendColorContextMixin):
                     if fg != last_fg:
                         outstr += CSI
                         if fg == DEFAULT_FG:
-                            outstr += "39;"
+                            outstr += "39"
                         else:
                             outstr += "38;2;"
                             outstr += "{};{};{}".format(*fg)
@@ -174,7 +174,7 @@ class ScreenCommands(BackendColorContextMixin):
                         else:
                             outstr += ";"
                         if bg == DEFAULT_BG:
-                            outstr += "49;"
+                            outstr += "49"
                         else:
                             outstr += "48;2;"
                             outstr += "{};{};{}".format(*bg)
