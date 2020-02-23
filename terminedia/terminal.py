@@ -142,6 +142,66 @@ class ScreenCommands(BackendColorContextMixin):
             time.sleep(0.002 * 2 ** count)
             self._print(*args, sep=sep, end=end, flush=flush, file=file, count=count + 1)
 
+    def fast_render(self, data, rects=None, file=None):
+        if file is None:
+            file = sys.stdout
+        if not rects:
+            rects = [Rect((0,0), data.size)]
+        CSI = "\x1b["
+        SGR = "m"
+        MOVE = "H"
+        last_pos = self.__class__.last_pos
+        last_fg = last_bg = last_tm_effects = last_un_effects = None
+        seen = set()
+        for rect in rects:
+            outstr = ""
+            for y in range(rect.top, rect.bottom):
+                for x in range(rect.left, rect.right):
+                    # Fast render just for full-4tuple values.
+                    char, fg, bg, effects = data[x, y]
+                    tm_effects = None #  TODO: render_tm_effects
+                    if fg != last_fg:
+                        outstr += CSI
+                        if fg == DEFAULT_FG:
+                            outstr += "39;"
+                        else:
+                            outstr += "38;2;"
+                            outstr += "{};{};{}".format(*fg)
+
+                    if bg != last_bg:
+                        if fg == last_fg:
+                            outstr += CSI
+                        if fg == DEFAULT_FG:
+                            outstr += "49;"
+                        else:
+                            outstr += "48;2;"
+                            outstr += "{};{};{}".format(*bg)
+
+                    if tm_effects != last_tm_effects:
+                        if fg == last_fg or bg != last_bg:
+                            outstr += CSI
+                        outstr += tm_effects
+
+                    if last_fg != fg or last_bg != bg or tm_effects != last_tm_effects:
+                        outstr += "m"
+                        last_fg = fg; last_bg = bg; last_tm_effects = tm_effects
+                    if (x, y) != last_pos:
+                        # TODO: relative movement?
+                        outstr += CSI + f"{y + 1};{x + 1}H"
+                    final_char = char # TODO: apply unicode effects
+                    outstr += final_char
+                    char_width = 1 # TODO: check char width
+                    last_pos = (x + char_width, y)
+                    #if len(outstr) > 100:
+                    #    file.write(outstr); file.flush()
+
+            # TODO: temporarily disable 'non-blocking' for stdout
+            file.write(outstr); file.flush()
+
+            self.__class__.last_pos = last_pos
+
+
+
     def CSI(self, *args, file=None):
         """Writes a CSI command to the terminal
 

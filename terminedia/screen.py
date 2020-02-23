@@ -323,12 +323,15 @@ class Screen:
 
     def update(self, pos1=None, pos2=None):
         rect = Rect(pos1, pos2)
-        if rect.c2 == (0, 0):
+        if rect.c2 == (0, 0) and pos2 is None:
             rect.c2 = (self.width, self.height)
-        with self.commands:
-            for y in range(rect.top, rect.bottom):
-                for x in range(rect.left, rect.right):
-                    self[x, y] = _REPLAY
+        if hasattr(self.commands, "fast_render"):
+            self.commands.fast_render(self.data, [rect])
+        else:
+            with self.commands:
+                for y in range(rect.top, rect.bottom):
+                    for x in range(rect.left, rect.right):
+                        self[x, y] = _REPLAY
         tick_forward()
         if self.root_context.interactive_mode:
             # move cursor a couple lines from the bottom to avoid scrolling
@@ -339,10 +342,8 @@ class Screen:
         return "".join(
             [
                 "Screen [\n",
-                f"size= {self.get_size()}\n",
-                f"last_background = {self.__class__.last_background}\n",
-                f"last_color = {self.__class__.last_color}\n",
-                f"last_effects = {self.__class__.last_effects}\n",
+                f"size = {self.get_size()}\n",
+                f"backend = {self.backend.__class__}",
                 f"context = {self.context.__repr__() if self.context else ''}\n",
                 "]",
             ]
