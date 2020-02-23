@@ -121,28 +121,4 @@ def test_transform_pixel_channel_works():
     assert tuple(sh[0,0]) == ("*", TM.Color("red"), TM.Color("green"), TM.Effects.underline)
 
 # Test injection for "pos" parameter -
-"""
-TODO: write tests for the following features - and then code then down!
-transformers also will accept a transformation matrix on the "spatial" channel for
-positioning, scaling and rotating the original contents (the reverse transform
-should fetch the orignal pixel with a nearest-neighbor search).
-"Translating" can be implemented first, and would be enough for
-integrating the Transformers branch.
 
-A "source" channel, pointing an auxiliar shape that will override
-the contents of the target shape, on read - (depending on
-combination model - in the future a "behind" mode can be implemented.
-
-The "combination mode" transformer parameter indicates how the pixels
-in the other shape will be combined - at first only a  "normal" meaning override
-the target pixel, with TM.Empty (space - char(0x20)) being "transparent" glyph,
-and "TM.TRANSPARENT" on each of the foreground, background and effects channels
-to preserve the respective channel on the target image.
-
- A couple of the SVG blend modes
-may be implemented soon - https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators
-(per-channel operations on the auxiliar "source" shape shall be performed by
-the transformers on that shape's context. Glyph will be overriden
-
-
-"""

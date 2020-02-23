@@ -41,5 +41,6 @@ print = ScreenCommands().print
 # These will be used for other backends than terminal rendering:
 context = _RootContext(default_fg="white", default_bg="black")
 context.interactive_mode = sys.argv[0] == "" or sys.argv[0].endswith("ipython")
+context.fast_render = False
 
 del _RootContext

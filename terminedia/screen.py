@@ -322,10 +322,11 @@ class Screen:
             self.draw.blit(position, shape, **kwargs)
 
     def update(self, pos1=None, pos2=None):
+
         rect = Rect(pos1, pos2)
         if rect.c2 == (0, 0) and pos2 is None:
             rect.c2 = (self.width, self.height)
-        if hasattr(self.commands, "fast_render"):
+        if hasattr(self.commands, "fast_render") and self.root_context.fast_render:
             self.commands.fast_render(self.data, [rect])
         else:
             with self.commands:
