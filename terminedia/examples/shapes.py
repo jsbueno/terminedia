@@ -99,32 +99,35 @@ def main(shape, high=False, braille=False):
     time_acumulator = 0
     counter = 0
 
-    with keyboard(), Screen(clear_screen=True) as scr:
+    try:
 
-        x = scr.get_size()[0] // 2 - 6
-        y = 0
-        pos = V2(x, y)
-        sprite = scr.data.sprites.add(fshape, pos, active=True)
+        with keyboard(), Screen(clear_screen=True) as scr:
+        # with Screen(clear_screen=True) as scr:
 
-        while True:
-            key = inkey()
-            if key in (K.ESC, "q"):
-                break
-            sprite.pos += (
-                ((key == K.RIGHT) - (key == K.LEFT)),
-                ((key == K.DOWN) - (key == K.UP)),
-            )
+            x = scr.get_size()[0] // 2 - 6
+            y = 0
+            pos = V2(x, y)
+            sprite = scr.data.sprites.add(fshape, pos, active=True)
 
-            scr.update()
-            current = time.time()
-            ellapsed = current - last_frame
-            time_acumulator += ellapsed
-            counter += 1
-            last_frame = current
-            pause_time = max(FRAME_DELAY - ellapsed, 0)
-            time.sleep(pause_time)
+            while True:
+                key = inkey()
+                if key in (K.ESC, "q"):
+                    break
+                sprite.pos += (
+                    ((key == K.RIGHT) - (key == K.LEFT)),
+                    ((key == K.DOWN) - (key == K.UP)),
+                )
 
-    print(f"\nTotal frames: {counter}\nAverage time per frame: {time_acumulator / counter:.04f}")
+                scr.update()
+                current = time.time()
+                ellapsed = current - last_frame
+                time_acumulator += ellapsed
+                counter += 1
+                last_frame = current
+                pause_time = max(FRAME_DELAY - ellapsed, 0)
+                time.sleep(pause_time)
+    finally:
+        print(f"\nTotal frames: {counter}\nAverage time per frame: {time_acumulator / (counter or 1):.04f}")
 
 if __name__ == "__main__":
     main()
