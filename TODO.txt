@@ -75,11 +75,30 @@ smaller features:
     - Reactive rendering
         - Reactive rendering to update just screen parts where srawing activity took place
         - update terminedia-shapes to naively use sprites with the existingv"eager fullscreen
-        update" per frame. take note of performance.
+        update" per frame. take note of performance. (V)
 
-        - per-backend "update_rects" method: called in place of the "_print" method, takes
+        - per-backend "fast_render" method: called in place of the "_print" method, takes
         a list of rectangles and an image data source - caches color, bg, effects by itself
-        inside a rectangle, and change status by calling ".csi" functions by itself
+        inside a rectangle, and change status by calling ".csi" functions by itself [WIP]
+            - fast_render method in ScreenCommands (V)
+            - Call to fast_render based in root-context flag(V)
+            - uses absolute-positioning (V)
+            - relative-positioning (TBD)
+            - updates foreground and background (V)
+            - Rendering tests (WIP)
+            - apply unicode effects
+            - cache unicode effects
+            - apply terminal effects
+            - test rendering of effects
+            - Naive terminedia-shapes "FPS" measurement: showing a rough 33% improvement in performance for full-screen fast-rendering(ex.: 0.18 seconds per frame to 0.12 seconds per frame at the same resolution)
+            (V)
+
+        - Speedup pixel-data retrieving from within shapes:
+            - use a unique data-structure instead of 4 separate lists for fullshapes:
+                - speed-up (or skip altogether) Pixel creation for each read.
+        - fix other low hanging improvements visible with 'python -m profile terminedia-shapes
+            - ex. avoid in-per-pixel methods use of "imports"
+
 
         - all drawing api, shape creation, sprite method call or assignment, assignment to "transformerscontainers" or "transformers" itens, and spritecontainer objects
         advance the "tick" counter and mark themselves as changed at that tick.
