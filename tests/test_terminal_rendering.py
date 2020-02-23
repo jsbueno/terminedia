@@ -125,5 +125,5 @@ def test_render_blocks_foreground_color():
     sc.update()
 
     data = ansi_colors_to_markup(strip_ansi_movement((yield None)))
-
+    breakpoint()
     assert data == "[foreground: (255, 0, 0)][background: DEFAULT]*[foreground: (0, 255, 0)]*[foreground: DEFAULT]*" + TM.values.EMPTY * 6

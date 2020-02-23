@@ -171,7 +171,9 @@ class ScreenCommands(BackendColorContextMixin):
                     if bg != last_bg:
                         if fg == last_fg:
                             outstr += CSI
-                        if fg == DEFAULT_FG:
+                        else:
+                            outstr += ";"
+                        if bg == DEFAULT_BG:
                             outstr += "49;"
                         else:
                             outstr += "48;2;"
@@ -180,6 +182,8 @@ class ScreenCommands(BackendColorContextMixin):
                     if tm_effects != last_tm_effects:
                         if fg == last_fg or bg != last_bg:
                             outstr += CSI
+                        else:
+                            outstr += ";"
                         outstr += tm_effects
 
                     if last_fg != fg or last_bg != bg or tm_effects != last_tm_effects:
