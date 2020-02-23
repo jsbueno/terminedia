@@ -90,6 +90,13 @@ class Effects(IntFlag):
             x >> 1
         return count
 
+    def __add__(self, other):
+        return self | other
+
+    def __sub__(self, other):
+        other = max(self.__class__) * 2 - 1 - (other.value if isinstance(other, Effects) else other)
+        return self & other
+
     none = 0
     bold = 1
     italic = 2
