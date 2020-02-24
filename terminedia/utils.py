@@ -585,7 +585,10 @@ class Color:
         returns: Color constant, or 3-sequence normalized to 0-255 range.
         """
 
-        components = tuple(components)
+        if isinstance(components, (int, float)):
+            components = (components, components, components)
+        else:
+            components = tuple(components)
         if isinstance(components, tuple) and components in _colors_cache:
             return _colors_cache[components]
 

@@ -137,7 +137,7 @@ def test_render_blocks_foreground_color():
     sc = TM.Screen(size=(3,3))
     sc.data.context.color = (255, 0, 0)
     sc.data[0,0] = "*"
-    sc.data.context.color = (0, 255, 0)
+    sc.data.context.color = (0, 1.0, 0)
     sc.data[1,0] = "*"
     sc.data.context.color = TM.DEFAULT_FG
     sc.data[2,0] = "*"

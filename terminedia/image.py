@@ -604,7 +604,7 @@ class ValueShape(Shape):
         if isinstance(value, Pixel):
             v, color = value.get_values(self.context, self.PixelCls.capabilities)
         elif isinstance(value, (int, tuple, Color)):
-            color = value
+            color = Color(value)
         elif isinstance(value, str):
             color = self.context.color if value != EMPTY else self.context.background
         self._raw_setitem(pos, color)
@@ -743,6 +743,8 @@ class ImageShape(ValueShape):
         return self.data.getpixel(pos)
 
     def _raw_setitem(self, pos, color):
+        if isinstance(color, Color):
+            color = tuple(color)
         self.data.putpixel(pos, color)
 
     def clear(self):
@@ -817,6 +819,8 @@ class PalettedShape(Shape):
         # foreground_arg = ()
 
         foreground_arg = self.color_map.get(char, CONTEXT_COLORS)
+        if not isinstance(foreground_arg, Color):
+            foreground_arg = Color(foreground_arg)
         return self.PixelCls(value, foreground_arg)
 
     def __setitem__(self, pos, value):
