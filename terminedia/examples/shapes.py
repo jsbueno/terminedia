@@ -61,7 +61,10 @@ c_map = {"*": DEFAULT_FG, "#": (0.5, 0.8, 0.8), "!": (1, 0, 0), "%": (1, 0.7, 0)
     flag_value=True,
     help="Use braille characters as high-resolution 1/8 block pixels",
 )
-def main(shape, high=False, braille=False):
+@click.option(
+    "clear", "--clear", "-c", flag_value=True, help="Clear screen before showing shapes"
+)
+def main(shape, high=False, braille=False, clear=False):
     """Quick example to navigate an string-defined shape through
     the terminal using the arrow keys! Press <ESC> to exit.
 
@@ -78,13 +81,6 @@ def main(shape, high=False, braille=False):
     original_shape = shape
     shape = TM.shape(original_shape, **({"color_map": c_map} if original_shape == shape2 else {})
 )
-    #shape = shape.rstrip("\n")
-    #size_ = V2(
-        #(shape.find("\n") if "\n" in shape else len(shape)), shape.count("\n") + 1
-    #)
-    #factor = 1
-
-
 
     if high:
         fshape = TM.shape((shape.size * 0.5).as_int)
@@ -101,7 +97,7 @@ def main(shape, high=False, braille=False):
 
     try:
 
-        with keyboard(), Screen(clear_screen=True) as scr:
+        with keyboard(), Screen(clear_screen=clear) as scr:
         # with Screen(clear_screen=True) as scr:
 
             x = scr.get_size()[0] // 2 - 6
@@ -113,6 +109,8 @@ def main(shape, high=False, braille=False):
                 key = inkey()
                 if key in (K.ESC, "q"):
                     break
+                if not clear and key in (K.RIGHT, K.LEFT, K.UP, K.DOWN):
+                    scr.data.draw.rect(sprite.rect, erase=True)
                 sprite.pos += (
                     ((key == K.RIGHT) - (key == K.LEFT)),
                     ((key == K.DOWN) - (key == K.UP)),

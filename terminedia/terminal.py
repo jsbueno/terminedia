@@ -8,7 +8,7 @@ from threading import Lock
 from terminedia.backend_common import BackendColorContextMixin, JournalingCommandsMixin
 from terminedia.unicode_transforms import translate_chars
 from terminedia.utils import char_width, V2, Color
-from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects_set, ESC, UNICODE_EFFECTS, TERMINAL_EFFECTS, CONTINUATION, EMPTY
+from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects_set, ESC, UNICODE_EFFECTS, TERMINAL_EFFECTS, CONTINUATION, EMPTY, TRANSPARENT
 
 use_re_split = sys.version_info >= (3, 7)
 
@@ -170,19 +170,26 @@ class ScreenCommands(BackendColorContextMixin):
                 for x in range(rect.left, rect.right):
                     # Fast render just for full-4tuple values.
                     char, fg, bg, effects = data[x, y]
-                    tm_effects = effects & TERMINAL_EFFECTS
-                    un_effects = effects & UNICODE_EFFECTS
+                    if effects != TRANSPARENT:
+                        tm_effects = effects & TERMINAL_EFFECTS
+                        un_effects = effects & UNICODE_EFFECTS
+                    else:
+                        tm_effects = un_effects = Effects.none
 
-                    if fg != last_fg:
+                    csi = False
+
+                    if fg != last_fg and fg != TRANSPARENT:
                         outstr += CSI
+                        csi = True
                         if fg == DEFAULT_FG:
                             outstr += "39"
                         else:
                             outstr += "38;2;{};{};{}".format(*fg)
 
-                    if bg != last_bg:
-                        if fg == last_fg:
+                    if bg != last_bg and bg != TRANSPARENT:
+                        if not csi:
                             outstr += CSI
+                            csi = True
                         else:
                             outstr += ";"
                         if bg == DEFAULT_BG:
@@ -190,11 +197,12 @@ class ScreenCommands(BackendColorContextMixin):
                         else:
                             outstr += "48;2;{};{};{}".format(*bg)
 
-                    if tm_effects != last_tm_effects:
+                    if tm_effects != last_tm_effects and effects != TRANSPARENT:
                         semic = ";"
-                        if fg == last_fg and bg == last_bg:
+                        if not csi:
                             outstr += CSI
                             semic = ""
+                            csi = True
 
                         if last_tm_effects:
                             for effect in last_tm_effects:
@@ -205,24 +213,22 @@ class ScreenCommands(BackendColorContextMixin):
                             outstr += f"{semic}{effect_on_map[effect]}"
                             semic = ";"
 
-                    if last_fg != fg or last_bg != bg or tm_effects != last_tm_effects:
+                    if csi:
                         outstr += "m"
                         last_fg = fg; last_bg = bg; last_tm_effects = tm_effects
                     if char is CONTINUATION:
                         # ensure two spaces for terminedia double-width chars -
                         # can possibly be made more efficient if run in a terminal
                         # that treat those correctly (not the case in current era konsole)
-                        outst += EMPTY
-                    if (x, y) != last_pos or char is CONTINUATION:
-                        # TODO: relative movement?
-                        outstr += CSI + f"{y + 1};{x + 1}H"
-                    if char is not CONTINUATION:
+                        outstr += EMPTY
+                    if char not in (TRANSPARENT, CONTINUATION):
+                        if (x, y) != last_pos:
+                            # TODO: relative movement?
+                            outstr += CSI + f"{y + 1};{x + 1}H"
                         final_char = self.apply_unicode_effects(char, un_effects)
                         outstr += final_char
 
-                    last_pos = (x + 1, y)
-                    #if len(outstr) > 100:
-                    #    file.write(outstr); file.flush()
+                        last_pos = (x + 1, y)
 
             # TODO: temporarily disable 'non-blocking' for stdout
             file.write(outstr); file.flush()
@@ -462,6 +468,9 @@ class ScreenCommands(BackendColorContextMixin):
                             modify internal state so that effetcs that trigger character
                             translations are activated.
         """
+
+        if effects is TRANSPARENT:
+            return
 
         sgr_codes = []
 

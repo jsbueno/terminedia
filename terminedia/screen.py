@@ -17,6 +17,7 @@ from terminedia.values import (
     EMPTY,
     Effects,
     FULL_BLOCK,
+    TRANSPARENT
 )
 from terminedia.drawing import Drawing, HighRes
 from terminedia.image import Pixel, FullShape
@@ -173,9 +174,9 @@ class Screen:
         with self.lock:
             if wet_run:
                 self.commands.clear()
-                # self.commands.home()
+            else:
+                self.data.clear(transparent=True)
             self.commands.cursor_hide()
-        # self.data.clear()  # TODO: implement proper Shape.clear()
 
     def set_at(self, pos, pixel=None):
         """Sets pixel at given coordinate
@@ -313,7 +314,7 @@ class Screen:
                 cls.last_color = pixel.foreground
                 cls.last_background = pixel.background
                 cls.last_effects = pixel.effects
-            if pixel.value != CONTINUATION:
+            if pixel.value not in (CONTINUATION, TRANSPARENT):
                 self.commands.print_at(pos, pixel.value)
                 self.context.last_pos = V2(pos)
 

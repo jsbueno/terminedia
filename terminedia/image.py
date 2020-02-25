@@ -227,9 +227,25 @@ class ShapeApiMixin:
 
         return Text(self)
 
-    def clear(self):
+    def clear(self, transparent=False):
+        """Clear the shape with empty spaces.
+
+        params:
+            transparent (bool): whether to use special transparency values
+
+        if "transparent" is True, the shape is filled with the
+        special TRANSPARENT value that make underlying shape charactersn
+        unchanged upon blitting.
+        """
         with self.context:
-            self.context.char = EMPTY
+            if transparent:
+                self.context.char = TRANSPARENT
+                self.context.color = TRANSPARENT
+                self.context.background = TRANSPARENT
+                self.context.effects = TRANSPARENT
+                self.context.force_transparent_ink = True
+            else:
+                self.context.char = EMPTY
             self.draw.fill()
 
 
@@ -747,8 +763,10 @@ class ImageShape(ValueShape):
             color = tuple(color)
         self.data.putpixel(pos, color)
 
-    def clear(self):
+    def clear(self, transparent=False):
         img = self.data
+        # FIXME: might need to check and upgrade the image to RGBA first
+        color = tuple(self.context.background) if not transparent else (0, 0, 0, 0)
         img.paste(tuple(self.context.background), [0,0, img.size[0], img.size[1]])
 
 class PalettedShape(Shape):
@@ -900,6 +918,9 @@ class FullShape(Shape):
         Values set for each pixel are: character - only spaces (0x20) or "non-spaces" are
         taken into account for PalettedShape
         """
+
+        force_transparent_ink = getattr(self.context, "force_transparent_ink", False)
+
         offset = self.get_data_offset(pos)
         if offset is None:
             return
@@ -921,8 +942,8 @@ class FullShape(Shape):
         ############
         # Check final width (have to apply transformation effect)
         ###########
-        effects = value[3] if value[3] != TRANSPARENT else self.eff_data[offset]
-        transform_effects = effects & UNICODE_EFFECTS
+        effects = value[3] if (value[3] != TRANSPARENT or force_transparent_ink) else self.eff_data[offset]
+        transform_effects = (effects & UNICODE_EFFECTS) if effects != TRANSPARENT else Effects.none
         final_char = value[0]
         if isinstance(final_char, bool):
             final_char = self.context.char if final_char else EMPTY
@@ -949,7 +970,7 @@ class FullShape(Shape):
         for component, plane in zip(
             value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)
         ):
-            if component is not TRANSPARENT:
+            if component is not TRANSPARENT or force_transparent_ink:
                 plane[offset] = component
             if double_width:
                 plane[offset2] = (
