@@ -18,6 +18,8 @@ class Sprite:
         self.anchor = anchor
         self._check_and_promote()
         self.transformers = TransformersContainer()
+        self.dirty_rects_at_last_check = []
+        self.dirty_rect = Rect()
 
 
     def _check_and_promote(self):
@@ -52,6 +54,22 @@ class Sprite:
         elif self.anchor == "center":
             r.center = self.pos
         return r
+
+    @property
+    def rects_at_last_check(self):
+        return self.dirty_rects_at_last_check
+
+    @property
+    def dirty_rects(self):
+        dirty = self.shape.dirty_rects
+        self.dirty_rects_at_last_check = dirty
+        self.dirty_rect = self.rect
+        return dirty
+
+    def owner_coords(self, rect, where=None):
+        if not where:
+            where = self.rect
+        return Rect(where.c1 + rect.c1, width=rect.width, height=rect.height)
 
     def get_at(self, pos=None, container_pos=None, pixel=None):
         # TODO: pixel to be used when there are combination modes/translucency

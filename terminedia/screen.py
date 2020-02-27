@@ -328,7 +328,9 @@ class Screen:
         if rect.c2 == (0, 0) and pos2 is None:
             rect.c2 = (self.width, self.height)
         if hasattr(self.commands, "fast_render") and self.root_context.fast_render:
-            self.commands.fast_render(self.data, [rect])
+            target = [rect] if pos1 is not None else self.data.dirty_rects
+            self.commands.fast_render(self.data, target)
+            self.data.dirty_clear()
         else:
             with self.commands:
                 for y in range(rect.top, rect.bottom):

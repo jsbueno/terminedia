@@ -10,7 +10,7 @@ from pathlib import Path
 from terminedia.contexts import Context
 from terminedia.sprites import SpriteContainer
 from terminedia.subpixels import BrailleChars
-from terminedia.utils import Color, Rect, V2, LazyBindProperty, char_width
+from terminedia.utils import Color, Rect, V2, LazyBindProperty, char_width, get_current_tick
 from terminedia.unicode_transforms import translate_chars
 from terminedia.values import (
     DEFAULT_FG,
@@ -249,7 +249,106 @@ class ShapeApiMixin:
             self.draw.fill()
 
 
-class Shape(ABC, ShapeApiMixin):
+from collections import deque
+from weakref import proxy, ref, ReferenceType
+import math
+import heapq
+
+DirtyNode = namedtuple("DirtyNode", "tick untie rect source")
+
+_none_ref = lambda : None
+def _ensure_ref(obj):
+    if isinstance(obj, ReferenceType):
+        return obj
+    if obj is None:
+        return _none_ref
+    if hasattr(obj.__class__, "__weakref__"):
+        return ref(obj)
+    return lambda: obj
+
+class OrderedRegistry:
+    # TODO: maybe use a linked list
+
+    def __init__(self):
+        self.data = []
+        self.sources = {}
+        self.untie = 0
+
+
+    def push(self, node):
+        if len(node) == 3:
+            node = DirtyNode(node[0], self.untie, node[1], _ensure_ref(node[2]))
+        else:
+            node = DirtyNode(node[0], self.untie, node[2],  _ensure_ref(node[3]))
+        self.untie += 1
+
+        t = node.rect.as_tuple
+        self.sources.setdefault(t, []).append(node)
+        heapq.heappush(self.data, node)
+
+    def clear_left(self, threshold):
+        if not self.data:
+            return
+        counter = 0
+        for node in self.data:
+            if node.tick <= threshold:
+                counter += 1
+                t = node.rect.as_tuple
+                if t in self.sources:
+                    for node2 in self.sources[t]:
+                        source = node2.source()
+                        if hasattr(source, "dirty_clear"):
+                            source.dirty_clear(threshold)
+                    del self.sources[t]
+
+            else:
+                break
+            self.data[:counter] = []
+
+    def __iter__(self):
+        return iter(self.data)
+
+    def __repr__(self):
+        return f"Registry <{self.data}>"
+
+
+
+COALESCE_RECTS = 8
+
+class ShapeDirtyMixin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dirty_registry = OrderedRegistry()
+        self.dirty_pixels = set()
+
+    def dirty_clear(self):
+        tick = self.dirty_last_clear = get_current_tick()
+        self.dirty_registry.clear_left(tick)
+
+    def dirty_update(self):
+
+        tick = get_current_tick()
+        # Collect rects from sprites
+        if self.has_sprites:
+            for sprite in self.sprites:
+                for rect in sprite.dirty_rects_at_last_check:
+                    self.dirty_registry.push((tick, sprite.owner_coords(rect, sprite.dirty_rect), sprite.shape))
+
+                # Need to call sprite.dirty_rects not sprite.shape.dirty_rects
+                # so that sprite dirty data is updated.
+                for rect in sprite.dirty_rects:
+                    self.dirty_registry.push((tick, sprite.owner_coords(rect), sprite.shape))
+
+        # TODO: collect rects from modified pixels
+
+    @property
+    def dirty_rects(self):
+        self.dirty_update()
+        # on purpose eager approach - the registry might be updated while rendering is taking place
+        return [node.rect for node in self.dirty_registry if self.registry[node.rect.as_tuple][0].untie == node.untie]
+
+
+class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
     """'Shape' is intended to represent blocks of colors/backgrounds and characters
     to be applied in a rectangular area of the terminal. In this sense, it is
     more complicated than an "Image" that just care about a foreground color
@@ -268,10 +367,6 @@ class Shape(ABC, ShapeApiMixin):
     # effects = False  # support for bold, blink, underline...
 
     PixelCls = pixel_factory(bool)
-
-    @abstractmethod
-    def __init__(self, data, color_map=None):
-        raise NotImplementedError("This is meant as an abstract Shape class")
 
     @classmethod
     def new(cls, size, **kwargs):
@@ -588,8 +683,7 @@ class ValueShape(Shape):
     _allowed_types = (Path, str, Sequence)
 
     def __init__(self, data, color_map=None, size=None, **kwargs):
-
-        self.kwargs = kwargs
+        super().__init__(*args, **kwargs)
         # TODO: make color_map work as a to-pixel palette infornmation
         # to L or I images - not only providing a color palette,
         # but also enabbling an "palette color to character" mapping.
@@ -788,6 +882,7 @@ class PalettedShape(Shape):
     PixelCls = pixel_factory(bool, has_foreground=True)
 
     def __init__(self, data, color_map=None):
+        super().__init__()
         if color_map is None:
             color_map = {}  # any char != EMPTY or "." paints with current context color
         self.color_map = color_map
@@ -879,6 +974,7 @@ class FullShape(Shape):
         ]
 
     def __init__(self, data):
+        super().__init__()
         self.width = w = len(data[0][0])
         self.height = h = len(data[0])
         self.value_data, self.fg_data, self.bg_data, self.eff_data = (
