@@ -6,6 +6,9 @@ from colorsys import rgb_to_hsv, hsv_to_rgb
 from functools import lru_cache, wraps, partial
 
 
+root_context = None
+
+
 def mirror_dict(dct):
     """Creates a new dictionary exchanging values for keys
     Args:
@@ -218,6 +221,7 @@ class Rect:
             if c2
             else (right, bottom)
             if right is not None and bottom is not None
+            else c1 + width_height if width_height
             else (0, 0)
         )
         self.c1 = (min(c1[0], c2[0]), min(c1[1], c2[1]))
@@ -354,6 +358,9 @@ class Rect:
              self.left <= other.left <= self.right
              )
         )
+
+    def as_tuple(self):
+        return tuple((*self.c1, *self.c2))
 
     def __iter__(self):
         yield self.c1
@@ -733,18 +740,21 @@ class HookList(MutableSequence):
     def __repr__(self):
         return f"{self.__class__.__name__}({self.data!r})"
 
-
 def get_current_tick():
-    """use a coutner global to Screen module, icreased on
-    calls to screen.updat()
+    """use a counter global to Screen module, increased on
+    calls to screen.update()
     """
-    from terminedia import context
-    return context.ticks if hasattr(context, "ticks") else 0
+    global root_context
+    if not root_context:
+        from terminedia import context as root_context
+    return root_context.ticks if hasattr(root_context, "ticks") else 0
 
 
 def tick_forward():
-    from terminedia import context
-    context.ticks = get_current_tick() + 1
+    global root_context
+    if not root_context:
+        from terminedia import context as root_context
+    root_context.ticks = get_current_tick() + 1
 
 
 def combine_signatures(func, wrapper=None):
