@@ -276,10 +276,12 @@ class OrderedRegistry:
     # TODO: maybe use a linked list
 
     def __init__(self):
+        self.untie = 0
+        self.reset()
+
+    def reset(self):
         self.data = []
         self.sources = {}
-        self.untie = 0
-
 
     def push(self, node):
         if len(node) == 3:
@@ -291,6 +293,10 @@ class OrderedRegistry:
         t = node.rect.as_tuple
         self.sources.setdefault(t, []).append(node)
         heapq.heappush(self.data, node)
+
+    def reset_to(self, node):
+        self.reset()
+        self.push(node)
 
     def clear_left(self, threshold):
         if not self.data:
@@ -341,24 +347,30 @@ class ShapeDirtyMixin:
             rect = Rect((0, 0), self.size)
         else:
             rect = Rect(rect) if not isinstance(rect, Rect) else rect
-        self.dirty_registry.push((tick, rect, None))
+        self.dirty_registry.reset_to((tick, rect, None))
 
 
     def dirty_update(self):
 
         tick = get_current_tick()
+
+        if any("tick" in transformer.signatures for transformer in self.context.transformers):
+            self.dirty_set()
+            return
+
         # Collect rects from sprites
         if self.has_sprites:
             for sprite in self.sprites:
+                if not sprite.active:
+                    continue
                 for rect in sprite.dirty_rects_at_last_check:
-                    self.dirty_registry.push((tick, sprite.owner_coords(rect, sprite.dirty_rect), sprite.shape))
+                    self.dirty_registry.push((tick, sprite.owner_coords(rect, sprite.dirty_previous_rect), sprite.shape))
 
                 # Need to call sprite.dirty_rects not sprite.shape.dirty_rects
                 # so that sprite dirty data is updated.
                 for rect in sprite.dirty_rects:
                     self.dirty_registry.push((tick, sprite.owner_coords(rect), sprite.shape))
 
-        # TODO: collect rects from modified pixels
         tile_size = (DIRTY_TILE_SIZE, DIRTY_TILE_SIZE)
         for tile in self.dirty_pixels:
             self.dirty_registry.push((tick, Rect(tile * DIRTY_TILE_SIZE, width_height=tile_size), None))

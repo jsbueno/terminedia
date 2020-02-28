@@ -19,8 +19,7 @@ class Sprite:
         self._check_and_promote()
         self.transformers = TransformersContainer()
         self.dirty_rects_at_last_check = []
-        self.dirty_rect = Rect()
-
+        self.dirty_previous_rect = self.rect
 
     def _check_and_promote(self):
         """called at initialization to try to promote any object that is not a Shape
@@ -61,14 +60,17 @@ class Sprite:
 
     @property
     def dirty_rects(self):
-        if self.rect != self.dirty_rects_at_last_check:
-            dirty_rects = self.rect, *self.dirty_rects_at_last_check
-            self.dirty_rects_at_last_check = [self.rect]
-            return dirty_rects
-        dirty = self.shape.dirty_rects
+        changed_rect = self.rect != self.dirty_previous_rect
+        transformer_using_tick = any("tick" in transformer.signatures for transformer in self.transformers)
+        if changed_rect or transformer_using_tick:
+            dirty = [self.rect]
+        else:
+            dirty = self.shape.dirty_rects
+        previous_dirty = self.dirty_rects_at_last_check
         self.dirty_rects_at_last_check = dirty
-        self.dirty_rect = self.rect
-        return dirty
+
+        self.dirty_previous_rect = self.rect
+        return [*dirty, *previous_dirty]
 
     def owner_coords(self, rect, where=None):
         if not where:

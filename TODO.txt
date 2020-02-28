@@ -94,7 +94,8 @@ smaller features:
             - cache unicode effects (V)
             - apply terminal effects (V)
             - test rendering of effects (V)
-            - strange bug on first-frame of terminedia-shape, showing a displaced sprite in a double-rendering (TBD)
+            - strange bug on first-frame of terminedia-shape, showing a displaced sprite in a double-rendering (V)
+            -  bug on terminedia-shape: first-frame shows shape above line 0 on screen, rendering goes past screen existing lines (TBD)
             - Naive terminedia-shapes "FPS" measurement: showing a rough 33% improvement in performance for full-screen fast-rendering(ex.: 0.18 seconds per frame to 0.12 seconds per frame at the same resolution)
             (V)
 
@@ -104,10 +105,11 @@ smaller features:
                 - have a specialized dirty_registry data structure (V)
                     - (internaly using a heapfied list - maybe an specializd data structure as a linked list would be better)
                 - Have sprites track their dirty regions (including recursively if needed) (V)
-                - Mark whole shape as dirty if any active Transformer is taking "tick" as input (TBD)
+                - Mark whole shape as dirty if any active Transformer is taking "tick" as input (V)
                 - Track all changed pixels in a shape, marking a tile (a sensible sized square region) as dirty on any changes. (V)
                 - in a test with the working features, terminedia-shapes have dropped from a 0.28s/frame to 0.07s/frame.(V)
                 - Missing tests for any of dirty-rect tracking features.
+                - reset sprite dirty-rects on rendering(V)
 
         - Speedup pixel-data retrieving from within shapes:
             - use a unique data-structure instead of 4 separate lists for fullshapes:
