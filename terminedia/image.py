@@ -303,7 +303,7 @@ class OrderedRegistry:
 
             else:
                 break
-            self.data[:counter] = []
+        self.data[:counter] = []
 
     def __iter__(self):
         return iter(self.data)

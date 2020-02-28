@@ -61,6 +61,10 @@ class Sprite:
 
     @property
     def dirty_rects(self):
+        if self.rect != self.dirty_rects_at_last_check:
+            dirty_rects = self.rect, *self.dirty_rects_at_last_check
+            self.dirty_rects_at_last_check = [self.rect]
+            return dirty_rects
         dirty = self.shape.dirty_rects
         self.dirty_rects_at_last_check = dirty
         self.dirty_rect = self.rect

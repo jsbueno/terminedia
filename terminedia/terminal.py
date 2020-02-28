@@ -156,7 +156,7 @@ class ScreenCommands(BackendColorContextMixin):
     def _fast_render(self, data, rects=None, file=None):
         if file is None:
             file = sys.stdout
-        if not rects:
+        if rects is None:
             rects = [Rect((0,0), data.size)]
         CSI = "\x1b["
         SGR = "m"
@@ -168,6 +168,8 @@ class ScreenCommands(BackendColorContextMixin):
             outstr = ""
             for y in range(rect.top, rect.bottom):
                 for x in range(rect.left, rect.right):
+                    if (x, y) in seen: continue
+                    seen.add((x, y))
                     # Fast render just for full-4tuple values.
                     char, fg, bg, effects = data[x, y]
                     if effects != TRANSPARENT:

@@ -330,6 +330,8 @@ class Screen:
         if hasattr(self.commands, "fast_render") and self.root_context.fast_render:
             target = [rect] if pos1 is not None else self.data.dirty_rects
             self.commands.fast_render(self.data, target)
+            #import os; bla = lambda: os.system("reset")
+            #breakpoint()
             self.data.dirty_clear()
         else:
             with self.commands:
