@@ -328,7 +328,7 @@ class Screen:
         if rect.c2 == (0, 0) and pos2 is None:
             rect.c2 = (self.width, self.height)
         if hasattr(self.commands, "fast_render") and self.root_context.fast_render:
-            target = [rect] if pos1 is not None else self.data.dirty_rects
+            target = [rect] if pos1 is not None or self.root_context.interactive_mode else self.data.dirty_rects
             self.commands.fast_render(self.data, target)
             #import os; bla = lambda: os.system("reset")
             #breakpoint()

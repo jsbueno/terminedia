@@ -1,4 +1,6 @@
+import heapq
 import logging
+import math
 import sys
 from abc import ABC, abstractmethod
 from collections import namedtuple
@@ -6,6 +8,7 @@ from collections.abc import Sequence
 from inspect import signature
 from io import StringIO
 from pathlib import Path
+from weakref import ref, ReferenceType
 
 from terminedia.contexts import Context
 from terminedia.sprites import SpriteContainer
@@ -249,14 +252,17 @@ class ShapeApiMixin:
             self.draw.fill()
 
 
-from collections import deque
-from weakref import proxy, ref, ReferenceType
-import math
-import heapq
+#####################
+#
+#  DIRTY Things:
+#  instrumentation to dynamically track modified shape parts, allowing faster frame rendering
+#
+####################
 
 DirtyNode = namedtuple("DirtyNode", "tick untie rect source")
 
 _none_ref = lambda : None
+
 def _ensure_ref(obj):
     if isinstance(obj, ReferenceType):
         return obj
@@ -313,7 +319,7 @@ class OrderedRegistry:
 
 
 
-COALESCE_RECTS = 8
+DIRTY_TILE_SIZE = 8
 
 class ShapeDirtyMixin:
     def __init__(self, *args, **kwargs):
@@ -353,6 +359,13 @@ class ShapeDirtyMixin:
                     self.dirty_registry.push((tick, sprite.owner_coords(rect), sprite.shape))
 
         # TODO: collect rects from modified pixels
+        tile_size = (DIRTY_TILE_SIZE, DIRTY_TILE_SIZE)
+        for tile in self.dirty_pixels:
+            self.dirty_registry.push((tick, Rect(tile * DIRTY_TILE_SIZE, width_height=tile_size), None))
+        self.dirty_pixels = set()
+
+    def dirty_mark_pixel(self, index):
+        self.dirty_pixels.add(index // DIRTY_TILE_SIZE)
 
     @property
     def dirty_rects(self):
@@ -360,6 +373,12 @@ class ShapeDirtyMixin:
         # on purpose eager approach - the registry might be updated while rendering is taking place
         return [node.rect for node in self.dirty_registry if self.dirty_registry.sources[node.rect.as_tuple][0].untie == node.untie]
 
+##############
+#
+#  SHAPE:
+#  Base class for all high-level imaging
+#
+#############
 
 class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
     """'Shape' is intended to represent blocks of colors/backgrounds and characters
@@ -716,6 +735,8 @@ class ValueShape(Shape):
         """
         Values set for each pixel are 3-sequences with an RGB color value
         """
+        pos = V2(pos)
+        self.dirty_mark_pixel(pos)
         color = value
         if isinstance(value, Pixel):
             v, color = value.get_values(self.context, self.PixelCls.capabilities)
@@ -947,6 +968,8 @@ class PalettedShape(Shape):
         Values set for each pixel are: character - only spaces (0x20) or "non-spaces" are
         taken into account for PalettedShape
         """
+        pos = V2(pos)
+        self.dirty_mark_pixel(pos)
         type_ = self.PixelCls.capabilities.value_type
         self.data[pos[1] * self.width + pos[0]] = type_(value)
 
@@ -1020,6 +1043,8 @@ class FullShape(Shape):
         Values set for each pixel are: character - only spaces (0x20) or "non-spaces" are
         taken into account for PalettedShape
         """
+        pos = V2(pos)
+        self.dirty_mark_pixel(pos)
 
         force_transparent_ink = getattr(self.context, "force_transparent_ink", False)
 
@@ -1037,9 +1062,6 @@ class FullShape(Shape):
                 self.context.background,
                 self.context.effects,
             ][len(value) - 1 :]
-
-        #if self.context.transformer:
-            #value = self.context.transformer(pos, value)
 
         ############
         # Check final width (have to apply transformation effect)

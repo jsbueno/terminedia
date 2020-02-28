@@ -87,12 +87,17 @@ class V2(tuple):
         """multiplies a V2 by an scalar"""
         return self.__class__(self[0] * other, self[1] * other)
 
+    __rmul__ = __mul__
+
     def __truediv__(self, other):
         try:
             other = 1 / other
         except (ValueError, TypeError):
             return NotImplemented
         return self * other
+
+    def __floordiv__(self, other):
+        return self.__class__(self[0] // other, self[1] // other)
 
     def __abs__(self):
         """Returns Vector length
