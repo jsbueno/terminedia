@@ -162,6 +162,8 @@ Future
     pdf backend
     jupyter notebook backend
     Fallback terminal to 1-byte color setting for up to 216 colors + 24 grayscale
+    - ANSI:
+        - get the color, movement, and effects sequences from terminfo, and use hard-coded common sequences just as fallback. (thanks to Gilles Quenot)
 
 - new "resolution modes":
     - half character (1/2 block - square aspect ratio)
