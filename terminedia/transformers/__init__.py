@@ -1,7 +1,7 @@
 from inspect import signature
 
 from terminedia.utils import V2, HookList, get_current_tick
-from terminedia.values import EMPTY, FULL_BLOCK, Directions
+from terminedia.values import EMPTY, FULL_BLOCK, Directions, Color
 
 class Transformer:
 
@@ -42,9 +42,11 @@ class Transformer:
 
         """
         for slotname in self.channels:
-            if locals()[slotname]:
-                setattr(self, slotname, locals()[slotname])
-
+            value = locals()[slotname]
+            if value is not None:
+                if slotname in ("foreground", "background") and not callable(value):
+                    value = Color(value)
+                setattr(self, slotname, value)
 
         self.signatures = {
             channel: frozenset(signature(getattr(self, channel)).parameters.keys()) if callable(getattr(self, channel)) else () for channel in self.channels
