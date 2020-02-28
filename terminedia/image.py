@@ -319,11 +319,24 @@ class ShapeDirtyMixin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dirty_registry = OrderedRegistry()
+        # Mark all shape as dirty:
+        self.dirty_set()
+        # collection of all changed pixels:
         self.dirty_pixels = set()
 
-    def dirty_clear(self):
-        tick = self.dirty_last_clear = get_current_tick()
+    def dirty_clear(self, threshold=None):
+        tick = threshold if threshold is not None else get_current_tick()
+        self.dirty_last_clear = tick
         self.dirty_registry.clear_left(tick)
+
+    def dirty_set(self, rect=None):
+        tick = get_current_tick()
+        if rect is None:
+            rect = Rect((0, 0), self.size)
+        else:
+            rect = Rect(rect) if not isinstance(rect, Rect) else rect
+        self.dirty_registry.push((tick, rect, None))
+
 
     def dirty_update(self):
 
@@ -345,7 +358,7 @@ class ShapeDirtyMixin:
     def dirty_rects(self):
         self.dirty_update()
         # on purpose eager approach - the registry might be updated while rendering is taking place
-        return [node.rect for node in self.dirty_registry if self.registry[node.rect.as_tuple][0].untie == node.untie]
+        return [node.rect for node in self.dirty_registry if self.dirty_registry.sources[node.rect.as_tuple][0].untie == node.untie]
 
 
 class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
@@ -358,13 +371,6 @@ class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
     there are subclasses to represent each intended use.
 
     """
-
-    # this data is to be found into the PixelCls.capabilities
-
-    # foreground = False
-    # background = False
-    # arbitrary_chars = False
-    # effects = False  # support for bold, blink, underline...
 
     PixelCls = pixel_factory(bool)
 
@@ -683,15 +689,15 @@ class ValueShape(Shape):
     _allowed_types = (Path, str, Sequence)
 
     def __init__(self, data, color_map=None, size=None, **kwargs):
-        super().__init__(*args, **kwargs)
         # TODO: make color_map work as a to-pixel palette infornmation
         # to L or I images - not only providing a color palette,
         # but also enabbling an "palette color to character" mapping.
         self.color_map = color_map
         if isinstance(data, self._allowed_types) or hasattr(data, "read"):
             self.load_data(data, size)
-            return
-        raise NotImplementedError(f"Can't load shape from {type(data).__name__}")
+        else:
+            raise NotImplementedError(f"Can't load shape from {type(data).__name__}")
+        super().__init__(**kwargs)
 
     def __getitem__(self, pos):
         """Composes a Pixel object for the given coordinates.
@@ -882,7 +888,6 @@ class PalettedShape(Shape):
     PixelCls = pixel_factory(bool, has_foreground=True)
 
     def __init__(self, data, color_map=None):
-        super().__init__()
         if color_map is None:
             color_map = {}  # any char != EMPTY or "." paints with current context color
         self.color_map = color_map
@@ -892,6 +897,7 @@ class PalettedShape(Shape):
         elif isinstance(data, Path) or hasattr(data, "read"):
             self.load_file(data)
             return
+        super().__init__()
         raise NotImplementedError(f"Can't load shape from {type(data).__name__}")
 
     def load_paletted(self, data):
@@ -902,8 +908,8 @@ class PalettedShape(Shape):
 
         if isinstance(data, str):
             data = data.split("\n")
-        width = max(len(line) for line in data)
-        height = len(data)
+        self.width = width = max(len(line) for line in data)
+        self.height = height = len(data)
 
         new_data = []
         for line in data:
@@ -974,7 +980,6 @@ class FullShape(Shape):
         ]
 
     def __init__(self, data):
-        super().__init__()
         self.width = w = len(data[0][0])
         self.height = h = len(data[0])
         self.value_data, self.fg_data, self.bg_data, self.eff_data = (
@@ -982,6 +987,7 @@ class FullShape(Shape):
         )
         # self.data is created as a side-effect in load_data
         del self.data
+        super().__init__()
 
     def get_raw(self, pos):
         offset = self.get_data_offset(pos)

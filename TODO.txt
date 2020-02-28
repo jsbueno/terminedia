@@ -42,6 +42,7 @@ smaller features:
     - bug: html rendering not respecting context colors, on starting empty space characters
     - bug: with terminal in relative movement, snake-game is faulty,, suggesting terminal-context bugs
     - bug: (may be postponed) - shape.render does not respect shapesviews (slices): the parent shape is rendered instead
+    - bug: DEFAULT_FG displaying as black for blits and sprites
 
     Transformers:
         - include a variety of ready-to-use and easy to parametrize transformers for:

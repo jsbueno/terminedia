@@ -359,6 +359,7 @@ class Rect:
              )
         )
 
+    @property
     def as_tuple(self):
         return tuple((*self.c1, *self.c2))
 
@@ -739,6 +740,7 @@ class HookList(MutableSequence):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.data!r})"
+
 
 def get_current_tick():
     """use a counter global to Screen module, increased on
