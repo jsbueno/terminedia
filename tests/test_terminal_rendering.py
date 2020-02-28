@@ -143,7 +143,7 @@ def rendering_test(func):
 @rendering_test
 def test_render_spaces_default_color():
     sc = TM.Screen(size=(3, 3))
-    sc.update()
+    sc.update((0, 0))
 
     data = strip_ansi_seqs((yield None))
     assert data == TM.values.EMPTY * 9
@@ -158,7 +158,7 @@ def test_render_blocks_default_color():
     sc = TM.Screen(size=(3, 3))
     sc.data[0, 0] = FB
     sc.data[2, 2] = FB
-    sc.update()
+    sc.update((0, 0))
 
     data = strip_ansi_seqs((yield None))
 
@@ -176,7 +176,7 @@ def test_render_blocks_foreground_color():
     sc.data[1, 0] = "*"
     sc.data.context.color = TM.DEFAULT_FG
     sc.data[2, 0] = "*"
-    sc.update()
+    sc.update((0, 0))
 
     data = ansi_colors_to_markup(strip_ansi_movement((yield None)))
     assert (
@@ -198,7 +198,7 @@ def test_render_blocks_background_color():
     sc.data[1, 0] = "*"
     sc.data.context.background = TM.DEFAULT_BG
     sc.data[2, 0] = "*"
-    sc.update()
+    sc.update((0, 0))
 
     data = ansi_colors_to_markup(strip_ansi_movement((yield None)))
     assert (
@@ -219,7 +219,7 @@ def test_render_effects_work():
     sc.data[1, 0] = "a"
     sc.context.effects -= TM.Effects.blink
     sc.data[2, 0] = "a"
-    sc.update()
+    sc.update((0, 0))
 
     data = ansi_colors_to_markup(strip_ansi_movement((yield None)))
     assert (
@@ -241,7 +241,7 @@ def test_render_transparent_characters_dont_overwrite_terminal_contents():
     sc = TM.Screen(size=(3, 3))
     sc.data.clear(transparent=True)
     sc.data[1,1] = "*"
-    sc.update()
+    sc.update((0, 0))
 
     data = ansi_movement_to_markup((yield None))
     assert data.count("*", 1)
