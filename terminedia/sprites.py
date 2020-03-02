@@ -18,7 +18,6 @@ class Sprite:
         self.anchor = anchor
         self._check_and_promote()
         self.transformers = TransformersContainer()
-        self.dirty_rects_at_last_check = []
         self.dirty_previous_rect = self.rect
 
     def _check_and_promote(self):
@@ -55,24 +54,20 @@ class Sprite:
         return r
 
     @property
-    def rects_at_last_check(self):
-        return self.dirty_rects_at_last_check
-
-    @property
     def dirty_rects(self):
         changed_rect = self.rect != self.dirty_previous_rect
         transformer_using_tick = any("tick" in transformer.signatures for transformer in self.transformers)
         if changed_rect or transformer_using_tick:
-            dirty = [self.rect]
+            dirty = {self.rect.as_tuple}
         else:
             dirty = self.shape.dirty_rects
-        previous_dirty = self.dirty_rects_at_last_check
-        self.dirty_rects_at_last_check = dirty
 
         self.dirty_previous_rect = self.rect
-        return [*dirty, *previous_dirty]
+        return dirty
 
     def owner_coords(self, rect, where=None):
+        if not isinstance(rect, Rect):
+            rect = Rect(rect)
         if not where:
             where = self.rect
         return Rect(where.c1 + rect.c1, width=rect.width, height=rect.height)

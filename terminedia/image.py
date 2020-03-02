@@ -250,6 +250,7 @@ class ShapeApiMixin:
             else:
                 self.context.char = EMPTY
             self.draw.fill()
+        self.dirty_set()
 
 
 #####################
@@ -282,6 +283,7 @@ class OrderedRegistry:
     def reset(self):
         self.data = []
         self.sources = {}
+        self.rects = set()
 
     def push(self, node):
         if len(node) == 3:
@@ -292,30 +294,31 @@ class OrderedRegistry:
 
         t = node.rect.as_tuple
         self.sources.setdefault(t, []).append(node)
+        self.rects.add(t)
         heapq.heappush(self.data, node)
 
     def reset_to(self, node):
         self.reset()
         self.push(node)
 
-    def clear_left(self, threshold):
-        if not self.data:
-            return
-        counter = 0
-        for node in self.data:
-            if node.tick <= threshold:
-                counter += 1
-                t = node.rect.as_tuple
-                if t in self.sources:
-                    for node2 in self.sources[t]:
-                        source = node2.source()
-                        if hasattr(source, "dirty_clear"):
-                            source.dirty_clear(threshold)
-                    del self.sources[t]
+    #def clear_left(self, threshold):
+        #if not self.data:
+            #return
+        #counter = 0
+        #for node in self.data:
+            #if node.tick <= threshold:
+                #counter += 1
+                #t = node.rect.as_tuple
+                #if t in self.sources:
+                    #for node2 in self.sources[t]:
+                        #source = node2.source()
+                        #if hasattr(source, "dirty_clear"):
+                            #source.dirty_clear(threshold)
+                    #del self.sources[t]
 
-            else:
-                break
-        self.data[:counter] = []
+            #else:
+                #break
+        #self.data[:counter] = []
 
     def __iter__(self):
         return iter(self.data)
@@ -335,11 +338,24 @@ class ShapeDirtyMixin:
         self.dirty_set()
         # collection of all changed pixels:
         self.dirty_pixels = set()
+        self.dirty_saved_sprite_rects = set()
+        self.dirty_sprite_rects_saved_at = 0
 
     def dirty_clear(self, threshold=None):
         tick = threshold if threshold is not None else get_current_tick()
         self.dirty_last_clear = tick
-        self.dirty_registry.clear_left(tick)
+        self.dirty_registry.reset()  # clear_left(tick)
+
+        self.dirty_save_current_sprite_rects(tick)
+
+    def dirty_save_current_sprite_rects(self, tick):
+        self.dirty_sprite_rects_saved_at = tick
+        self.dirty_saved_sprite_rects = set()
+        if not self.has_sprites:
+            return
+        for sprite in self.sprites:
+            for rect in sprite.dirty_rects:
+                self.dirty_saved_sprite_rects.update(sprite.dirty_rects)
 
     def dirty_set(self, rect=None):
         tick = get_current_tick()
@@ -349,11 +365,13 @@ class ShapeDirtyMixin:
             rect = Rect(rect) if not isinstance(rect, Rect) else rect
         self.dirty_registry.reset_to((tick, rect, None))
 
-
     def dirty_update(self):
 
         tick = get_current_tick()
 
+        # If there is any time-dependant image change, there is no way
+        # to predict what changes from one frame to the next - just mark
+        # all shape as dirty.
         if any("tick" in transformer.signatures for transformer in self.context.transformers):
             self.dirty_set()
             return
@@ -363,11 +381,7 @@ class ShapeDirtyMixin:
             for sprite in self.sprites:
                 if not sprite.active:
                     continue
-                for rect in sprite.dirty_rects_at_last_check:
-                    self.dirty_registry.push((tick, sprite.owner_coords(rect, sprite.dirty_previous_rect), sprite.shape))
 
-                # Need to call sprite.dirty_rects not sprite.shape.dirty_rects
-                # so that sprite dirty data is updated.
                 for rect in sprite.dirty_rects:
                     self.dirty_registry.push((tick, sprite.owner_coords(rect), sprite.shape))
 
@@ -383,7 +397,9 @@ class ShapeDirtyMixin:
     def dirty_rects(self):
         self.dirty_update()
         # on purpose eager approach - the registry might be updated while rendering is taking place
-        return [node.rect for node in self.dirty_registry if self.dirty_registry.sources[node.rect.as_tuple][0].untie == node.untie]
+        return self.dirty_registry.rects.copy()
+
+        # return [node.rect for node in self.dirty_registry if self.dirty_registry.sources[node.rect.as_tuple][0].untie == node.untie]
 
 ##############
 #

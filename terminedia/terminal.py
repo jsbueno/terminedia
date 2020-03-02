@@ -157,14 +157,16 @@ class ScreenCommands(BackendColorContextMixin):
         if file is None:
             file = sys.stdout
         if rects is None:
-            rects = [Rect((0,0), data.size)]
+            rects = {Rect((0,0), data.size)}
         CSI = "\x1b["
         SGR = "m"
         MOVE = "H"
         last_pos = self.__class__.last_pos
         last_fg = last_bg = last_tm_effects = last_un_effects = None
         seen = set()
-        for rect in rects:
+        for rect in sorted(rects):
+            if not isinstance(rect, Rect):
+                rect = Rect(rect)
             outstr = ""
             for y in range(rect.top, rect.bottom):
                 for x in range(rect.left, rect.right):
