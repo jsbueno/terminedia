@@ -121,9 +121,9 @@ def main(shape, high=False, braille=False, clear=False):
                 ellapsed = current - last_frame
                 time_acumulator += ellapsed
                 counter += 1
-                last_frame = current
                 pause_time = max(FRAME_DELAY - ellapsed, 0)
                 time.sleep(pause_time)
+                last_frame = time.time()
     finally:
         print(f"\nTotal frames: {counter}\nAverage time per frame: {time_acumulator / (counter or 1):.04f}")
 

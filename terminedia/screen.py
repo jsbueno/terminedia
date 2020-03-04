@@ -174,8 +174,10 @@ class Screen:
         with self.lock:
             if wet_run:
                 self.commands.clear()
+                self.data.clear()
             else:
                 self.data.clear(transparent=True)
+            self.data.dirty_set()
             self.commands.cursor_hide()
 
     def set_at(self, pos, pixel=None):
