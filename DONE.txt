@@ -50,6 +50,47 @@ Single-write optimization:(V)
     have an option to export the rendered buffer as a single block of bytes: a screenshot snapshot with built-in ANSI sequences.(V)
     Add an optional parameter to Screen.update (maybe rename the method to 'render'?) to draw to a string buffer instead of the terminal.(V)
 
+
+    - Reactive rendering
+        - Reactive rendering to update just screen parts where srawing activity took place
+        - update terminedia-shapes to naively use sprites with the existingv"eager fullscreen
+        update" per frame. take note of performance. (V)
+
+        - ANSI backend "fast_render" method: called in place of the "_print" method, takes
+        a list of rectangles and an image data source - caches color, bg, effects by itself
+        inside a rectangle, and change status by calling ".csi" functions by itself (V)
+            - fast_render method in ScreenCommands (V)
+            - Call to fast_render based in root-context flag(V)
+            - uses absolute-positioning (V)
+            - updates foreground and background (V)
+            - Rendering tests (V)
+            - apply unicode effects (V)
+            - cache unicode effects (V)
+            - apply terminal effects (V)
+            - test rendering of effects (V)
+            - strange bug on first-frame of terminedia-shape, showing a displaced sprite in a double-rendering (V)
+            -  bug on terminedia-shape: first-frame shows shape above line 0 on screen, rendering goes past screen existing lines (V)
+            - Naive terminedia-shapes "FPS" measurement: showing a rough 33% improvement in performance for full-screen fast-rendering(ex.: 0.18 seconds per frame to 0.12 seconds per frame at the same resolution)
+            (V)
+            - Frame time improved to 0.03 sec. on terminedia-shapes example.(V)
+
+        - Use data structures to track dirty rectangles in a shape for fast_update =
+            render only modified rectangles by default (V):
+                - have a dirty_ namespace in shapes for handling this (V)
+                - have a specialized dirty_registry data structure (V)
+                    - (internaly using a heapfied list - maybe an specializd data structure as a linked list would be better)
+                - Have sprites track their dirty regions (including recursively if needed) (V)
+                - Mark whole shape as dirty if any active Transformer is taking "tick" as input (V)
+                - Track all changed pixels in a shape, marking a tile (a sensible sized square region) as dirty on any changes. (V)
+                - in a test with the working features, terminedia-shapes have dropped from a 0.28s/frame to 0.07s/frame.(V)
+                - reset sprite dirty-rects on rendering(V)
+
+        - screen.update changed its behavior to use rects marked as dirty.(V)
+        - Setting "context.fast_render" to False on the root context retains old semantics, of pixel-by-pixel
+        rendering to a "journalingcommands" proxy to the backend. Interactive mode uses this flag to ensure screen-redraw on update(V)
+
+
+
 Text and big-text capabilities:
 
     enable new blank shape with given size (V)

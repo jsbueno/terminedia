@@ -77,61 +77,26 @@ smaller features:
         - linear gradients
 
     - Reactive rendering
-        - Reactive rendering to update just screen parts where srawing activity took place
-        - update terminedia-shapes to naively use sprites with the existingv"eager fullscreen
-        update" per frame. take note of performance. (V)
 
         - per-backend "fast_render" method: called in place of the "_print" method, takes
         a list of rectangles and an image data source - caches color, bg, effects by itself
-        inside a rectangle, and change status by calling ".csi" functions by itself [WIP]
-            - fast_render method in ScreenCommands (V)
-            - Call to fast_render based in root-context flag(V)
-            - uses absolute-positioning (V)
-            - relative-positioning (TBD)
-            - updates foreground and background (V)
-            - Rendering tests (V)
-            - apply unicode effects (V)
-            - cache unicode effects (V)
-            - apply terminal effects (V)
-            - test rendering of effects (V)
-            - strange bug on first-frame of terminedia-shape, showing a displaced sprite in a double-rendering (V)
-            -  bug on terminedia-shape: first-frame shows shape above line 0 on screen, rendering goes past screen existing lines (TBD)
-            - Naive terminedia-shapes "FPS" measurement: showing a rough 33% improvement in performance for full-screen fast-rendering(ex.: 0.18 seconds per frame to 0.12 seconds per frame at the same resolution)
-            (V)
+            (HTML Backend missing improvement. Current HTML usage, of pre-rendering a full frame
+            would not take advantages from this, as there is no way to update
+            an inner rectangle changing just some pixels from one frame to the next.
+            Other totally new HTML renderings (e.g. using tables, Canvas, one ID for each character
+                                                could benefit from fast_render)
+            - relative-positioning for ANSI backend (TBD)
 
         - Use data structures to track dirty rectangles in a shape for fast_update =
-            render only modified rectangles by default (V):
-                - have a dirty_ namespace in shapes for handling this (V)
                 - have a specialized dirty_registry data structure (V)
                     - (internaly using a heapfied list - maybe an specializd data structure as a linked list would be better)
-                - Have sprites track their dirty regions (including recursively if needed) (V)
-                - Mark whole shape as dirty if any active Transformer is taking "tick" as input (V)
-                - Track all changed pixels in a shape, marking a tile (a sensible sized square region) as dirty on any changes. (V)
-                - in a test with the working features, terminedia-shapes have dropped from a 0.28s/frame to 0.07s/frame.(V)
                 - Missing tests for any of dirty-rect tracking features.
-                - reset sprite dirty-rects on rendering(V)
 
         - Speedup pixel-data retrieving from within shapes:
             - use a unique data-structure instead of 4 separate lists for fullshapes:
                 - speed-up (or skip altogether) Pixel creation for each read.
         - fix other low hanging improvements visible with 'python -m profile terminedia-shapes
             - ex. avoid in-per-pixel methods use of "imports"
-
-
-        - all drawing api, shape creation, sprite method call or assignment, assignment to "transformerscontainers" or "transformers" itens, and spritecontainer objects
-        advance the "tick" counter and mark themselves as changed at that tick.
-            (the contextkwords method can be doubled as recursion marker and update the
-             tick just once, but still each method will know about its boundaries.
-             probably an extra attribute on whether each method should advance the tick
-             aand mark the rectangles it changed is better)
-            as a POC any call to a Draw method could mark all the owner as dirty.
-            )
-        - sprite-rect changes must mark dirty rects on their owner on their previous rects.
-
-        - screen.update should change its behavior to use rects marked as dirty.
-        a separate parameter will retain existing semantics, of pixel-by-pixel
-        rendering to a "journalingcommands" proxy to the backend. Interactive mode should
-        always mark all the screen as dirty, or retain current behavior.
 
 
 breaking-changes:
