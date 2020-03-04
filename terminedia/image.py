@@ -385,9 +385,16 @@ class ShapeDirtyMixin:
                 for rect in sprite.dirty_rects:
                     self.dirty_registry.push((tick, sprite.owner_coords(rect), sprite.shape))
 
+        # mark dirty pixels
+
         tile_size = (DIRTY_TILE_SIZE, DIRTY_TILE_SIZE)
+        self_rect = Rect((0, 0), self.size)
         for tile in self.dirty_pixels:
-            self.dirty_registry.push((tick, Rect(tile * DIRTY_TILE_SIZE, width_height=tile_size), None))
+            rect = Rect(tile * DIRTY_TILE_SIZE, width_height=tile_size)
+            rect = rect.intersection(self_rect)
+            if not rect:
+                continue
+            self.dirty_registry.push((tick, rect, None))
         self.dirty_pixels = set()
 
     def dirty_mark_pixel(self, index):

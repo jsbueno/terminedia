@@ -368,6 +368,18 @@ class Rect:
     def as_tuple(self):
         return tuple((*self.c1, *self.c2))
 
+    def intersection(self, other):
+        cls = self.__class__
+        if not isinstance(other, Rect):
+            other = cls(other)
+        if not self.collide(other):
+            return None
+        result = cls((
+            max(self.left, other.left), max(self.top, other.top),
+            min(self.right, other.right), min(self.bottom, other.bottom)
+        ))
+        return result
+
     def __iter__(self):
         yield self.c1
         yield self.c2
@@ -377,6 +389,7 @@ class Rect:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({tuple(self.c1)}, {tuple(self.c2)})"
+
 
 
 class LazyBindProperty:
