@@ -64,7 +64,10 @@ c_map = {"*": DEFAULT_FG, "#": (0.5, 0.8, 0.8), "!": (1, 0, 0), "%": (1, 0.7, 0)
 @click.option(
     "clear", "--clear", "-c", flag_value=True, help="Clear screen before showing shapes"
 )
-def main(shape, high=False, braille=False, clear=False):
+@click.option(
+    "cycle", "--cycle", "-y", flag_value=True, help="Cycle shape colors using a Transformer"
+)
+def main(shape, high=False, braille=False, clear=False, cycle=False):
     """Quick example to navigate an string-defined shape through
     the terminal using the arrow keys! Press <ESC> to exit.
 
@@ -95,6 +98,11 @@ def main(shape, high=False, braille=False, clear=False):
     time_acumulator = 0
     counter = 0
 
+    def cycle_color(foreground, tick):
+        if foreground != TM.DEFAULT_FG:
+            return foreground
+        return TM.Color(["red", "blue", "yellow", "lime"][tick % 4])
+
     try:
 
         with keyboard(), Screen(clear_screen=clear) as scr:
@@ -104,6 +112,8 @@ def main(shape, high=False, braille=False, clear=False):
             y = 0
             pos = V2(x, y)
             sprite = scr.data.sprites.add(fshape, pos, active=True)
+            if cycle:
+                sprite.transformers.append(TM.Transformer(foreground=cycle_color))
 
             while True:
                 key = inkey()
