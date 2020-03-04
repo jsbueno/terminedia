@@ -58,7 +58,7 @@ class Sprite:
         changed_rect = self.rect != self.dirty_previous_rect
         transformer_using_tick = any("tick" in transformer.signatures for transformer in self.transformers)
         if changed_rect or transformer_using_tick:
-            dirty = {self.rect.as_tuple}
+            dirty = {(self.rect - self.rect.c1).as_tuple}
         else:
             dirty = self.shape.dirty_rects
 

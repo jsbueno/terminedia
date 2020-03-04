@@ -384,6 +384,16 @@ class Rect:
         yield self.c1
         yield self.c2
 
+    def __add__(self, other):
+        if isinstance(other, V2) or len(other) == 2:
+            return self.__class__(self.c1 + other, self.c2 + other)
+        raise NotImplementedError()
+
+    def __sub__(self, other):
+        if isinstance(other, V2) or len(other) == 2:
+            return self.__class__(self.c1 - other, self.c2 - other)
+        raise NotImplementedError()
+
     def __len__(self):
         return 4
 

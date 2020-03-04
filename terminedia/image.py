@@ -237,7 +237,7 @@ class ShapeApiMixin:
             transparent (bool): whether to use special transparency values
 
         if "transparent" is True, the shape is filled with the
-        special TRANSPARENT value that make underlying shape charactersn
+        special TRANSPARENT value that make underlying shape characters, or existing tty content
         unchanged upon blitting.
         """
         with self.context:
