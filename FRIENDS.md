@@ -6,8 +6,8 @@ or simply do similar things, or are essential for working with terminedia:
 
 # UNSCII font project:
 http://pelulamu.net/unscii/
-The UNSCII fonts are a few fonts created thinking in 
-vintage text-art, extending it to UNICODE. 
+The UNSCII fonts are a few fonts created thinking in
+vintage text-art, extending it to UNICODE.
 Actually, terminedia currently _embedds_ the raster version
 of all UNSCII fonts, and those are used for drawing large-block
 text. Besides that, it is a very useful font, if not essential,
@@ -19,7 +19,7 @@ https://cmder.net/
 Rather complete terminal experience made available under Windows.
 AMong other things, allow easy configuring of the fonts to be used
 for graphics (see UNSCII above), without which terminedia drawing
-simply won´t work. 
+simply won´t work.
 
 
 And now for some similar projects
@@ -33,6 +33,20 @@ https://github.com/atanunq/viu
 
 # Extended API iterminal emulator  (C + Python):
 https://github.com/kovidgoyal/kitty
+
+# Colored and ANSI effects printing on terminal:
+
+#   - termcolor
+https://pypi.org/project/termcolor/
+
+#   - rich
+https://pypi.org/project/rich/
+
+#   - colorama
+https://pypi.org/project/colorama/
+(NB: Colorama is usd by terminedia itself on Windows, as has a "low level" api that makes
+the ANSI codes interface seamlessly available on that system)
+
 
 Simpler projects dealing with subsets of character/effect mangling
 ===================================================================
