@@ -1,7 +1,7 @@
 import inspect
 
 from terminedia.subpixels import BlockChars
-from terminedia.values import CONTEXT_COLORS, EMPTY
+from terminedia.values import CONTEXT_COLORS, EMPTY, TRANSPARENT
 from terminedia.utils import V2, Rect, contextkwords
 
 
@@ -309,6 +309,24 @@ class Drawing:
                 ishape.send(SKIP_LINE)
                 continue
             if direct_pix:
+                if (
+                    pixel.capabilities.has_foreground and pixel.foreground == CONTEXT_COLORS or
+                    pixel.capabilities.has_background and pixel.background == CONTEXT_COLORS
+                ):
+                    _cls = pixel.__class__
+                    values = [pixel.value]
+                    if pixel.capabilities.has_foreground:
+                        values.append(
+                        pixel.foreground if pixel.foreground != CONTEXT_COLORS else self.context.color_stack[-1]
+                    )
+                    if pixel.capabilities.has_background:
+                        values.append(
+                        pixel.background if pixel.foreground != CONTEXT_COLORS else self.context.background_stack[-1]
+                    )
+                    if pixel.capabilities.has_effects:
+                        values.append(pixel.effects)
+
+                    pixel = _cls(*values)
                 self.set(target_pos, pixel)
             else:
                 if pixel.capabilities.has_foreground:
@@ -389,7 +407,7 @@ class HighRes:
         original = self.parent[p_x, p_y]
         if isinstance(original, Pixel):
             original = original.value
-        if original not in self.block_class:
+        if original is TRANSPARENT or original not in self.block_class:
             graphics = False
             original = EMPTY
         new_block = operation((i_x, i_y), original)

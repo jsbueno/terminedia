@@ -92,7 +92,6 @@ def main(shape, high=False, braille=False, clear=False, cycle=False):
         fshape = TM.shape((shape.size.x // 2 + shape.size.x % 2, shape.size.y // 4 + int(shape.size.y % 4 != 0) ))
         fshape.braille.draw.blit((0,0), shape)
     else:
-        breakpoint()
         fshape = TM.FullShape.promote(shape)
 
     last_frame = time.time()

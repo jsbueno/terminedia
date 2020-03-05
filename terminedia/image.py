@@ -993,7 +993,7 @@ class PalettedShape(Shape):
         # else:
         # foreground_arg = ()
 
-        foreground_arg = self.color_map.get(char, self.context.color)
+        foreground_arg = self.color_map.get(char, CONTEXT_COLORS)
         if not isinstance(foreground_arg, Color):
             foreground_arg = Color(foreground_arg)
         return self.PixelCls(value, foreground_arg)
