@@ -54,17 +54,6 @@ class Pixel(tuple):
     def __new__(cls, *args, context=None):
         if args and isinstance(args[0], Pixel):
             args = args[0].get_values(context, cls.capabilities)
-        if cls.capabilities.has_foreground and args[1] == CONTEXT_COLORS:
-            if not hasattr(args, "__setitem__"):
-                args = list(args)
-            args[1] = DEFAULT_FG
-        if cls.capabilities.has_background:
-            index = 2 if cls.capabilities.has_foreground else 1
-            if args[index] == CONTEXT_COLORS:
-                if not hasattr(args, "__setitem__"):
-                    args = list(args)
-                args[index] = DEFAULT_BG
-
         return super().__new__(cls, *args)
 
     def get_values(self, context=None, capabilities=None):
