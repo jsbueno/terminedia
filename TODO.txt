@@ -14,7 +14,7 @@ Resolve "can't output a lot of things to terminal if stdin set to non blocking" 
 smaller features:
     - accept context attributes (color, background, effects) as keyword arguments on all .draw methods [WIP]:
         - change decorator (and possibly context) to allow using a whole
-            context as parameter to update the current context (V)
+            context as parameter to update the current context (V)sss
         - improve decorator to proper fix the signature of the decorated functions (V)
             (and then record resulting hack as an answer to https://stackoverflow.com/questions/34402773/signature-changing-decorator-properly-documenting-additional-argument) (V)
         - create the concept of 'write_transformers': transformations
@@ -37,7 +37,8 @@ smaller features:
     - shape "clear" call:
         - optional parameter to reset text information
         - method to redraw text from a given plane/roi.
-    - bug: Screen.clear() should clear the associated shape in Screen.data
+    - Context kwords should take "direction" as an option(V)
+    - bug: Screen.clear() should clear the associated shape in Screen.data (V)
 
     - bug: html rendering not respecting context colors, on starting empty space characters
     - bug: with terminal in relative movement, snake-game is faulty,, suggesting terminal-context bugs
@@ -91,6 +92,7 @@ smaller features:
                 - have a specialized dirty_registry data structure (V)
                     - (internaly using a heapfied list - maybe an specializd data structure as a linked list would be better)
                 - Missing tests for any of dirty-rect tracking features.
+        - create "FrozenRect" and avoid usage of tuples-as-rects in code.
 
         - Speedup pixel-data retrieving from within shapes:
             - use a unique data-structure instead of 4 separate lists for fullshapes:
