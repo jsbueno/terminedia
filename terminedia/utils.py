@@ -384,6 +384,11 @@ class Rect:
         yield self.c1
         yield self.c2
 
+    def iter_cells(self):
+        for y in range(self.top, self.bottom):
+            for x in range(self.left, self.right):
+                yield V2(x,y)
+
     def __add__(self, other):
         if isinstance(other, V2) or len(other) == 2:
             return self.__class__(self.c1 + other, self.c2 + other)

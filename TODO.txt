@@ -36,14 +36,14 @@ smaller features:
             (currently Screen's repr is showing last_pos, last_color, and other internal state attrs by default)
     - shape "clear" call:
         - optional parameter to reset text information
-        - method to redraw text from a given plane/roi.
+        - method to redraw text from a given plane/roi.(WIP)
     - Context kwords should take "direction" as an option(V)
     - bug: Screen.clear() should clear the associated shape in Screen.data (V)
 
     - bug: html rendering not respecting context colors, on starting empty space characters
     - bug: with terminal in relative movement, snake-game is faulty,, suggesting terminal-context bugs
     - bug: (may be postponed) - shape.render does not respect shapesviews (slices): the parent shape is rendered instead
-    - bug: DEFAULT_FG displaying as black for blits and sprites (terminedia-shapes in dark theme konsole)
+    - bug: DEFAULT_FG displaying as black for blits and sprites (terminedia-shapes in dark theme konsole)(V)
 
     Transformers:
         - include a variety of ready-to-use and easy to parametrize transformers for:

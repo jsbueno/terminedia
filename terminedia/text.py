@@ -3,9 +3,8 @@ from copy import copy
 from pathlib import Path
 
 from terminedia.image import Shape, PalettedShape
-from terminedia.utils import V2
-from terminedia.utils import contextkwords
-from terminedia.values import Directions, EMPTY
+from terminedia.utils import contextkwords, V2, Rect
+from terminedia.values import Directions, EMPTY, TRANSPARENT
 
 try:
     # This is the only Py 3.7+ specific thing in the project
@@ -77,6 +76,9 @@ def load_font(font_path, font_is_resource, page=0, ch1=EMPTY, ch2="#"):
     return font
 
 
+GLYPH_CACHE = {}
+
+
 def render(text, font=None, shape_cls=PalettedShape, direction=Directions.RIGHT):
     if font is None:
         font = ""
@@ -89,6 +91,10 @@ def render(text, font=None, shape_cls=PalettedShape, direction=Directions.RIGHT)
         font_registry.setdefault(font_id, {}).update(load_font(font_id, is_resource))
         font = font_registry[font_id]
 
+    cache_index = (font_id, shape_cls, text)
+    if len(text) == 1 and cache_index in GLYPH_CACHE:
+        return GLYPH_CACHE[cache_index]
+
     phrase = []
     for char in text:
         if char not in font:
@@ -98,6 +104,7 @@ def render(text, font=None, shape_cls=PalettedShape, direction=Directions.RIGHT)
     if len(text) == 0:
         return shape_cls.new((0, 0))
     elif len(text) == 1:
+        GLYPH_CACHE[cache_index] = phrase[0]
         return phrase[0]
     return phrase[0].concat(*phrase[1:], direction=direction)
 
@@ -225,27 +232,61 @@ class Text:
         self.plane["data"][index] = value
         self.blit(index)
 
-    def blit(self, index, target=None):
+    def blit(self, index, target=None, clear=True):
         if target is None:
             target = self.owner
 
-        if self.current_plane == 1:
-            # self.context.shape_lastchar_was_double is set in this operation.
-            target[index] = self.plane["data"][index]
+        char = self.plane["data"][index]
+
+        if char is EMPTY and not clear:
             return
 
-        char = render(
+        if self.current_plane == 1:
+            # self.context.shape_lastchar_was_double is set in this operation.
+            target[index] = char
+            return
+
+        rendered_char = render(
             self.plane["data"][index], font=target.context.font or self.plane["font"]
         )
         index = (V2(index) * 8).as_int
         if self.current_plane == 2:
-            target.braille.draw.blit(index, char)
+            target.braille.draw.blit(index, rendered_char, erase=clear)
         elif self.current_plane == 4:
-            target.high.draw.blit(index, char)
+            target.high.draw.blit(index, rendered_char, erase=clear)
         elif self.current_plane == 8:
-            target.draw.blit(index, char)
+            target.draw.blit(index, rendered_char, erase=clear)
         else:
             raise ValueError(f"Size {self.current_plane} not implemented for rendering")
+
+    def refresh(self, clear=True, *, preserve_attrs=False, rect=None, target=None):
+        """Render entire text buffer to the owner shape
+
+        Args:
+          - clear (bool): whether to render empty spaces. Default=True
+          - preserve_attrs: whether to keep colors and effects on the rendered cells,
+                or replace all attributes with those in the current context
+          - rect (Optional[Rect]): area to render. Defaults to whole text plane
+          - target (Optional[Shape]): where to render to. Defaults to owner shape.
+        """
+
+        if "current_plane" not in self.__dict__:
+            raise TypeError("You must select a text plane to render - use .text[<size>].refresh()")
+
+        if target is None:
+            target = self.owner
+        data = self.plane["data"]
+
+        if not rect:
+            rect = Rect((0,0), data.size)
+        with target.context as context:
+            if preserve_attrs:
+                context.color = TRANSPARENT
+                context.background = TRANSPARENT
+                context.effects = TRANSPARENT
+
+            for pos in rect.iter_cells():
+                self.blit(pos, target=target, clear=clear)
 
     @contextkwords(context_path="owner.context")
     def at(self, pos, text):
