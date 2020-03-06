@@ -6,7 +6,7 @@ from io import StringIO
 from terminedia.backend_common import BackendColorContextMixin, JournalingCommandsMixin
 from terminedia.unicode_transforms import translate_chars
 from terminedia.utils import char_width, V2, Color
-from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects, ESC
+from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, UNICODE_EFFECTS, ESC
 
 full_body_template = """\
 <!DOCTYPE html>
