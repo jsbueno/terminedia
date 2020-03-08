@@ -308,6 +308,18 @@ class Drawing:
             if extent and (target_pos.x >= extent.x or target_pos.y >= extent.y):
                 ishape.send(SKIP_LINE)
                 continue
+            should_set = (
+                pixel.capabilities.value_type == str
+                and (
+                    pixel.value != EMPTY
+                    or pixel.value == "."
+                    and pixel.capabilities.translate_dots
+                )
+                or pixel.capabilities.value_type == bool
+                and pixel.value
+            )
+            if not should_set and not erase:
+                continue
             if direct_pix:
                 if (
                     pixel.capabilities.has_foreground and pixel.foreground == CONTEXT_COLORS or
@@ -340,19 +352,9 @@ class Drawing:
                     else:
                         self.context.background = pixel.background
 
-                should_set = (
-                    pixel.capabilities.value_type == str
-                    and (
-                        pixel.value != EMPTY
-                        or pixel.value == "."
-                        and pixel.capabilities.translate_dots
-                    )
-                    or pixel.capabilities.value_type == bool
-                    and pixel.value
-                )
                 if should_set:
                     self.set(target_pos)
-                elif erase:
+                else:
                     self.reset(target_pos)
 
         self.context.color = self.context.color_stack.pop()

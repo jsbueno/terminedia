@@ -194,6 +194,7 @@ Audio support (pyAudio?)
 Image (shape) transform - (rotate, scale).
 
 paint modes to use different characters to denote intensity (back do ascii art):
+    - already possible via transformers [0.3.0dev0]
     unicode circles
     unicode squares
     Classic ASCII # * . etc
@@ -260,6 +261,7 @@ more features
         - Accept 0-255 or 0-1.0 3 [4] sequences for RGB color [Alpha]
         - conversion to 1-byte standard 216 color palette for terminals
         - make use of 1byte color on terminal.py
+    - make main user-facing classes: Shapes, Text, Transformers, Sprites, pickle serializable (and deep-copyable)
 
     Assume `set` method passed to drawing.Drawing can always accept pixels. Simplify workarounds in "image.ShapeApiMixin" and "screen.set_at" to accept pixels. (API breaking - change this before making a release)
 
