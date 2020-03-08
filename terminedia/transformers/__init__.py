@@ -63,9 +63,32 @@ class Transformer:
 class KernelTransformer(Transformer):
     policy = "abyss"
 
-    def __init__(self, kernel, mask_diags=True, **kwargs):
+    def __init__(self, kernel, mask_diags=True, match_only=None, **kwargs):
+        """Specialized Transformer with code to apply convolution effects on targets
+
+        Args:
+          - kernel (Mapping): the kernel (see bellow)
+          - mask_diags (bool): Whether to check for diagonals, or consider only
+              "cross" kernels (i.e. do not look at neighbors on any diagonal)
+          - match_only (Optional[str]): if passed, only the any of these chars will be considered a match,
+                otherwise, any character different from empty matches. The idea is that the transformer
+                can then convert all "FULL_BLOCK" or othr drawing glyph, without taking into account
+                or touching any other character.
+
+
+        An Specialized Transformer subclass that have a built-in "char" transformation
+        which will "look at" the surrounding pixels at the source, and based on those
+        and on a table passed in as "kernel" will translate the current character.
+
+        The "kernel" table is a dictionary with each key being a 9-character
+        long of strings containing either '#' or ' '.
+        The "/tools/kernel_generator.py" script at the project root can create
+        a valid  Python file with an empty kernel, which can be manually editted
+        and passed to this constructor.
+        """
         self.kernel = kernel
         self.mask_diags = mask_diags
+        self.match_only = match_only or ""
         super().__init__(**kwargs)
 
     def kernel_match(self, source, pos):
@@ -73,15 +96,14 @@ class KernelTransformer(Transformer):
         source_is_image = False
         if  hasattr(source, "value_data"):
             data = source.value_data
-            ...
             # TODO: 'fastpath' made faster for fullshapes
-            value = ...
         elif isinstance(source, ImageShape):
             source_is_image = True
         else:
             data = source.data
 
         value = ""
+        match_only = self.match_only
 
         for y in -1, 0, 1:
             for x in -1, 0, 1:
@@ -100,11 +122,16 @@ class KernelTransformer(Transformer):
                 if source_is_image:
                     value += "#" if source.get_raw(pos) != source.context.background else " "
                     continue
-                value += "#" if data[offset] != EMPTY else " "
+                if match_only:
+                    value += "#" if data[offset] in match_only else " "
+                else:
+                    value += "#" if data[offset] != EMPTY else " "
 
         return self.kernel.get(value, self.kernel.get("default", " "))
 
-    def char(self, source, pos):
+    def char(self, char, source, pos):
+        if self.match_only and char not in self.match_only and char != EMPTY:
+            return char
         return self.kernel_match(source, pos)
 
 
