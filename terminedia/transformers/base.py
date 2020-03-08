@@ -135,17 +135,6 @@ class KernelTransformer(Transformer):
         return self.kernel_match(source, pos)
 
 
-kernel_dilate = {
-    "   "\
-    "   "\
-    "   ": " ",
-
-    "default": FULL_BLOCK,
-}
-
-dilate_transformer = KernelTransformer(kernel_dilate)
-
-
 class GradientTransformer(Transformer):
 
     def __init__(self, gradient, direction=Directions.RIGHT, **kwargs):
