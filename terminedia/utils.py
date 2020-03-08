@@ -792,8 +792,16 @@ def tick_forward():
     root_context.ticks = get_current_tick() + 1
 
 
-def combine_signatures(func, wrapper=None):
+def combine_signatures(func, wrapper=None, include=None):
     """Adds keyword-only parameters from wrapper to signature
+
+    Args:
+      - func: The 'user' func that is being decorated and replaced by 'wrapper'
+      - wrapper: The 'traditional' decorator which keyword-only parametrs should be added to the
+            wrapped-function ('func')'s signature
+      - include: optional list of keyword parameters that even not being present
+            on the wrappers signature, will be included on the final signature.
+            (if passed, these named arguments will be part of the kwargs)
 
     Use this in place of `functools.wraps`
     It works by creating a dummy function with the attrs of func, but with
@@ -815,7 +823,7 @@ def combine_signatures(func, wrapper=None):
     from itertools import groupby
 
     if wrapper is None:
-        return partial(combine_signatures, func)
+        return partial(combine_signatures, func, include=include)
 
     sig_func = signature(func)
     sig_wrapper = signature(wrapper)
@@ -839,6 +847,11 @@ def combine_signatures(func, wrapper=None):
     var_keyword = [p for p in pars_func.get(ParKind.VAR_KEYWORD,[])]
 
     extra_parameters = render_by_kind(pars_wrapper, ParKind.KEYWORD_ONLY)
+    if include:
+        if isinstance(include[0], Mapping):
+            include = [f"{param['name']}{':' + param['annotation'] if 'annotation' in param else ''}{'=' + param['default'] if 'default' in param else ''}" for param in include]
+        else:
+            include = [f"{name}=None" for name in include]
 
     def opt(seq, value=None):
         return ([value] if value else [', '.join(seq)]) if seq else []
@@ -854,6 +867,7 @@ def combine_signatures(func, wrapper=None):
         *opt(keyword_only or extra_parameters, ('*' if not var_positional else f"*{var_positional[0].name}")),
         *opt(keyword_only),
         *opt(extra_parameters),
+        *opt(include),
         *opt(var_keyword, f"**{var_keyword[0].name}" if var_keyword else "")
     ])
     declaration = f"def {func.__name__}({param_spec}): pass"
@@ -872,11 +886,11 @@ def combine_signatures(func, wrapper=None):
 
 
 
-def contextkwords(func=None, context_path=None):
+def contextkwords(func=None, context_path=None, text_attrs=False):
     if func is None:
-        return partial(contextkwords, context_path=context_path)
+        return partial(contextkwords, context_path=context_path, text_attrs=text_attrs)
     sig = inspect.signature(func)
-    @combine_signatures(func)
+    @combine_signatures(func, include=["font", "direction"] if text_attrs else None)
     def wrapper(
         *args,
         char=None,
@@ -886,8 +900,6 @@ def contextkwords(func=None, context_path=None):
         effects=None,
         # write_transformers=None,
         fill=None,
-        font=None,
-        direction=None,
         context=None,
         **kwargs
     ):
@@ -905,8 +917,13 @@ def contextkwords(func=None, context_path=None):
         global root_context
         if not root_context:
             from terminedia import context as root_context
+        if text_attrs:
+            font = kwargs.pop("font", None)
+            direction = kwargs.pop("direction", None)
+        else:
+            font = direction = None
         if all(attr is not None for attr in(char, color, foreground, background, effects, #write_transformers,
-                   fill, font, direction, context)):
+                   fill, *([font, direction] if text_attrs else []), context)):
             return func(*args, **kwargs)
 
         self = args[0] if args else None

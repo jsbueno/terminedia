@@ -36,7 +36,7 @@ smaller features:
             (currently Screen's repr is showing last_pos, last_color, and other internal state attrs by default)
     - shape "clear" call:
         - optional parameter to reset text information
-        - method to redraw text from a given plane/roi.(WIP)
+        - method to redraw text from a given plane/roi.(V)
     - Context kwords should take "direction" as an option(V)
     - bug: Screen.clear() should clear the associated shape in Screen.data (V)
 

@@ -231,7 +231,7 @@ class Screen:
             self[pos.as_int] = char
             pos += direction
 
-    @contextkwords
+    @contextkwords(text_attrs=True)
     def print_at(self, pos, text):
         """Positions the cursor and prints a text sequence
 

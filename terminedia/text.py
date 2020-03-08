@@ -279,6 +279,8 @@ class Text:
 
         if not rect:
             rect = Rect((0,0), data.size)
+        elif not isinstance(rect, Rect):
+            rect = Rect(rect)
         with target.context as context:
             if preserve_attrs:
                 context.color = TRANSPARENT
@@ -288,7 +290,7 @@ class Text:
             for pos in rect.iter_cells():
                 self.blit(pos, target=target, clear=clear)
 
-    @contextkwords(context_path="owner.context")
+    @contextkwords(context_path="owner.context", text_attrs=True)
     def at(self, pos, text):
         pos = V2(pos)
         for char in text:
