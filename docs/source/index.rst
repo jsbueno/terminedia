@@ -1,7 +1,3 @@
-.. terminedia documentation master file, created by
-   sphinx-quickstart on Fri Mar 29 23:19:47 2019.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 
 Welcome to terminedia's documentation!
 ======================================
@@ -12,12 +8,6 @@ Welcome to terminedia's documentation!
 
    terminedia
 
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
 Terminedia is meant to be a lightweight terminal library to
 provide color output, positioned text, and use block characters
@@ -33,7 +23,7 @@ Simple example: ::
 
         pause()
 
-This will draw a rougly square rectangle (due to character block non square aspect-ratio)
+This will draw a roughly square rectangle (due to character block non square aspect-ratio)
 using 1/4 block unicode characters to draw lines. The output is:
 
 .. figure::  images/example_00.png
@@ -73,10 +63,20 @@ For input, the available functionalities are the :any:`keyboard` context manager
 which enables non-blocking use of the keyboard, and the :any:`inkey` and :any:`pause`
 functions which make use of this feature.
 
-Terminedia
-===========
-.. automodule:: terminedia
-   :members:
-   :imported-members:
-   :undoc-members:
-   :special-members: __init__,__enter__,__exit__,__contains__
+The API Documentation / Guide
+-----------------------------
+
+In depth coverage of the complete API:
+
+.. toctree::
+   :maxdepth: 3
+
+   api
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+

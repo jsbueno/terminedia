@@ -368,13 +368,13 @@ class ScreenCommands(BackendColorContextMixin):
         """Method to print a straightforward rich-text string to the terminal
 
         Params:
-          *texts: List[str]: strings to print
-          pos: Optional[Tuple[int, int]]: Terminal position to print to
-          context: Optional[terminedia.Context instance]
-          color: Union[terminedia.Color, str, Tuple[int, int, int], Tuple[float, float, float]] : foreground color to use
-          background: Union[terminedia.Color, str, Tuple[int, int, int], Tuple[float, float, float]] : background color to use
-          effects: terminedia.Effects : effect or effect combination to apply to characters before printing
-          file, flush, sep, end: The same as standard Python's `print`
+          * texts: List[str]: strings to print
+          * pos: Optional[Tuple[int, int]]: Terminal position to print to
+          * context: Optional[terminedia.Context instance]
+          * color: Union[terminedia.Color, str, Tuple[int, int, int], Tuple[float, float, float]] : foreground color to use
+          * background: Union[terminedia.Color, str, Tuple[int, int, int], Tuple[float, float, float]] : background color to use
+          * effects: terminedia.Effects : effect or effect combination to apply to characters before printing
+          * file, flush, sep, end: The same as standard Python's `print`
 
         """
 
