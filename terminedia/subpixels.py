@@ -127,6 +127,28 @@ class BlockChars_(SubPixels):
 BlockChars = BlockChars_()
 
 
+class HalfChars_(SubPixels):
+    """Used internally to emulate pixel setting/resetting/reading inside 1/2 Character Blocks"""
+
+    block_width = 1
+    block_height = 2
+    bit_size: int = 0b11
+
+    EMPTY = values.EMPTY
+    UPPER_HALF_BLOCK = "\u2580"
+    LOWER_HALF_BLOCK = "\u2584"
+
+    FULL_BLOCK = values.FULL_BLOCK
+
+    @classmethod
+    def _op(cls, pos, data, operation):
+        number = cls.chars_to_order[data]
+        index = 1 + pos[1]
+        return operation(number, index)
+
+HalfChars = HalfChars_()
+
+
 class BrailleChars_(SubPixels):
     """Used internally to emulate pixel setting/resetting/reading inside 1/8 Unicode Braille characters"""
 
