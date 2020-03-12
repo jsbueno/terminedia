@@ -11,8 +11,8 @@ from terminedia import Screen, pause, DEFAULT_FG, Color
     "size",
     "--size",
     "-s",
-    default=4,
-    help="Block height for char. Allowed values: 1, 4 or 8",
+    default="4",
+    help="Block height for char. Allowed values: 1, 2, 4, 8 or 'square'",
 )
 @click.option(
     "position",
@@ -46,6 +46,10 @@ def main(text, position, size, color, clear, font):
         color = DEFAULT_FG
     else:
         color = Color(literal_eval(f"({color})") if color.count(",") >= 2 else color)
+    if size.isdigit():
+        size = int(size)
+    elif size == "square":
+        size = (8, 4)
     with Screen(clear_screen=clear) as sc:
         sc.context.color = color
         sc.context.font = font

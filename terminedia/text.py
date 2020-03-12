@@ -179,7 +179,7 @@ class Text:
 
     @property
     def current_plane(self):
-        if not isinstance(self.__dict__.get("current_plane"), int):
+        if not isinstance(self.__dict__.get("current_plane"), (int, tuple)):
             raise TypeError(
                 "Please select the character plane with `.text[#]` before using this method"
             )
@@ -201,6 +201,9 @@ class Text:
 
     def _build_plane(self, index, char_width=None):
         char_height = index
+        if index == (8, 4):
+            char_width = 8
+            char_height = 4
         if not char_width:
             char_width = char_height
         self.planes[index] = plane = dict()
@@ -210,9 +213,9 @@ class Text:
         plane["font"] = ""
 
     def _checkplane(self, index):
-        if not isinstance(index, int):
+        if not isinstance(index, (int, tuple)):
             raise TypeError(
-                "Use an integer index to retrieve the corresponding character plane for the current target"
+                "Use an integer or tuple index to retrieve the corresponding character plane for the current target"
             )
         if index not in self.planes:
             self._build_plane(index)
@@ -254,6 +257,8 @@ class Text:
             target.braille.draw.blit(index, rendered_char, erase=clear)
         elif self.current_plane == 4:
             target.high.draw.blit(index, rendered_char, erase=clear)
+        elif self.current_plane == (8,4):
+            target.square.draw.blit(index, rendered_char, erase=clear)
         elif self.current_plane == 8:
             target.draw.blit(index, rendered_char, erase=clear)
         else:

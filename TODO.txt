@@ -135,7 +135,7 @@ Future
         - get the color, movement, and effects sequences from terminfo, and use hard-coded common sequences just as fallback. (thanks to Gilles Quenot)
 
 - new "resolution modes":
-    - half character (1/2 block - square aspect ratio)
+    - half character (1/2 block - square aspect ratio)(V)
     - double-character (2 blocks - square aspect ratio)
         - Add a Text[2] plane using braille chars(WIP)
         - create a solution equivalent to the ".text[4]" plane selection for resolutions

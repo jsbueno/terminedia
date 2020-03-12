@@ -7,7 +7,7 @@ from math import ceil
 import terminedia.text
 from terminedia.contexts import Context
 from terminedia.utils import contextkwords, V2, Rect, tick_forward, LazyBindProperty
-from terminedia.subpixels import BrailleChars
+from terminedia.subpixels import BrailleChars, HalfChars
 from terminedia.values import (
     CONTINUATION,
     DEFAULT_BG,
@@ -105,6 +105,9 @@ class Screen:
         self.high = HighRes(self)
         self.braille = HighRes(
             self, block_class=BrailleChars, block_width=2, block_height=4
+        )
+        self.square = HighRes(
+            self, block_class=HalfChars, block_width=1, block_height=2
         )
 
         self.text = terminedia.text.Text(self)
