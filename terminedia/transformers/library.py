@@ -17,4 +17,4 @@ dilate_transformer = KernelTransformer(kernel_dilate)
 
 ascii_lines_transformer = KernelTransformer(kernel_simple_lines, match_only=FULL_BLOCK)
 
-__all__ = ["dilate_transformer", "ascii_lines_transformer"]
+__all__ = ["dilate_transformer", "ascii_lines_transformer", "kernel_simple_lines"]
