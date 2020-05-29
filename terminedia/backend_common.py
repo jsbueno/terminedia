@@ -219,7 +219,7 @@ class JournalingCommandsMixin(BackendColorContextMixin):
 
             width = (char_width(char), 0)
             last_pos += width
-            self.__class__.last_pos += width
+            self.__class__.last_pos = last_pos
 
         if not original_file and single_write:
             self._print(file.getvalue())
