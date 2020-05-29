@@ -468,7 +468,7 @@ class HighRes:
     def print_at(self, pos, text):
         """Positions the cursor and prints a text sequence
 
-        [DEPRECATED] - use "at_parent" to get parent coordinates and other meansh to
+        [DEPRECATED] - use "at_parent" to get parent coordinates and other means to
             render text there.
 
         Args:
