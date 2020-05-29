@@ -332,9 +332,11 @@ class ScreenCommands(BackendColorContextMixin):
         if self.absolute_movement:
             self.CSI(f"{pos.y + 1};{pos.x + 1}H", file=file)
         else:
-            if pos.x == 0 and pos.y == self.__class__.last_pos.y + 1:
+            if self.__class__.last_pos and pos.x == 0 and pos.y == self.__class__.last_pos.y + 1:
                 self._print("\n", file=file)
             else:
+                if not self.__class__.last_pos:
+                    self.__class__.last_pos = V2(0,0)
                 delta_x = pos.x - self.__class__.last_pos.x
                 delta_y = pos.y - self.__class__.last_pos.y
                 if delta_x > 0:
