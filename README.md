@@ -99,7 +99,7 @@ and font used - a nice experience can be achieved
 with the "Terminus" font, specially if one is using
 the Braille characters for drawing.
 
-There is also an HTML backend that can output progrmatically
+There is also an HTML backend that can output programatically
 created ASCII art to an HTML file, formatted with
 mono-spaced fonts inside a `div` element. The
 "terminedia-image" example program makes use
