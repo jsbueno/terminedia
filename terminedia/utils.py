@@ -1097,3 +1097,23 @@ class TaggedDictionary(MutableMapping):
         return result
 
 
+class LazyDict(MutableMapping):
+    """Dictionary whose items can be set to a callable that works as a factory of the actual value"""
+
+    def __init__(self, *args, **kw):
+        self.data = dict(*args, **kw)
+
+    def __getitem__(self, key):
+        item = self.data[key]
+        if callable(item):
+            item = item()
+            self.data[key] = item
+        return item
+
+    __setitem__ = lambda self, key, value: self.data.__setitem__(key, value)
+    __delitem__ = lambda self, key: self.data.__setitem__(key)
+    __len__ = lambda self: len(self.data)
+    __iter__ = lambda self: iter(self.data)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.data!r})"

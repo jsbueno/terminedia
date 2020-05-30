@@ -35,12 +35,13 @@ for variant_name, trans in TM.transformers.library.box_transformers.items():
 """
 import re
 
+from ..utils import LazyDict
 from . import Transformer, KernelTransformer
 from ._kernel_table_ascii import kernel as kernel_table_ascii
 from ._kernel_table_unicode_square import kernel as pre_kernel_table_unicode_square
 
 
-def _kernel_table_factory(kernel, expr=('-', '-')):
+def _kernel_table_factory(kernel, expr=("-", "-")):
     new_kernel = {}
 
     candidates = [expr[1], expr[1].split()[0], expr[0]]
@@ -66,7 +67,7 @@ def _kernel_table_factory(kernel, expr=('-', '-')):
 ascii_table_transformer = KernelTransformer(kernel_table_ascii)
 box_light_table_transformer = _kernel_table_factory(pre_kernel_table_unicode_square)
 
-box_transformers = {}
+box_transformers = LazyDict()
 
 for variant in (
     "LIGHT",
@@ -83,6 +84,8 @@ for variant in (
     "LIGHT ARC TRIPLE DASH",
     "LIGHT ARC QUADRUPLE DASH",
 ):
-    box_transformers[variant] = _kernel_table_factory(pre_kernel_table_unicode_square, ('LIGHT', variant))
+    box_transformers[variant] = lambda variant=variant: _kernel_table_factory(
+        pre_kernel_table_unicode_square, ("LIGHT", variant)
+    )
 
-del Transformer, KernelTransformer, kernel_table_ascii, variant
+del Transformer, kernel_table_ascii, variant
