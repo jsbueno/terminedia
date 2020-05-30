@@ -43,8 +43,14 @@ from ._kernel_table_unicode_square import kernel as pre_kernel_table_unicode_squ
 def _kernel_table_factory(kernel, expr=('-', '-')):
     new_kernel = {}
 
+    candidates = [expr[1], expr[1].split()[0], expr[0]]
+
+    if "ARC" in expr[1]:
+        candidates.insert(1, "LIGHT ARC")
+        candidates.insert(1, expr[1].replace("ARC ", ""))
+
     for key, name in kernel.items():
-        for replacement in expr[1], expr[1].split()[0], expr[0]:
+        for replacement in candidates:
             new_name = re.sub(expr[0], replacement, name) if expr else name
             try:
                 new_kernel[key] = f"\\N{{{new_name}}}".encode().decode("unicode escape")
@@ -72,6 +78,10 @@ for variant in (
     "HEAVY DOUBLE DASH",
     "HEAVY TRIPLE DASH",
     "HEAVY QUADRUPLE DASH",
+    "LIGHT ARC",
+    "LIGHT ARC DOUBLE DASH",
+    "LIGHT ARC TRIPLE DASH",
+    "LIGHT ARC QUADRUPLE DASH",
 ):
     box_transformers[variant] = _kernel_table_factory(pre_kernel_table_unicode_square, ('LIGHT', variant))
 
