@@ -26,22 +26,30 @@ sc.update()
 
 ```
 """
+import re
 
 from . import Transformer, KernelTransformer
 from ._kernel_table_ascii import kernel as kernel_table_ascii
 from ._kernel_table_unicode_square import kernel as pre_kernel_table_unicode_square
 
 
-def _kernel_table_factory(kernel):
+def _kernel_table_factory(kernel, expr=()):
     new_kernel = {}
 
     for key, name in kernel.items():
-        new_kernel[key] = f"\\N{{{name}}}".encode().decode("unicode escape")
+        if expr:
+            name = re.sub(expr[0], expr[1], name)
+        try:
+            new_kernel[key] = f"\\N{{{name}}}".encode().decode("unicode escape")
+        except UnicodeDecodeError:
+            # character with replaced name does not exist
+            pass
 
-    return KernelTransformer(new_kernel)
+    return KernelTransformer(new_kernel, mask_diags=True)
 
 
 ascii_table_transformer = KernelTransformer(kernel_table_ascii)
 box_light_table_transformer = _kernel_table_factory(pre_kernel_table_unicode_square)
+box_double_table_transformer = _kernel_table_factory(pre_kernel_table_unicode_square, ('LIGHT', 'DOUBLE'))
 
 del Transformer, KernelTransformer, kernel_table_ascii

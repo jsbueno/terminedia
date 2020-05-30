@@ -63,6 +63,18 @@ kernel = {
     "###"\
     " # ": "BOX DRAWINGS LIGHT VERTICAL AND HORIZONTAL"
 ,
+    "#  "\
+    " # "\
+    "  #": "BOX DRAWINGS LIGHT DIAGONAL UPPER LEFT TO LOWER RIGHT"
+,
+    "  #"\
+    " # "\
+    "#  ": "BOX DRAWINGS LIGHT DIAGONAL UPPER RIGHT TO LOWER LEFT"
+,
+    "# #"\
+    " # "\
+    "# #": "BOX DRAWINGS LIGHT DIAGONAL CROSS"
+,
     "default": "SPACE",
 }
 
