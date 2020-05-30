@@ -51,5 +51,6 @@ def _kernel_table_factory(kernel, expr=()):
 ascii_table_transformer = KernelTransformer(kernel_table_ascii)
 box_light_table_transformer = _kernel_table_factory(pre_kernel_table_unicode_square)
 box_double_table_transformer = _kernel_table_factory(pre_kernel_table_unicode_square, ('LIGHT', 'DOUBLE'))
+box_heavy_table_transformer = _kernel_table_factory(pre_kernel_table_unicode_square, ('LIGHT', 'HEAVY'))
 
 del Transformer, KernelTransformer, kernel_table_ascii
