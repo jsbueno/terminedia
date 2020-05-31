@@ -39,6 +39,7 @@ smaller features:
         - optional parameter to reset text information
 
     - Fix in-function imports in place to avoid circular imports so that they only run once per process
+    - Alias context.foreground to context.color
 
     - bug: html rendering not respecting context colors, on starting empty space characters
     - bug: with terminal in relative movement, snake-game is faulty,, suggesting terminal-context bugs

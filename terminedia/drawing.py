@@ -1,7 +1,7 @@
 import inspect
 
 from terminedia.subpixels import BlockChars, HalfChars
-from terminedia.values import CONTEXT_COLORS, EMPTY, TRANSPARENT
+from terminedia.values import CONTEXT_COLORS, EMPTY, TRANSPARENT, DEFAULT_BG, DEFAULT_FG
 from terminedia.utils import V2, Rect, contextkwords
 
 
@@ -506,6 +506,9 @@ class Square(HighResBase):
         if new_block == HalfChars.FULL_BLOCK:
             if self.context.color == current.foreground:
                 new_pixel = self.PixelCls(HalfChars.FULL_BLOCK, self.context.color, self.context.background, self.context.effects)
+            elif current.foreground is DEFAULT_FG:
+                new_block = HalfChars.UPPER_HALF_BLOCK if pos[1] % 2 == 1 else HalfChars.LOWER_HALF_BLOCK
+                new_pixel = self.PixelCls(new_block, current.foreground, self.context.color, self.context.effects)
             else:
                 new_block = HalfChars.UPPER_HALF_BLOCK if pos[1] % 2 == 0 else HalfChars.LOWER_HALF_BLOCK
                 new_pixel = self.PixelCls(new_block, self.context.color, current.foreground, self.context.effects)
@@ -525,8 +528,24 @@ class Square(HighResBase):
         To be used as a callback to ``.draw.reset`` - but there are no drawbacks
         in being called directly.
         """
-        _, gross_pos, new_block = self.operate(pos, self.block_class.reset)
-        self.parent[gross_pos] = new_block
+        is_graphics, gross_pos, new_block = self.operate(pos, self.block_class.reset)
+        current = self.parent[gross_pos]
+
+        if new_block == HalfChars.EMPTY:
+            if self.context.background == current.background:
+                new_pixel = self.PixelCls(HalfChars.EMPTY, self.context.color, self.context.background, self.context.effects)
+            elif current.background is DEFAULT_BG:
+                new_block = HalfChars.UPPER_HALF_BLOCK if pos[1] % 2 == 0 else HalfChars.LOWER_HALF_BLOCK
+                new_pixel = self.PixelCls(new_block, self.context.background, current.background, self.context.effects)
+            else:
+                new_block = HalfChars.UPPER_HALF_BLOCK if pos[1] % 2 == 1 else HalfChars.LOWER_HALF_BLOCK
+                new_pixel = self.PixelCls(new_block, current.background, self.context.background, self.context.effects)
+        elif current.value == HalfChars.FULL_BLOCK:
+            new_pixel = self.PixelCls(new_block, current.color, self.context.background, self.context.effects)
+        else:  # implies  current.value == new_block and current.value in (HalfChars.UPPER_HALF_BLOCK, HalfChars.LOWER_HALF_BLOCK):
+            new_pixel = current._replace(background=self.context.background, effects=self.context.effects)
+
+        self.parent[gross_pos] = new_pixel
 
     def get_at(self, pos):
         """Queries pixel at given coordinate
@@ -540,9 +559,10 @@ class Square(HighResBase):
            - None: Character on Screen at given coordinates is not a block character of the class
                 used as pixel-characters for this instance.
         """
-        graphics, _, is_set = self.operate(pos, self.block_class.get_at)
-        return is_set if graphics else None
 
+        is_graphics, gross_pos, is_set = self.operate(pos, self.block_class.get_at)
+        current = self.parent[gross_pos]
+        return current.foreground if is_set else current.background
 
 
 def HighRes(parent, block_class=BlockChars, block_width=2, block_height=2):
