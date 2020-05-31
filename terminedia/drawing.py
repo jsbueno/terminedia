@@ -1,6 +1,6 @@
 import inspect
 
-from terminedia.subpixels import BlockChars
+from terminedia.subpixels import BlockChars, HalfChars
 from terminedia.values import CONTEXT_COLORS, EMPTY, TRANSPARENT
 from terminedia.utils import V2, Rect, contextkwords
 
@@ -361,7 +361,7 @@ class Drawing:
         self.context.background = self.context.background_stack.pop()
 
 
-class HighRes:
+class HighResBase:
     """ Provides a seamless mechanism to draw using unicode special characters as pixels.
 
     This is used as a base to have the method used for drawing using 1/4 block characters,
@@ -397,7 +397,7 @@ class HighRes:
     def operate(self, pos, operation):
         """Internal -
 
-        Common code to calculate the coordinates and get/reset/query a 1/4 character pixel.
+        Common code to calculate the coordinates and get/reset/query a pixel at the correct sub-block resolution.
         Call  :any:`HighRes.set_at`, :any:`HighRes.reset_at` or :any:`HighRes.get_at` instead.
         """
         from terminedia.image import Pixel
@@ -482,3 +482,73 @@ class HighRes:
         Context's direction is respected when printing
         """
         self.parent.print_at(self.at_parent(pos), text)
+
+
+class Square(HighResBase):
+    """Reimplements the sub-character block plotting to allow seamless full color in 1x2 resolution"""
+
+    def __init__(self, parent, block_class=HalfChars, block_width=1, block_height=2):
+        super().__init__(parent, block_class, block_width, block_height)
+        self.PixelCls = parent.PixelCls
+
+    def set_at(self, pos):
+        """Sets pixel at given coordinate
+
+        Args:
+          - pos (2-sequence): pixel coordinate
+
+        To be used as a callback to ``.draw.set`` - but there are no drawbacks
+        in being called directly.
+        """
+        is_graphics, gross_pos, new_block = self.operate(pos, self.block_class.set)
+        current = self.parent[gross_pos]
+
+        if new_block == HalfChars.FULL_BLOCK:
+            if self.context.color == current.foreground:
+                new_pixel = self.PixelCls(HalfChars.FULL_BLOCK, self.context.color, self.context.background, self.context.effects)
+            else:
+                new_block = HalfChars.UPPER_HALF_BLOCK if pos[1] % 2 == 0 else HalfChars.LOWER_HALF_BLOCK
+                new_pixel = self.PixelCls(new_block, self.context.color, current.foreground, self.context.effects)
+        elif current.value == HalfChars.EMPTY or not is_graphics:
+            new_pixel = self.PixelCls(new_block, self.context.color, current.background, self.context.effects)
+        else:  # implies  current.value == new_block and current.value in (HalfChars.UPPER_HALF_BLOCK, HalfChars.LOWER_HALF_BLOCK):
+            new_pixel = current._replace(foreground=self.context.color, effects=self.context.effects)
+
+        self.parent[gross_pos] = new_pixel
+
+    def reset_at(self, pos):
+        """Resets pixel at given coordinate
+
+        Args:
+          - pos (2-sequence): pixel coordinate
+
+        To be used as a callback to ``.draw.reset`` - but there are no drawbacks
+        in being called directly.
+        """
+        _, gross_pos, new_block = self.operate(pos, self.block_class.reset)
+        self.parent[gross_pos] = new_block
+
+    def get_at(self, pos):
+        """Queries pixel at given coordinate
+
+        Args:
+          - pos (2-sequence): pixel coordinate
+
+        Returns:
+           - True: pixel is set
+           - False: pixel is not set
+           - None: Character on Screen at given coordinates is not a block character of the class
+                used as pixel-characters for this instance.
+        """
+        graphics, _, is_set = self.operate(pos, self.block_class.get_at)
+        return is_set if graphics else None
+
+
+
+def HighRes(parent, block_class=BlockChars, block_width=2, block_height=2):
+    """Factory method - uses specialized class if Square resolution for a shape supporting FG & BG is requested"""
+
+    cap = parent.PixelCls.capabilities if hasattr(parent, "PixelCls") else None
+    full_color = cap and cap.has_foreground and cap.has_background
+    cls = Square if full_color and block_width == 1 and block_height == 2 else HighResBase
+    return cls(parent, block_class, block_width, block_height)
