@@ -13,6 +13,7 @@ Big Font rendering - using multi-block for large characters composed of multiple
 Bold, blink and underline text support (V)
 Basic support for 'sprites': independent images that can be repositioned (V)
     - Added 'transformers' support to Sprite.
+"Square" half block resolution
 
 Simple Gradients
 Transformers examples using gradients, and converting colors to characters
@@ -180,7 +181,24 @@ Improvements and small features:
     add a <br> element after outputting a full row in the HTML backend (by  sending a "\n" and converting it in "html.print"(?)) - so that html output can be properly copy and pasted. (V)
     Toggle terminal screen buffer when clearing screen: "magically" restores terminal content on Screen.__exit__(V)
     - add an option so that rectangular area rendering to files be '"relocatable" - suppressing absolute cursor movement sequences (V):
-        - Add ANSI commands for relative cursor movement (V)
+
+smaller features:
+    - accept context attributes (color, background, effects) as keyword arguments on all .draw methods [V]:
+        - change decorator (and possibly context) to allow using a whole
+            context as parameter to update the current context (V)
+        - improve decorator to proper fix the signature of the decorated functions (V)
+            (and then record resulting hack as an answer to https://stackoverflow.com/questions/34402773/signature-changing-decorator-properly-documenting-additional-argument) (V)
+    - make emoji's and unicode chars easier to use:
+        - implement basic search for character names with partial match
+            (eg: so that one can search for all characters containing "square" or "chess" in the name)
+    - shape "clear" call:
+        - method to redraw text from a given plane/roi.(V)
+    - Context kwords should take "direction" as an option(V)
+    - bug: Screen.clear() should clear the associated shape in Screen.data (V)
+
+    - bug: DEFAULT_FG displaying as black for blits and sprites (terminedia-shapes in dark theme konsole)(V)
+
+    - Add ANSI commands for relative cursor movement (V)
         - enable relative positioning in Terminal class (V) (but not perfect, see bellow)
         - Add state attribute to terminal backend indicating relative positioning should be used (V)
         - change 'shape.render' to use relative positioning for ansi and not home cursor to 0,0 (V)
@@ -188,6 +206,9 @@ Improvements and small features:
     Added "input.getch" function, which pauses until a key is pressed
     Added a "clear" shape method to empty-up a target.
     Made Character class returned by TM.unicode.lookup directly usable as a string (yay emoji!)
+
+
+
 
 Color class:
     - Create a color class (V)
@@ -257,6 +278,9 @@ Transformers :
                     - preconfigured kernels:
                         - can automatically make a blocky image drawn into unicode/ASCII line art (only simple, ASCII +|- kernel implemented for now)
 
+Windows Suport [WIP]
+    - install and activate colorama if under windows (V)
+    - create a non-blocking keybard reading system using mscrvt api (V)
 
 
 Bugs:
