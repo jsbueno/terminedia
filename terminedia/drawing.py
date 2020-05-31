@@ -541,7 +541,7 @@ class Square(HighResBase):
                 new_block = HalfChars.UPPER_HALF_BLOCK if pos[1] % 2 == 1 else HalfChars.LOWER_HALF_BLOCK
                 new_pixel = self.PixelCls(new_block, current.background, self.context.background, self.context.effects)
         elif current.value == HalfChars.FULL_BLOCK:
-            new_pixel = self.PixelCls(new_block, current.color, self.context.background, self.context.effects)
+            new_pixel = self.PixelCls(new_block, current.foreground, self.context.background, self.context.effects)
         else:  # implies  current.value == new_block and current.value in (HalfChars.UPPER_HALF_BLOCK, HalfChars.LOWER_HALF_BLOCK):
             new_pixel = current._replace(background=self.context.background, effects=self.context.effects)
 

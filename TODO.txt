@@ -2,7 +2,6 @@ Targeted for next release (0.4):
 =================================
 
 [WIP]
-Change mechanism of 'square' resolution so that it becomes full color
 Change image-loading mechanism to easy loading to a square-resolution full-shape
 Implement "big square" 2 block resolution:
 make way for 6x3 block core transformers in order to use half-triangle characters

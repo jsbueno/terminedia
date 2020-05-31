@@ -1,3 +1,14 @@
+version 0.4
+============
+Change mechanism of 'square' resolution in shapes to work with full color:
+    - automatically set the other half of th character to keep an independent color by forcing the background
+    - Shape.square.get_at returns Color, not boolean
+
+New 'transformers library':
+    - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters
+
+
+
 version 0.3
 ============
 
