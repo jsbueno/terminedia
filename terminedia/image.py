@@ -13,7 +13,7 @@ from weakref import ref, ReferenceType
 from terminedia.contexts import Context
 from terminedia.sprites import SpriteContainer
 from terminedia.subpixels import BrailleChars, HalfChars
-from terminedia.utils import Color, Rect, V2, LazyBindProperty, char_width, get_current_tick
+from terminedia.utils import Color, Rect, V2, LazyBindProperty, char_width, get_current_tick, size_in_blocks
 from terminedia.unicode_transforms import translate_chars
 from terminedia.values import (
     DEFAULT_FG,
@@ -1143,24 +1143,36 @@ class FullShape(Shape):
         self.context.shape_lastchar_was_double = double_width
 
     @classmethod
-    def promote(cls, other_shape):
+    def promote(cls, other_shape, resolution=None):
         """Makes a FullShape copy of the other shape
 
         This allows the new shape to be used with Transformers,
         Sprites, and other elements that might not be supported
         in the other shape classes
         """
-        new_shape = cls.new(other_shape.size)
-        new_shape.draw.blit((0,0), other_shape)
+
+        if not resolution:
+            new_shape = cls.new(other_shape.size)
+            draw = new_shape.draw
+        else:
+            size = size_in_blocks(other_shape.size, resolution)
+            new_shape = cls.new(size)
+            draw = getattr(new_shape, resolution).draw
+
+        draw.blit((0,0), other_shape)
+
         return new_shape
 
 
-def shape(data, color_map=None, **kwargs):
+def shape(data, color_map=None, promote=False, resolution=None, **kwargs):
     """Factory for shape objects
 
     Args:
       - data (Filepath to image, open file, image data as text or list of strings)
       - color_map (optional mapping): color map to be used for the image - mapping characters to RGB colors.
+      - promote (boolean): Whether to force resulting shape to a FullShape (defaults to False)
+      - resolution (str): If promote is True, resolution namespace to use on blitting to
+            FullShape ("square", "high", "square")
       - **kwargs: parameters passed transparently to the selected shape class
 
     Based on inferences on the data attribute, selects
@@ -1200,4 +1212,7 @@ def shape(data, color_map=None, **kwargs):
         return FullShape.new(data, **kwargs)
     else:
         raise NotImplementedError("Could not pick a Shape class for given arguments!")
-    return cls(data, color_map, **kwargs)
+    result = cls(data, color_map, **kwargs)
+    if promote:
+        result = FullShape.promote(result, resolution=resolution)
+    return result

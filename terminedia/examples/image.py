@@ -3,6 +3,7 @@ from pathlib import Path
 import click
 
 from terminedia import shape, Screen, pause, Effects, V2
+from terminedia.utils import size_in_pixels
 
 
 basepath = Path(__file__).parent
@@ -39,7 +40,15 @@ class DummyCtx:
     default="ANSI",
     help="Output file backend: either HTML or ANSI",
 )
-def main(image_paths, size=None, output="", backend=""):
+@click.option(
+    "resolution",
+    "--resolution",
+    "-r",
+    type=click.Choice(['square', 'high', 'braille', ''], case_sensitive=False),
+    default="",
+    help="Text resolution to load image"
+)
+def main(image_paths, size=None, output="", backend="", resolution=""):
     """Displays an image, given in a path, on the terminal.
     """
     # TODO add more options to control the output,
@@ -48,7 +57,7 @@ def main(image_paths, size=None, output="", backend=""):
         image_paths = (default_image,)
     context = scr = Screen(backend=backend)
     if not size:
-        size = scr.size
+        size = size_in_pixels(scr.size, resolution=resolution)
     else:
         size = V2(int(comp) for comp in size.lower().split("x"))
     if output:
@@ -56,7 +65,10 @@ def main(image_paths, size=None, output="", backend=""):
         context = DummyCtx()
     with context:
         for img_path in image_paths:
-            img = shape(img_path, size=size)
+            if not resolution:
+                img = shape(img_path, size=size)
+            else:
+                img = shape(img_path, size=size, promote=True, resolution=resolution)
             if output:
                 img.render(output=output_file, backend=backend)
                 output_file.write("\n")

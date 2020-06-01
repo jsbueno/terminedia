@@ -1,4 +1,5 @@
 import inspect
+import math
 import operator
 import unicodedata
 from collections.abc import MutableSequence, MutableMapping, Iterable, Mapping
@@ -459,6 +460,24 @@ def char_width(char):
         return max(char_width(combining) for combining in char)
     v = unicodedata.east_asian_width(char)
     return 1 if v in ("N", "Na", "A") else 2  # (?) include "A" as single width?
+
+
+def size_in_blocks(size, resolution=""):
+    """Given a shape size using a specific resolution, returns the size in blocks needed to acommodate that"""
+    size_factor = ((2, 4) if resolution == "braille" else
+        (2,2) if resolution == "high" else
+        (1, 2) if resolution == "square" else (1, 1)
+    )
+    return V2(math.ceil(size.x / size_factor[0]), math.ceil(size.y / size_factor[1]))
+
+
+def size_in_pixels(size, resolution=""):
+    """Given a number of blocks return the available pixels in a specific resolution"""
+    size_factor = ((2, 4) if resolution == "braille" else
+        (2,2) if resolution == "high" else
+        (1, 2) if resolution == "square" else (1, 1)
+    )
+    return V2(math.ceil(size.x * size_factor[0]), math.ceil(size.y * size_factor[1]))
 
 
 css_colors = {
