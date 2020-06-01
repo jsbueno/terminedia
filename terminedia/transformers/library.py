@@ -35,7 +35,9 @@ for variant_name, trans in TM.transformers.library.box_transformers.items():
 """
 import re
 
-from ..utils import LazyDict
+from terminedia import values
+from terminedia.utils import LazyDict, Color
+
 from . import Transformer, KernelTransformer
 from ._kernel_table_ascii import kernel as kernel_table_ascii
 from ._kernel_table_unicode_square import kernel as pre_kernel_table_unicode_square
@@ -88,4 +90,19 @@ for variant in (
         pre_kernel_table_unicode_square, ("LIGHT", variant)
     )
 
-del Transformer, kernel_table_ascii, variant
+class ThresholdTransformer(Transformer):
+
+    def __init__(self, threshold=0.5, invert=True, foreground=values.DEFAULT_FG, **kwargs):
+        super().__init__(foreground=foreground, **kwargs)
+        self.threshold = threshold
+        self.invert = invert
+
+    def char(self, char, foreground):
+        if not isinstance(foreground, Color):
+            foreground = Color(foreground)
+        if (foreground.value >= self.threshold) ^ self.invert:
+            return char
+        return values.EMPTY
+
+
+del Transformer, KernelTransformer, kernel_table_ascii, variant, LazyDict

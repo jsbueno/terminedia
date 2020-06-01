@@ -3,7 +3,8 @@ from pathlib import Path
 import click
 
 from terminedia import shape, Screen, pause, Effects, V2
-from terminedia.utils import size_in_pixels
+from terminedia.utils import size_in_pixels, size_in_blocks
+from terminedia.transformers.library import ThresholdTransformer
 
 
 basepath = Path(__file__).parent
@@ -67,8 +68,15 @@ def main(image_paths, size=None, output="", backend="", resolution=""):
         for img_path in image_paths:
             if not resolution:
                 img = shape(img_path, size=size)
-            else:
+            elif resolution == "square":
                 img = shape(img_path, size=size, promote=True, resolution=resolution)
+            else:
+                # For finer than half-block, threshold image prior to rendering
+                preliminar_img = shape(img_path, size=size, promote=True)
+                img = shape(size_in_blocks(size, resolution))
+                preliminar_img.context.transformers.append(ThresholdTransformer(invert=False))
+                getattr(img, resolution).draw.blit((0, 0), preliminar_img)
+
             if output:
                 img.render(output=output_file, backend=backend)
                 output_file.write("\n")
