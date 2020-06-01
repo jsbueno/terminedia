@@ -51,3 +51,4 @@ def lookup(name_part, chars_only=False):
         return results
     return [char.char for char in results]
 
+CGJ = "\u034f" # character used to _separate_ graphemes that would otherwise be joined - combining grapheme joiner (CGJ) U+034F

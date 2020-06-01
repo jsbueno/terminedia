@@ -41,7 +41,7 @@ def list_fonts():
         like "fantasy", "mcr" or "thin".
     """
     if not resources:
-        path = Path(__file__).parent / "data"
+        path = Path(__file__).parent.parent / "data"
         files = [str(f) for f in path.iterdir()]
     else:
         files = list(resources.contents("terminedia.data"))

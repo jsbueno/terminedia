@@ -1,8 +1,25 @@
 Targeted for next release (0.4):
 =================================
 
+[text-branch]
+
+    - Refactor 'text.py' into directory:
+        - separate 'font' code into text/font.py
+        - text_planes/big text into own file
+        - file with text utilities for parsing/rendering text:
+            - split string into units containing a single grapheme, by grouping "combining characters" together
+            - maybe add some common code to be called by backend.print, screen.print, text.at, shape.print
+    - Make assignment of string to shape or text area cell spread the text across as many cells as needed:
+        - correctly detect combining characters so that combined characters live on the same cell
+        - correctly detect if final transformed character takes more than 1 cell width after applying effects, and correctly use 2 cells for character
+    - create markup language for embedding context changing directives inside a single string:
+        - make it usable by assignment, `print` and `at` methods
+    - Think of text entity, akim to "shape" or "sprite" which allows for flowing text:
+        - these should be decorateable with frames using unicode frame drawing characters
+
+
+
 [WIP]
-Change image-loading mechanism to easy loading to a square-resolution full-shape
 Implement "big square" 2 block resolution:
 make way for 6x3 block core transformers in order to use half-triangle characters
 
@@ -327,9 +344,8 @@ Bugs
     bug: plot example script prints completly bogus values on the y scale.
     bug:fix printing of colored double-width characters . (b0rk on konsole) (WIP)
     bug: when apple shows up over snake body, it is erased from screen (snake.py) (easy) (external) (hacktober)
-    bug: Screen.clear() should clear the associated shape in Screen.data.
     bug: Effects.super_script not working for letters 'n' and 'q' - check if there is a suitable custom glyph
     bug: Pallette shapes need to be overhauled - currently tests are broken due to reading from it back just yielding "True" and "False"
     bug: (big issue): workaround stdout blocking and raising error when in input.keyboard reading mode.
-    bug: terminedia-shapes example has stopped working properly, due to differences in how
-    whitespace is blitted. To fix: refactor script to use Sprites instead of raw shapes.
+    bug: TM.DEFAULT_FG always rendering as White when comming from blitted [transformed] source
+
