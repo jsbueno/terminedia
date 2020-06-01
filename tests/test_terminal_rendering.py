@@ -6,6 +6,8 @@ import pytest
 import terminedia as TM
 from terminedia.values import TRANSPARENT, EMPTY
 
+from conftest import rendering_test, fast_and_slow_render_mark
+
 
 def strip_ansi_seqs(text):
     return re.sub(r"\x1b\[[0-9;?]*?[a-zA-Z]", "", text)
@@ -103,40 +105,6 @@ def ansi_movement_to_markup(text):
             result = f"[{tag}{amount}]"
         return result
     return re.sub(r"(\x1b\[([0-9;]*)([ABCDH])|\n|\t)", movement_to_markup, text)
-
-
-fast_and_slow_render_mark = (
-    "set_render_method",
-    [
-        (lambda: setattr(TM.context, "fast_render", False)),
-        (lambda: setattr(TM.context, "fast_render", True)),
-    ],
-)
-
-
-def rendering_test(func):
-    # @wraps(func)
-    def rendering_test(set_render_method, DISPLAY, DELAY):
-        set_render_method()
-        stdout = io.StringIO()
-
-        fn = func()
-        with mock.patch("sys.stdout", stdout):
-            next(fn)
-
-        if DISPLAY:
-            print(stdout.getvalue())
-            TM.pause(DELAY)
-        try:
-            fn.send(stdout.getvalue())
-        except StopIteration:
-            pass
-
-    # functools.wraps won't do in this case: py.test must "see" the original name _and_ the
-    # wrapper's signature, not the signarure from the decorated function
-    rendering_test.__name__ = func.__name__
-
-    return rendering_test
 
 
 @pytest.mark.parametrize(*fast_and_slow_render_mark)
