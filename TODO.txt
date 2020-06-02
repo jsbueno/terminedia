@@ -4,9 +4,8 @@ Targeted for next release (0.4):
 [text-branch]
 
     - Refactor 'text.py' into directory:
-        - separate 'font' code into text/font.py
-        - text_planes/big text into own file
-        - create aliased string names for the text[...] text planes
+        - separate 'font' code into text/fonts.py (V)
+        - text_planes/big text into text/planes.py (V)
         - file with text utilities for parsing/rendering text:
             - split string into units containing a single grapheme, by grouping "combining characters" together
             - maybe add some common code to be called by backend.print, screen.print, text.at, shape.print
@@ -18,6 +17,8 @@ Targeted for next release (0.4):
     - Think of text entity, akim to "shape" or "sprite" which allows for flowing text:
         - these should be decorateable with frames using unicode frame drawing characters
 
+    - create aliased string names for the text[...] text planes
+    - pickle terminedia.unicode.CHAR_BASE as part of setup.py install (?)
 
 
 [WIP]

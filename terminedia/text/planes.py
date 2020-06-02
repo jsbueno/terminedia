@@ -3,6 +3,7 @@ from copy import copy
 from pathlib import Path
 
 from terminedia.image import Shape, PalettedShape
+from terminedia.unicode import split_graphemes
 from terminedia.utils import contextkwords, V2, Rect
 from terminedia.values import Directions, EMPTY, TRANSPARENT
 
@@ -130,8 +131,22 @@ class Text:
 
     def __setitem__(self, index, value):
         if isinstance(index[0], slice) or isinstance(index[1], slice):
-            raise NotImplementedError
+            raise NotImplementedError()
+        if len(value) > 1:
+            # FIXME: when the project gets py3.8+, ':=' can merge these two 'if's
+            elements = split_graphemes(value)
+            if len(elements) > 1:
+                if not isinstance(index, V2):
+                    index = V2(index)
+                direction = self.owner.context.direction
+                for grapheme in elements:
+                    self[index] = grapheme
+                    # FIXME: check placing of double-characters.
+                    # FIXME 2: refactor "at" method to use this code instead.
+                    index += direction
+                return
         self.plane["data"][index] = value
+        self.set_ctx("last_pos", index)
         self.blit(index)
 
     def blit(self, index, target=None, clear=True):
