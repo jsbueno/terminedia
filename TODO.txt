@@ -6,6 +6,7 @@ Targeted for next release (0.4):
     - Refactor 'text.py' into directory:
         - separate 'font' code into text/font.py
         - text_planes/big text into own file
+        - create aliased string names for the text[...] text planes
         - file with text utilities for parsing/rendering text:
             - split string into units containing a single grapheme, by grouping "combining characters" together
             - maybe add some common code to be called by backend.print, screen.print, text.at, shape.print
