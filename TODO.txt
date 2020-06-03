@@ -3,22 +3,32 @@ Targeted for next release (0.4):
 
 [text-branch]
 
-    - Refactor 'text.py' into directory:
+    - Refactor 'text.py' into directory:[WIP~
         - separate 'font' code into text/fonts.py (V)
         - text_planes/big text into text/planes.py (V)
         - file with text utilities for parsing/rendering text:
-            - split string into units containing a single grapheme, by grouping "combining characters" together
-            - maybe add some common code to be called by backend.print, screen.print, text.at, shape.print
-    - Make assignment of string to shape or text area cell spread the text across as many cells as needed:
-        - correctly detect combining characters so that combined characters live on the same cell
+            - split string into units containing a single grapheme, by grouping "combining characters" together (V)
+            - Refactor code to have a core to be used by  backend.print, screen.print, text.at, shape.print
+    - Make assignment of string to shape or text area cell spread the text across as many cells as needed:[WIP]
+        - correctly detect combining characters so that combined characters live on the same cell (V)
         - correctly detect if final transformed character takes more than 1 cell width after applying effects, and correctly use 2 cells for character
     - create markup language for embedding context changing directives inside a single string:
         - make it usable by assignment, `print` and `at` methods
     - Think of text entity, akim to "shape" or "sprite" which allows for flowing text:
         - these should be decorateable with frames using unicode frame drawing characters
+        - Think of a way to "stream" text inside these containers
+        - end-of-lines are marked by special "teleporter" objects poiting the
+                text to the beginning of the next line
+                 - (teleporters also indicate the direction the remainder of the text will flow)
 
-    - create aliased string names for the text[...] text planes
+            - These "teleporter" are created automatically (lazily?) for
+                    left-to-right, top-down text, but can be customized
+                    for greater good and funny layouts
+
+    - create aliased string names for the text[...] text planes (V)
     - pickle terminedia.unicode.CHAR_BASE as part of setup.py install (?)
+    - Add tests to terminedia-planes [WIP]:
+        - Avoid creating a new "Text" instance on each text-plane access!
 
 
 [WIP]

@@ -48,6 +48,14 @@ class CharPlaneData(dict):
         super().__setitem__(pos, value)
 
 
+plane_alias = {
+    "block": 8,
+    "high": 4,
+    "square": (8, 4),
+    "braille": 2,
+    "normal": 1,
+}
+
 class Text:
     """Text handling API
 
@@ -77,13 +85,6 @@ class Text:
         self.owner = owner
         self.planes = {}
 
-    @property
-    def current_plane(self):
-        if not isinstance(self.__dict__.get("current_plane"), (int, tuple)):
-            raise TypeError(
-                "Please select the character plane with `.text[#]` before using this method"
-            )
-        return self.__dict__["current_plane"]
 
     def set_ctx(self, key, value):
         return setattr(self.owner.context, f"local_storage_text_{self.current_plane}_{key}", value)
@@ -91,13 +92,9 @@ class Text:
     def get_ctx(self, key, default=None):
         return getattr(self.owner.context, f"local_storage_text_{self.current_plane}_{key}", default)
 
-    @current_plane.setter
-    def current_plane(self, value):
-        self.__dict__["current_plane"] = value
-
     @property
-    def plane(self):
-        return self.planes[self.current_plane]
+    def size(self):
+        return self.plane.size
 
     def _build_plane(self, index, char_width=None):
         char_height = index
@@ -107,10 +104,18 @@ class Text:
         if not char_width:
             char_width = char_height
         self.planes[index] = plane = dict()
+        if getattr(self, "current_plane", False):
+            raise RuntimeError("Concrete instance of text - can't create further planes")
         plane["width"] = width = self.owner.width // char_width
         plane["height"] = height = self.owner.height // char_height
         plane["data"] = data = CharPlaneData((width, height))
-        plane["font"] = ""
+        concretized_text = copy(self)
+        concretized_text.current_plane = index
+        concretized_text.plane = data
+        concretized_text.font = ""
+        concretized_text.width = width
+        concretized_text.height = height
+        plane["text"] = concretized_text
 
     def _checkplane(self, index):
         if not isinstance(index, (int, tuple)):
@@ -122,12 +127,11 @@ class Text:
         return self.planes[index]
 
     def __getitem__(self, index):
+        index = plane_alias.get(index, index)
         if "current_plane" not in self.__dict__:
             self._checkplane(index)
-            selected_text = copy(self)
-            selected_text.current_plane = index
-            return selected_text
-        return self.plane["data"][index]
+            return self.planes[index]["text"]
+        return self.plane[index]
 
     def __setitem__(self, index, value):
         if isinstance(index[0], slice) or isinstance(index[1], slice):
@@ -145,7 +149,7 @@ class Text:
                     # FIXME 2: refactor "at" method to use this code instead.
                     index += direction
                 return
-        self.plane["data"][index] = value
+        self.plane[index] = value
         self.set_ctx("last_pos", index)
         self.blit(index)
 
@@ -153,7 +157,7 @@ class Text:
         if target is None:
             target = self.owner
 
-        char = self.plane["data"][index]
+        char = self.plane[index]
 
         if char is EMPTY and not clear:
             return
@@ -164,7 +168,7 @@ class Text:
             return
 
         rendered_char = render(
-            self.plane["data"][index], font=target.context.font or self.plane["font"]
+            self.plane[index], font=target.context.font or self.font
         )
         index = (V2(index) * 8).as_int
         if self.current_plane == 2:
@@ -194,7 +198,7 @@ class Text:
 
         if target is None:
             target = self.owner
-        data = self.plane["data"]
+        data = self.plane
 
         if not rect:
             rect = Rect((0,0), data.size)
