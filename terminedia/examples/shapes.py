@@ -53,12 +53,15 @@ c_map = {"*": DEFAULT_FG, "#": (0.5, 0.8, 0.8), "!": (1, 0, 0), "%": (1, 0.7, 0)
               """,
 )
 @click.option(
-    "high", "--high", flag_value=True, help="Use high-resolution 1/4 block pixels"
+    "resolution", "--square", flag_value="square", help="Use square-resolution 1/2 block pixels"
 )
 @click.option(
-    "braille",
+    "resolution", "--high", flag_value="high", help="Use high-resolution 1/4 block pixels"
+)
+@click.option(
+    "resolution",
     "--braille",
-    flag_value=True,
+    flag_value="braille",
     help="Use braille characters as high-resolution 1/8 block pixels",
 )
 @click.option(
@@ -67,7 +70,7 @@ c_map = {"*": DEFAULT_FG, "#": (0.5, 0.8, 0.8), "!": (1, 0, 0), "%": (1, 0.7, 0)
 @click.option(
     "cycle", "--cycle", "-y", flag_value=True, help="Cycle shape colors using a Transformer"
 )
-def main(shape, high=False, braille=False, clear=False, cycle=False):
+def main(shape, resolution=None, clear=False, cycle=False):
     """Quick example to navigate an string-defined shape through
     the terminal using the arrow keys! Press <ESC> to exit.
 
@@ -85,14 +88,7 @@ def main(shape, high=False, braille=False, clear=False, cycle=False):
     shape = TM.shape(original_shape, **({"color_map": c_map} if original_shape == shape2 else {})
 )
 
-    if high:
-        fshape = TM.shape((shape.size * 0.5).as_int)
-        fshape.high.draw.blit((0,0), shape)
-    elif braille:
-        fshape = TM.shape((shape.size.x // 2 + shape.size.x % 2, shape.size.y // 4 + int(shape.size.y % 4 != 0) ))
-        fshape.braille.draw.blit((0,0), shape)
-    else:
-        fshape = TM.FullShape.promote(shape)
+    shape = TM.FullShape.promote(shape, resolution=resolution)
 
     last_frame = time.time()
     time_acumulator = 0
@@ -111,7 +107,7 @@ def main(shape, high=False, braille=False, clear=False, cycle=False):
             x = scr.get_size()[0] // 2 - 6
             y = 0
             pos = V2(x, y)
-            sprite = scr.data.sprites.add(fshape, pos, active=True)
+            sprite = scr.data.sprites.add(shape, pos, active=True)
             if cycle:
                 sprite.transformers.append(TM.Transformer(foreground=cycle_color))
 
