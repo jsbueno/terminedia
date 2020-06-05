@@ -25,9 +25,12 @@ class Sprite:
         to a Shape.
 
         """
-        from terminedia.image import shape, Shape
+        from terminedia.image import shape, Shape, FullShape
         for index, item in enumerate(self.shapes):
             if not isinstance(item, Shape):
+                item = shape(item)
+            if not isinstance(item, FullShape):
+                item = FullShape.promote(item)
                 self.shapes[index] = shape(item)
 
     @property
@@ -97,14 +100,14 @@ class SpriteContainer(HookList):
         return item
 
     def get_at(self, pos, pixel=None):
-        for sprite in self.data:
+        for sprite in reversed(self.data):
             if not sprite.active:
                 continue
             if pos in sprite.rect:
                 new_pixel = sprite.get_at(container_pos=pos, pixel=pixel)
                 if new_pixel.value != EMPTY:
                     pixel = new_pixel
-                    break # TODO: reverse iteration and do not break when partial transparency is implemented
+                    break # TODO: do not break when partial transparency is implemented
         return pixel
 
     def add(self, item, pos=(0,0), active=True, tick_cycle=1, anchor="topleft"):

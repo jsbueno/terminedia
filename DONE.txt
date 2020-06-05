@@ -1,11 +1,13 @@
 version 0.4
 ============
-Change mechanism of 'square' resolution in shapes to work with full color:
+ - Change mechanism of 'square' resolution in shapes to work with full color:
     - automatically set the other half of th character to keep an independent color by forcing the background
     - Shape.square.get_at returns Color, not boolean
     - Improved `TM.shape` call to accept "promote" and "resolution" parameters, allowing loading an image file in square-full-color with a single call. (try "TM.shape(filename, promote=True, resolution='square', size=(60,60))")
     - Update terminedia-image example to be able to use 'square' resolution
     - Make terminedia-image threshold images for 'braille' and 'high' resolutions
+ - Sprites are added to shapes as "active" by default (reverses default of active=False).
+ - Force Shapes in Sprites to be "FullShape" by autopromotting the shape on the constructor.
 
 New 'transformers library':
     - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters
