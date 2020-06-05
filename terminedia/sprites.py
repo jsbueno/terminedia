@@ -107,7 +107,7 @@ class SpriteContainer(HookList):
                     break # TODO: reverse iteration and do not break when partial transparency is implemented
         return pixel
 
-    def add(self, item, pos=(0,0), active=False, tick_cycle=1, anchor="topleft"):
+    def add(self, item, pos=(0,0), active=True, tick_cycle=1, anchor="topleft"):
         if not isinstance(item, Sprite):
             item = Sprite(item, pos, active, tick_cycle, anchor)
         self.append(item)
