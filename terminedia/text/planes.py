@@ -146,7 +146,6 @@ class Text:
                 for grapheme in elements:
                     self[index] = grapheme
                     # FIXME: check placing of double-characters.
-                    # FIXME 2: refactor "at" method to use this code instead.
                     index += direction
                 return
         self.plane[index] = value
@@ -219,7 +218,7 @@ class Text:
         for char in text:
             self[pos] = char
             pos += self.owner.context.direction
-            # FIXME: handle char-width guessing standalone here
+            # FIXME: handle char-width guessing standalone here^w - in! __setitem__ -
             # That will enable double width detection for other text planes than 1,
             # and fix ltr case properly.
             if getattr(self.owner.context, "shape_lastchar_was_double", False):
