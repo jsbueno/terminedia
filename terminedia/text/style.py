@@ -20,16 +20,89 @@ here comes some text [color:blue] with apples [background:red] infinite [/color 
 
 """
 
+from terminedia.contexts import Context
+from terminedia.utils import V2
+
+class StyledSequence:
+
+
+    def __init__(self, text, mark_sequence, text_plane=None, context=None, starting_point=None):
+        """
+        Args:
+          text (Sequence): the stream of characters to be rendered  - it can be a string or a list of 1-grapheme strings.
+          mark_sequence (Mapping): A mappign with Mark objects. The keys either represent index positions on the text
+            where the mark will be processed, or they can be at the special index "config" denoting marks
+            that are to have their indexes processed according to other enviroment circunstances
+            (like the current "tick" - and possibly 'current position')
+            The value at each item can contain a single Mark or a of Markers.
+          text_plane (terminedia.text.planes.Text): area where the output is to be rendered
+            on iterating. The Text object will be searched for aditional "Mark" objects that
+            will compose the syle and position when encountered (they are less
+            prioritary than the Marks passed in mark_sequence)
+            If no Text object is given, the instance may still be iterated to retrieve
+            a sequence of char, context and position - for example, when generating
+            output directly to a tty.
+          context (terminedia.Context): parent context. By default the context
+          attached to the given text_plane is used
+          starting_point: first position to be yielded when iteration starts (from which
+            rules apply according to context.direction and others given by the matched
+            "Mark" objects. Defaults to (0, 0)
 
 
 
-class Mark:
+        Helper class to render text that will both hold embedded style information,
+        conveyed in "Mark" objects (with information like "at position 10, push foreground color 'red'"),
+        and respect Mark objects embedded in the "text_plane" associanted rendering space.
+
+        Style changes are all on top of a given "parent context"
+        if any (otherwise, the text_plane context is used, or None)
+
+        The rendering part include yileding the proper position of each
+        rendering character,as contexts convey also
+        text printing direction and marks can not only
+        push a new printing direction, but also "teleport" the
+        rendering point for the next character altogether.
+
+
+        """
+        self.text = text
+        self.mark_sequence = mark_sequence
+        self.parent_context = context
+        self._last_index = None
+        self.context = Context()
+        self.text_plane = None
+        self.starting_point = starting_point or V2(0,0)
+        self.current_position = self.starting_point
+
+    def _get_context_at(self, index):
+        mark_here = self.mark_sequence.
+        pass
+
+    def _get_position_at(self, char, index):
+
+        pass
+
+
+    def __iter__(self):
+        for index, char in enumerate(self.text):
+            yield self.text[index], self.get_context_at(index), self._get_position_at(char, index)
+
+
+
+
+
+class Mark(dict):
     pass
 
 class StyleMark(Mark):
     pass
 
 class Portal(Mark):
+    """Special object that indicates a change
+    in location for continuation of the text stream - either in
+    absolute or relative coordinates or as a text direction change
+
+    """
     pass
 
 

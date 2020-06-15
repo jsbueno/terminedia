@@ -238,3 +238,14 @@ class _RootContext(Context):
         if value is DEFAULT_BG:
             raise ValueError("The source for default_bg can't be set as DEFAULT_BG")
         self._default_bg = Color(value)
+
+
+
+# TODO: check benchmark of stacking contexts on text.style usage
+#class FastStackableContext(Context):
+    ## Hold context stack data in a chainmap structure
+    ## in order to get lightweight layers of changing context
+    ## parameters. (The original context class can do that,
+    ## but it does that by creating a full context class
+    ## in _locals - while text-styling might need another context
+    ## attribute on a per-character basis.
