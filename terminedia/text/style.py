@@ -57,7 +57,7 @@ class StyledSequence:
         Style changes are all on top of a given "parent context"
         if any (otherwise, the text_plane context is used, or None)
 
-        The rendering part include yileding the proper position of each
+        The rendering part include yielding the proper position of each
         rendering character,as contexts convey also
         text printing direction and marks can not only
         push a new printing direction, but also "teleport" the
@@ -70,25 +70,40 @@ class StyledSequence:
         self.parent_context = context
         self._last_index = None
         self.context = Context()
-        self.text_plane = None
-        self.starting_point = starting_point or V2(0,0)
+        self.text_plane = text_plane
+        self.starting_point = V2(starting_point) if starting_point else V2(0,0)
         self.current_position = self.starting_point
 
+
     def _get_context_at(self, index):
-        mark_here = self.mark_sequence.
+        mark_here = self.mark_sequence
         pass
 
     def _get_position_at(self, char, index):
-
-        pass
-
+        position = self.current_position
+        self.current_position += self.context.direction
+        # TODO: handle double-width characters
+        return position
 
     def __iter__(self):
         for index, char in enumerate(self.text):
-            yield self.text[index], self.get_context_at(index), self._get_position_at(char, index)
+            yield self.text[index], self._get_context_at(index), self._get_position_at(char, index)
 
+    def render(self):
+        if not self.text_plane:
+            return
+        # FIXME: if self.parent_context is not self.text_plane.owner.context...
+        render_lock = self.text_plane._render_styled(self.context)
+        try:
+            char_fn = next(render_lock)
 
-
+            for char, context, position in self:
+                char_fn(char, position)
+        finally:
+            try:
+                next(render_lock)
+            except StopIteration:
+                pass
 
 
 class Mark(dict):

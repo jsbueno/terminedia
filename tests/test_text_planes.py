@@ -13,6 +13,6 @@ import pytest
 def test_text_planes_aliases(number_name, text_name):
     # Both shape.text, and each plane are to be dynamically created
     # on first access.
-    assert sh.text is sh.text
     sh = TM.shape((10, 10))
+    assert sh.text is sh.text
     assert sh.text[number_name] is sh.text[text_name]

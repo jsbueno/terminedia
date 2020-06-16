@@ -1,6 +1,7 @@
 import binascii
 from copy import copy
 from pathlib import Path
+import threading
 
 from terminedia.image import Shape, PalettedShape
 from terminedia.unicode import split_graphemes
@@ -76,6 +77,8 @@ class Text:
     for the text[1] plane.
     """
 
+    _render_lock = threading.Lock()
+
     def __init__(self, owner):
         """Not intented to be instanced directly - instantiated as a Shape property.
 
@@ -146,6 +149,7 @@ class Text:
                 for grapheme in elements:
                     self[index] = grapheme
                     # FIXME: check placing of double-characters.
+                    # FIXME 2: refactor "at" method to use this code instead.
                     index += direction
                 return
         self.plane[index] = value
@@ -211,6 +215,16 @@ class Text:
 
             for pos in rect.iter_cells():
                 self.blit(pos, target=target, clear=clear)
+
+    def _render_styled(self, context):
+        with self.owner.context(context=context) as ctx, self._render_lock:
+            yield self._char_at
+            self.set_ctx("last_pos", ctx.last_pos)
+
+    def _char_at(self, char, pos):
+        self.plane[pos] = char
+        self.owner.context.last_pos = pos
+        self.blit(pos)
 
     @contextkwords(context_path="owner.context", text_attrs=True)
     def at(self, pos, text):
