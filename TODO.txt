@@ -14,18 +14,27 @@ Targeted for next release (0.4):
         - correctly detect if final transformed character takes more than 1 cell width after applying effects, and correctly use 2 cells for character
     - create markup language for embedding context changing directives inside a single string:
         - make it usable by assignment, `print` and `at` methods
-    - Think of text entity, akim to "shape" or "sprite" which allows for flowing text:
+    - Text entity, akim to "shape" or "sprite" which allows for flowing text [WIP]:
+        - This can be current "text_planes" themselves [v]
         - these should be decorateable with frames using unicode frame drawing characters
-        - Think of a way to "stream" text inside these containers
-        - end-of-lines are marked by special "teleporter" objects poiting the
+        - Think of a way to "stream" text inside these containers [WIP]:
+            - TM.text.StyledSequence is the class
+            - Streamed text should allow marks for changing style (color, bg, effects, direction)
+                on the fly.
+            - these marks can come embedded in the text, standalone
+                    (and programatically depending on "tick count" or rendering position). or
+            - these marks can be placed in the text_plane entity at fixed locations
+                and compose with the styledtext rendering.
+            - end-of-lines are marked by special "portal" objects poiting the
                 text to the beginning of the next line
                  - (teleporters also indicate the direction the remainder of the text will flow)
 
-            - These "teleporter" are created automatically (lazily?) for
+            - These "portal" are created automatically (lazily?) for
                     left-to-right, top-down text, but can be customized
                     for greater good and funny layouts
 
     - create aliased string names for the text[...] text planes (V)
+    - Make shape.text alone behave like shape.text[1], with no need for indexing.
     - pickle terminedia.unicode.CHAR_BASE as part of setup.py install (?)
     - Add tests to terminedia-planes [WIP]:
         - Avoid creating a new "Text" instance on each text-plane access!
