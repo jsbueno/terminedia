@@ -8,6 +8,7 @@ version 0.4
     - Make terminedia-image threshold images for 'braille' and 'high' resolutions
  - Sprites are added to shapes as "active" by default (reverses default of active=False).
  - Force Shapes in Sprites to be "FullShape" by autopromotting the shape on the constructor.
+ - create a "TransformerContainer.bake" method to eagerly apply a stack of transformers to a shape.
 
 New 'transformers library':
     - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters

@@ -6,7 +6,12 @@ Change image-loading mechanism to easy loading to a square-resolution full-shape
 Implement "big square" 2 block resolution:
 make way for 6x3 block core transformers in order to use half-triangle characters
 
-
+Promote Shapes in Sprites whitespace to explict transparency [WIP]:
+    - Add "alpha" paramater to Sprite constructor and SpriteContainer.add (V)
+    - Create a transformer to changes whitespace into transparency
+    - create a "transformercontainer.bake" method
+    - make the alpha=True parameter on sprite bake the whitespace-to-transparency transformation
+    - (plan B): Add 'shapes_to_transparency' Shape method (?)
 
 Partial windows support (cmder and maybe microsoft's new terminal)[WIP]:
     - Document work around for use under windows (WIP)

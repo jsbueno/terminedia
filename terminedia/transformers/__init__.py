@@ -208,3 +208,9 @@ class TransformersContainer(HookList):
 
         pixel = pcls(*values)
         return pixel
+
+    def bake(self, shape):
+        """Apply the transformation stack for each pixel in the given shape, inplace"""
+        for pos, pixel in shape:
+            shape[pos] = self.process(shape, pos, pixel)
+        return shape
