@@ -105,4 +105,17 @@ class ThresholdTransformer(Transformer):
         return values.EMPTY
 
 
+class AddAlpha(Transformer):
+    def pixel(self, pixel):
+        value = values.TRANSPARENT if pixel.value is values.EMPTY else pixel.value
+        fg = values.TRANSPARENT if pixel.foreground is values.DEFAULT_FG else pixel.foreground
+        bg = values.TRANSPARENT if pixel.background is values.DEFAULT_BG else pixel.background
+        eff = values.TRANSPARENT if pixel.effects is values.Effects.none else pixel.effects
+        return type(pixel)(value, fg, bg, eff)
+
+
+AddAlpha = AddAlpha()
+
+
+
 del Transformer, KernelTransformer, kernel_table_ascii, variant, LazyDict

@@ -30,7 +30,7 @@ from terminedia.image import shape, ValueShape, ImageShape, PalettedShape, FullS
 from terminedia.screen import Screen
 from terminedia.subpixels import BlockChars
 from terminedia.text import render
-from terminedia.transformers import Transformer
+from terminedia.transformers import Transformer, TransformersContainer
 # Import otherwise unused modules, so that they are
 # always available after importing the main library:
 import terminedia.transformers.library

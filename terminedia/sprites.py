@@ -1,17 +1,17 @@
 from collections.abc import Sequence
 
-
 from terminedia.transformers import TransformersContainer
 from terminedia.utils import  HookList, Rect, V2, get_current_tick
-from terminedia.values import EMPTY
+from terminedia.values import EMPTY, TRANSPARENT
 
 
 tags = dict()
 
 
 class Sprite:
-    def __init__(self, shapes=None, pos=(0,0), active=False, tick_cycle=1, anchor="topleft"):
-        self.shapes = shapes if isinstance(shapes, Sequence) else [shapes]
+    def __init__(self, shapes=None, pos=(0,0), active=False, tick_cycle=1, anchor="topleft", alpha=True):
+        from terminedia.image import Shape
+        self.shapes = shapes if isinstance(shapes, Sequence)  and not isinstance(shapes, Shape) else [shapes]
         self.pos = pos
         self.active = active
         self.tick_cycle = tick_cycle
@@ -19,15 +19,21 @@ class Sprite:
         self._check_and_promote()
         self.transformers = TransformersContainer()
         self.dirty_previous_rect = self.rect
+        if alpha:
+            for shape in shapes:
+                shape.spaces_to_transparency()
 
     def _check_and_promote(self):
         """called at initialization to try to promote any object that is not a Shape
         to a Shape.
 
         """
-        from terminedia.image import shape, Shape
+        from terminedia.image import shape, Shape, FullShape
         for index, item in enumerate(self.shapes):
             if not isinstance(item, Shape):
+                item = shape(item)
+            if not isinstance(item, FullShape):
+                item = FullShape.promote(item)
                 self.shapes[index] = shape(item)
 
     @property
@@ -97,18 +103,20 @@ class SpriteContainer(HookList):
         return item
 
     def get_at(self, pos, pixel=None):
-        for sprite in self.data:
+        pcls = type(pixel)
+        for sprite in reversed(self.data):
             if not sprite.active:
                 continue
             if pos in sprite.rect:
                 new_pixel = sprite.get_at(container_pos=pos, pixel=pixel)
-                if new_pixel.value != EMPTY:
+                if any(comp is TRANSPARENT for comp in new_pixel):
+                    pixel = [c_orig if c_new is TRANSPARENT else c_new for c_orig, c_new in zip(pixel, new_pixel)]
+                else:
                     pixel = new_pixel
-                    break # TODO: reverse iteration and do not break when partial transparency is implemented
-        return pixel
+        return pixel if isinstance(pixel, pcls) else pcls(*pixel)
 
-    def add(self, item, pos=(0,0), active=True, tick_cycle=1, anchor="topleft"):
+    def add(self, item, pos=(0,0), active=True, tick_cycle=1, anchor="topleft", alpha=True):
         if not isinstance(item, Sprite):
-            item = Sprite(item, pos, active, tick_cycle, anchor)
+            item = Sprite(item, pos, active, tick_cycle, anchor, alpha=alpha)
         self.append(item)
         return item
