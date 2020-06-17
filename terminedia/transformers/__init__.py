@@ -54,9 +54,24 @@ class Transformer:
 
 
     def __repr__(self):
-        return "Transformer <{}{}>".format(
-            ", ".join(channel for channel in self.channels if getattr(self, channel + "_f", None)),
-            f", source={self.source!r},  mode={self.mode!r}" if getattr(self, "source", None) else "",
+        channel_list = []
+        for channel_name in self.channels:
+            channel = getattr(self, channel_name, None)
+            if not channel:
+                continue
+            if callable(channel):
+                channel_repr = "<{}>{}({})".format(
+                    'method' if hasattr(channel, '__func__') else 'function',
+                    channel.__name__,
+                    ', '.join(sig for sig in self.signatures[channel_name])
+                )
+            else:
+                channel_repr = repr(channel)
+            channel_list.append((channel_name, channel_repr))
+
+        return "{}({})".format(
+            self.__class__.__name__,
+            ", ".join(f"{name}={rpr}" for name, rpr in channel_list)
         )
 
 

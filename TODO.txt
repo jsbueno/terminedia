@@ -51,6 +51,14 @@ smaller features:
                 This should be useful for tagging sprites and the event system -
                 and also for providing a single "transformers library" object
                 using tags for the transformers categories.
+            - Refactor Transformers.process so that the setup does not have to be
+                repeated for each pixel. (an strategy like the used by
+                StyledText.render will likely be possible):
+                    - create a benchmarking script
+                    - create a two-step process that yields a callback
+                        with the signature of current Transformers.Process
+
+
 
         -Enhance transforners __repr__
 
