@@ -15,7 +15,7 @@ Targeted for next release (0.4):
     - create markup language for embedding context changing directives inside a single string:
         - make it usable by assignment, `print` and `at` methods
     - Text entity, akim to "shape" or "sprite" which allows for flowing text [WIP]:
-        - BUG: when rendering spaces, attributes (like background) are not updated.
+        - BUG: when rendering spaces, attributes (like background) are not updated (V) - fixed by sprite transparency handling implementation.
         - This can be current "text_planes" themselves [v]
         - these should be decorateable with frames using unicode frame drawing characters
         - Think of a way to "stream" text inside these containers [WIP]:
