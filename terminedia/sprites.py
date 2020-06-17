@@ -11,7 +11,7 @@ tags = dict()
 class Sprite:
     def __init__(self, shapes=None, pos=(0,0), active=False, tick_cycle=1, anchor="topleft", alpha=True):
         from terminedia.image import Shape
-        self.shapes = shapes if isinstance(shapes, Sequence)  and not isinstance(shapes, Shape) else [shapes]
+        self.shapes = shapes if isinstance(shapes, Sequence) and not isinstance(shapes, Shape) else [shapes]
         self.pos = pos
         self.active = active
         self.tick_cycle = tick_cycle
@@ -20,7 +20,7 @@ class Sprite:
         self.transformers = TransformersContainer()
         self.dirty_previous_rect = self.rect
         if alpha:
-            for shape in shapes:
+            for shape in self.shapes:
                 shape.spaces_to_transparency()
 
     def _check_and_promote(self):
