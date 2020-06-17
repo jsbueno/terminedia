@@ -19,6 +19,9 @@ here comes some text [color:blue] with apples [background:red] infinite [/color 
 
 
 """
+from __future__ import annotations
+
+import typing as T
 
 from terminedia.contexts import Context
 from terminedia.utils import V2
@@ -68,18 +71,63 @@ class StyledSequence:
         self.text = text
         self.mark_sequence = mark_sequence
         self.parent_context = context
-        self._last_index = None
+        self._last_index_processed = None
         self.context = Context()
         self.text_plane = text_plane
         self.starting_point = V2(starting_point) if starting_point else V2(0,0)
         self.current_position = self.starting_point
+        self._context_layers = 0
+        self._sanity_counter = 0
 
+    def _process_to(self, index):
 
-    def _get_context_at(self, index):
-        mark_here = self.mark_sequence
-        pass
+        if self._last_index_processed is None and index == 0:
+            self.current_position = self.starting_point
+        elif self._last_index_processed is None or index != self._last_index_processed + 1:
+            self._sanity_counter += 1
+            if self._sanity_counter > 1:
+                raise RuntimeError("Something resetting marked text internal state in infinite loop")
+            self.context._clear()
+            self._context_layers = 0
+            self._last_index_processed = None
+            for i in range(0, index + 1):
+                self._process_to(i)
+
+            self._sanity_counter -= 1
+            return self.context
+
+        mark_here = self.mark_sequence.get(index, EmptyMark)
+        if mark_here is not EmptyMark:
+            mark_here.context = self.context
+            mark_here.pos = self.current_position
+        if mark_here.attributes:
+            self._context_push(**mark_here.attributes)
+        if mark_here.moveto:
+            self.current_position = V2(mark_here.moveto)
+        if mark_here.rmoveto:
+            self.current_position += V2(mark_here.rmoveto)
+        self._last_index_processed = index
+        return self.context
+
+    def _context_push(self, **kwargs):
+        # FIXME - have a 'lightweight layers' Context class instead of doing this.
+        # (or maybe, keep doing the __enter__ call, but having a lighter 'enter'
+        #  than the current implementation (2020-06-16), which creates a new
+        # Context instance)
+        self.context(**kwargs).__enter__()
+        self._context_layers += 1
+
+    def _context_pop(self, n=1):
+        for i in range(n):
+            self.context.__exit__(None, None, None)
+            self._context_layers -= 1
+
+    def _unwind(self):
+        self._context_pop(self._context_layers)
 
     def _get_position_at(self, char, index):
+        if self._last_index_processed != index:
+            self._process_to(index)
         position = self.current_position
         self.current_position += self.context.direction
         # TODO: handle double-width characters
@@ -87,12 +135,14 @@ class StyledSequence:
 
     def __iter__(self):
         for index, char in enumerate(self.text):
-            yield self.text[index], self._get_context_at(index), self._get_position_at(char, index)
+            yield self.text[index], self._process_to(index), self._get_position_at(char, index)
+        self._unwind()
 
     def render(self):
         if not self.text_plane:
             return
-        # FIXME: if self.parent_context is not self.text_plane.owner.context...
+        # FIXME: if self.parent_context is not self.text_plane.owner.context, combine parent and current context
+        # otherwise combination is already in place at the render_lock
         render_lock = self.text_plane._render_styled(self.context)
         try:
             char_fn = next(render_lock)
@@ -105,32 +155,51 @@ class StyledSequence:
             except StopIteration:
                 pass
 
+class Mark:
+    """Control object to be added to a text_plane or StyledStream
 
-class Mark(dict):
-    pass
+    The object indicate which context attributes or text position
+    enter in effect at that point in the stream.
 
-class StyleMark(Mark):
-    pass
+    Instances of this are to be automatically created on parsing markup strings or
+    or other input - but can be hand-crafted for special effects.
 
-class Portal(Mark):
-    """Special object that indicates a change
-    in location for continuation of the text stream - either in
-    absolute or relative coordinates or as a text direction change
 
     """
-    pass
+    # This is supposed to evolve to be programable
+    # and depend on injected parameters like position, ticks -
+    # like transformers.Transformer
+
+    # For the time being, subclass and use 'property'.
+    # 'context' and 'pos' attributes are set on the instance
+    # prior to reading the other property values.
+
+    __slots__ = "attributes moveto rmoveto context pos".split()
+    attributes: T.Mapping
+    moveto: V2
+    rmoveto: V2
+    def __init__(self, attributes=None, moveto=None, rmoveto=None):
+        self.attributes = attributes
+        self.moveto = moveto
+        self.rmoveto = rmoveto
+
+    def __repr__(self):
+        return f"Mark({('attributes=%r, ' % self.attributes) if self.attributes else ''}{('moveto=%r, ' % self.moveto) if self.moveto else ''}{('rmoveto=%r' % self.rmoveto) if self.rmoveto else ''})"
 
 
-class StyledStream:
-    def __init__(self, tokenstream):
-        self.data = tokenstream
+EmptyMark = Mark()
 
-    def __iter__(self):
-        for item in self.data:
-            yield item
 
-    def __len__(self):
-        return len(self.data)
+#class StyledStream:
+    #def __init__(self, tokenstream):
+        #self.data = tokenstream
+
+    #def __iter__(self):
+        #for item in self.data:
+            #yield item
+
+    #def __len__(self):
+        #return len(self.data)
 
 
 

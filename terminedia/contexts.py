@@ -105,6 +105,16 @@ class Context:
                 continue
             setattr(self, attr, value)
 
+    def _clear(self):
+        if getattr(self._locals, "_context_stack", None):
+            return self._locals._context_stack[-1].clear()
+        for name, attr in self.__class__.__dict__.items():
+            if isinstance(attr, ContextVar):
+                setattr(self, name, attr.default)
+        for name, attr in list(self.__dict__.items()):
+            if name and not name.startswith("_"):
+                del self.__dict__[name]
+
     def __setattr__(self, name, value):
         if name.startswith("_"):
             return super().__setattr__(name, value)

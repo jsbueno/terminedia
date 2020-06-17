@@ -15,6 +15,7 @@ Targeted for next release (0.4):
     - create markup language for embedding context changing directives inside a single string:
         - make it usable by assignment, `print` and `at` methods
     - Text entity, akim to "shape" or "sprite" which allows for flowing text [WIP]:
+        - BUG: when rendering spaces, attributes (like background) are not updated.
         - This can be current "text_planes" themselves [v]
         - these should be decorateable with frames using unicode frame drawing characters
         - Think of a way to "stream" text inside these containers [WIP]:
@@ -32,6 +33,7 @@ Targeted for next release (0.4):
             - These "portal" are created automatically (lazily?) for
                     left-to-right, top-down text, but can be customized
                     for greater good and funny layouts
+        - Think of a nice API to make use of TM.text.StyledSequence that is shorter than instantiating one, passing the screen.data.text[1] as text_plane kwarg, and calling "render" on it followed by "screen.update()" :-) (probably changing "print", "at" and "__setitem__" on .text to use it :-) )
 
     - create aliased string names for the text[...] text planes (V)
     - Make shape.text alone behave like shape.text[1], with no need for indexing.
