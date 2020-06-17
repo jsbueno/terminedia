@@ -38,7 +38,7 @@ import re
 from terminedia import values
 from terminedia.utils import LazyDict, Color
 
-from . import Transformer, KernelTransformer
+from . import Transformer, KernelTransformer, kernel_dilate
 from ._kernel_table_ascii import kernel as kernel_table_ascii
 from ._kernel_table_unicode_square import kernel as pre_kernel_table_unicode_square
 
@@ -115,6 +115,7 @@ class AddAlpha(Transformer):
 
 
 AddAlpha = AddAlpha()
+Dilate = KernelTransformer(kernel_dilate)
 
 
 

@@ -6,14 +6,6 @@ Change image-loading mechanism to easy loading to a square-resolution full-shape
 Implement "big square" 2 block resolution:
 make way for 6x3 block core transformers in order to use half-triangle characters
 
-Promote Shapes in Sprites whitespace to explict transparency [WIP]:
-    - Add "alpha" paramater to Sprite constructor and SpriteContainer.add (V)
-    - Create a transformer to changes whitespace into transparency
-    - create a "transformercontainer.bake" method
-    - make the alpha=True parameter on sprite bake the whitespace-to-transparency transformation
-    - (plan B): Add 'shapes_to_transparency' Shape method (?)
-
-Partial windows support (cmder and maybe microsoft's new terminal)[WIP]:
     - Document work around for use under windows (WIP)
     - Create color-reducing code so that colors (mostly) work
     - future: Windows terminal backend bypassing colorama, using full capabilities;
@@ -60,8 +52,7 @@ smaller features:
                 and also for providing a single "transformers library" object
                 using tags for the transformers categories.
 
-        - add 'bake' operation: render a transformers stack into a shape
-
+        -Enhance transforners __repr__
 
     Sprites:
         - Add Spatial transformation
@@ -180,6 +171,13 @@ Enhance color and composition:
 Sprites:
     create tagging system
     and easy tag-based event api
+
+Improving Shape objects:
+    - Change the internal representation of data in FullShape (if not other shapes) -
+        - it is absoltely wasteful
+        - check if Numpy can be used optionally without complicating too much the code (do not force Numpy data - Python arrays, or some ctypes Struct should be preferable)
+             - Perceived problem - there is no "char array" in stdlib.array.
+    - Add Shape public functions to retrieve the raw shape data in ways useful outside of terminedia, other than by rendering (shape.as_string? what about other attributes than chars?)
 
 MS-Windows support (colorama/mscrvt/color reducing)[WIP]
 
@@ -337,4 +335,6 @@ Bugs
     bug: Pallette shapes need to be overhauled - currently tests are broken due to reading from it back just yielding "True" and "False"
     bug: (big issue): workaround stdout blocking and raising error when in input.keyboard reading mode.
     bug: terminedia-shapes example has stopped working properly, due to differences in how
-    whitespace is blitted. To fix: refactor script to use Sprites instead of raw shapes.
+    whitespace is blitted. To fix: refactor script to use Sprites instead of raw shapes.(V)
+    bug: TrasnformersContainer.bake breaking with KernelTransformers (and any transforemrs that will use 'source' and 'pos') (V)
+    bug: terminedia-shapes for colored shapes(shape2) is behaving weird for the first frame, after refactoring how Transparency works with sprites
