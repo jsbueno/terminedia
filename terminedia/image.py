@@ -256,6 +256,13 @@ class ShapeApiMixin:
             self.draw.fill()
         self.dirty_set()
 
+    def spaces_to_transparency(self):
+        from terminedia.transformers.library import AddAlpha
+        from terminedia.transformers import TransformersContainer
+        ct = TransformersContainer((AddAlpha,))
+        with self.context(force_transparent_ink=True):
+            ct.bake(self)
+
 
 #####################
 #

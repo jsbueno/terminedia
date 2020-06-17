@@ -9,10 +9,13 @@ version 0.4
  - Sprites are added to shapes as "active" by default (reverses default of active=False).
  - Force Shapes in Sprites to be "FullShape" by autopromotting the shape on the constructor.
  - create a "TransformerContainer.bake" method to eagerly apply a stack of transformers to a shape.
+ - Sprites promote shapes whitespace and default colors to transparency when created by default (pass alpha=False to prevent)
+ - Sprite stack rendering honors TRANSPARENT special value
 
 New 'transformers library':
     - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters
     - ThresholdTransformer - apply a threshold filter to a colored image.
+    - AddAlpha Transformer to replace empty spaces, default-fg, default-bg, no effect with TRANSPARENT special value
 
 
 

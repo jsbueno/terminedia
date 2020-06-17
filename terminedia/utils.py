@@ -763,12 +763,10 @@ class Gradient:
 
 
 class HookList(MutableSequence):
-    def __init__(self, initial=None):
+    def __init__(self, initial=()):
         self.data = list()
-        if initial is None:
-            initial = []
         for item in initial:
-            self.append(initial)
+            self.append(item)
 
     def insert_hook(self, item):
         return item
