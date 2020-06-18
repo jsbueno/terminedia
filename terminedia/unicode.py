@@ -51,6 +51,24 @@ def lookup(name_part, chars_only=False):
         return results
     return [char.char for char in results]
 
+CGJ = "\u034f" # character used to _separate_ graphemes that would otherwise be joined - combining grapheme joiner (CGJ) U+034F
+
+
+def split_graphemes(text):
+    """Separates a string in a list of strings, each containing a single grapheme:
+    the contiguous set of a character and combining characters to be applied to it.
+    """
+
+    category = unicodedata.category
+
+    result = []
+    for char in text:
+        if not category(char)[0] == 'M' or not result:
+            result.append(char)
+        else:
+            result[-1] += char
+    return result
+
 
 @lru_cache()
 def char_width(char):
