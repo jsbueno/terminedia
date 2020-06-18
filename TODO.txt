@@ -12,6 +12,21 @@ make way for 6x3 block core transformers in order to use half-triangle character
     - Fix windows keyboard handling on new- MS terminal (2019)
     - Known Issue: the rendering through colorama is super-slow. most animation applications will be just proof of concepts until another way is found.
 
+- Refactor utils.py into proper folder [WIP]
+- Efficient MutableString/struct container to replace "list" as main data storage [WIP]:
+    - backed by bytearray
+    - use abc.MutableSequence for and store utf-32-le data for characters
+    - slice set/get uses strings
+    - But how could this be ever faster than lists of one-character strings?? :-(
+        - temptative:
+            - abuse slice operations - these should go fast
+            - change internal read operations to operate on row-chunks
+            - make image.__getitem__ a special case of getting a single item and move
+                most of its code to a method that operate on chunks.
+                - make client methods (draw.blit, text.char_at, backend reading) use the chunky method
+
+
+
 Resolve "can't output a lot of things to terminal if stdin set to non blocking" bug on windows
 
 smaller features:
