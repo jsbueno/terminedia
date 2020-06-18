@@ -3,7 +3,7 @@ from inspect import signature
 
 import pytest
 
-from terminedia.utils import combine_signatures, TaggedDictionary
+from terminedia.utils import combine_signatures, TaggedDict
 
 def test_combine_signatures_works():
     context = {}
@@ -31,18 +31,18 @@ def test_combine_signatures_works():
 
 
 def test_tagged_dictionary_is_created():
-    x = TaggedDictionary()
+    x = TaggedDict()
     assert not x
 
 
 def test_tagged_dictionary_can_contain_simple_items():
-    x = TaggedDictionary()
+    x = TaggedDict()
     x["simple"] = "simple"
 
     assert x["simple"] == ["simple"]
 
 def test_tagged_dictionary_can_delete_simple_items():
-    x = TaggedDictionary()
+    x = TaggedDict()
     x["simple"] = "simple"
     del x["simple"]
 
@@ -51,7 +51,7 @@ def test_tagged_dictionary_can_delete_simple_items():
 
 
 def test_tagged_dictionary_can_contain_items_with_2_tags():
-    x = TaggedDictionary()
+    x = TaggedDict()
     x["first", "second"] = "element"
 
     assert x["first"] == ["element"]
@@ -59,7 +59,7 @@ def test_tagged_dictionary_can_contain_items_with_2_tags():
 
 
 def test_tagged_dictionary_can_delete_itens_by_any_tag():
-    x = TaggedDictionary()
+    x = TaggedDict()
     x["first", "second"] = "element"
     del x["first"]
     assert not x
@@ -80,7 +80,7 @@ def test_tagged_dictionary_can_delete_itens_by_any_tag():
 
 
 def test_tagged_dictionary_views_work():
-    x = TaggedDictionary()
+    x = TaggedDict()
     y = x.view("animals")
     z = y.view("insects")
 
@@ -107,7 +107,7 @@ def test_tagged_dictionary_views_work():
 
 
 def test_tagged_dictionary_views_added_tag_reflects_on_other_tags():
-    x = TaggedDictionary()
+    x = TaggedDict()
     y = x.view("animals")
     z = y.view("insects")
     z1 = y.view("mammals")
@@ -123,7 +123,7 @@ def test_tagged_dictionary_views_added_tag_reflects_on_other_tags():
     assert x["insects", "mammals"] == ["spyderman"]
 
 def test_tagged_dictionary_views_add_method():
-    x = TaggedDictionary()
+    x = TaggedDict()
     y = x.view("animals")
 
     h = y.add("dog")
@@ -137,7 +137,7 @@ def test_tagged_dictionary_views_add_method():
     assert not x
 
 def test_tagged_dictionary_views_add_method_unique_handles():
-    x = TaggedDictionary()
+    x = TaggedDict()
     y = x.view("animals")
 
     h1 = y.add("dog")
@@ -147,7 +147,7 @@ def test_tagged_dictionary_views_add_method_unique_handles():
 
 
 def test_tagged_dictionary_views_can_remove_by_value():
-    x = TaggedDictionary()
+    x = TaggedDict()
     y = x.view("animals")
 
     h1 = y.add("dog")

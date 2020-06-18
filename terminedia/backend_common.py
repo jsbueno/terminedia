@@ -4,8 +4,9 @@ import sys
 from functools import lru_cache
 from io import StringIO
 
+from terminedia.unicode import char_width
 from terminedia.unicode_transforms import translate_chars
-from terminedia.utils import char_width, V2, Color
+from terminedia.utils import V2, Color
 from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, UNICODE_EFFECTS, ESC
 
 

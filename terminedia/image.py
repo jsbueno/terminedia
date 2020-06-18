@@ -13,7 +13,8 @@ from weakref import ref, ReferenceType
 from terminedia.contexts import Context
 from terminedia.sprites import SpriteContainer
 from terminedia.subpixels import BrailleChars, HalfChars
-from terminedia.utils import Color, Rect, V2, LazyBindProperty, char_width, get_current_tick, size_in_blocks
+from terminedia.unicode import char_width
+from terminedia.utils import Color, Rect, V2, LazyBindProperty, get_current_tick, size_in_blocks
 from terminedia.unicode_transforms import translate_chars
 from terminedia.values import (
     DEFAULT_FG,

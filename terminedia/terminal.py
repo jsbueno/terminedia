@@ -6,8 +6,9 @@ from io import StringIO
 from threading import Lock
 
 from terminedia.backend_common import BackendColorContextMixin, JournalingCommandsMixin
+from terminedia.unicode import char_width
 from terminedia.unicode_transforms import translate_chars
-from terminedia.utils import char_width, V2, Color, Rect
+from terminedia.utils import V2, Color, Rect
 from terminedia.values import DEFAULT_BG, DEFAULT_FG, Effects, unicode_effects_set, ESC, UNICODE_EFFECTS, TERMINAL_EFFECTS, CONTINUATION, EMPTY, TRANSPARENT
 
 use_re_split = sys.version_info >= (3, 7)
