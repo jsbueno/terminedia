@@ -19,7 +19,7 @@ def styled_text():
 def test_styled_sequence_is_rendered():
     sc, sh, text_plane = styled_text()
     msg = "Hello World!"
-    aa = StyledSequence(msg, [], text_plane)
+    aa = StyledSequence(msg, {}, text_plane)
     aa.render()
     sc.update()
     yield None
