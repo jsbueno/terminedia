@@ -24,7 +24,11 @@ from __future__ import annotations
 import typing as T
 
 from terminedia.contexts import Context
+from terminedia import Effects, Color, Direction
 from terminedia.utils import V2
+
+RETAIN_POS = object()
+
 
 class StyledSequence:
 
@@ -103,7 +107,11 @@ class StyledSequence:
         if mark_here.attributes:
             self._context_push(**mark_here.attributes)
         if mark_here.moveto:
-            self.current_position = V2(mark_here.moveto)
+            mtx = mark_here.moveto[0]
+            mty = mark_here.moveto[1]
+            mtx = mtx if mtx is not RETAIN_POS else self.current_position.x
+            mty = mty if mty is not RETAIN_POS else self.current_position.y
+            self.current_position = V2(mtx, mty)
         if mark_here.rmoveto:
             self.current_position += V2(mark_here.rmoveto)
         self._last_index_processed = index
@@ -155,6 +163,8 @@ class StyledSequence:
             except StopIteration:
                 pass
 
+
+
 class Mark:
     """Control object to be added to a text_plane or StyledStream
 
@@ -178,10 +188,25 @@ class Mark:
     attributes: T.Mapping
     moveto: V2
     rmoveto: V2
-    def __init__(self, attributes=None, moveto=None, rmoveto=None):
+    def __init__(self, attributes=None, pop_attributes=None, moveto=None, rmoveto=None):
         self.attributes = attributes
+        self.pop_attributes = pop_attributes
         self.moveto = moveto
         self.rmoveto = rmoveto
+
+    @classmethod
+    def merge(cls, m1, m2):
+        attributes = m1.attributes or {}
+        attributes.update(m2.attributes or {})
+        pop_attributes = m1.pop_attributes or {}
+        pop_attributes.update(m2.pop_attributes or {})
+        moveto = m2.moveto or m1.moveto
+        if m1.rmoveto and m2.rmoveto:
+            rmoveto = m1.rmoveto + m2.rmoveto
+        else:
+            rmoveto = m1.rmoveto or m2.rmoveto
+        return cls(attributes=attributes, pop_attributes=pop_attributes, moveto=moveto, rmoveto=rmoveto)
+
 
     def __repr__(self):
         return f"Mark({('attributes=%r, ' % self.attributes) if self.attributes else ''}{('moveto=%r, ' % self.moveto) if self.moveto else ''}{('rmoveto=%r' % self.rmoveto) if self.rmoveto else ''})"
@@ -190,42 +215,95 @@ class Mark:
 EmptyMark = Mark()
 
 
-#class StyledStream:
-    #def __init__(self, tokenstream):
-        #self.data = tokenstream
-
-    #def __iter__(self):
-        #for item in self.data:
-            #yield item
-
-    #def __len__(self):
-        #return len(self.data)
-
-
-
-
-def split_graphemes(text):
-    """Separates a string in a list of strings, each containing a single grapheme:
-    the contiguous set of a character and combining characters to be applied to it.
-    """
-
-    category = unicodedata.category
-
-    result = []
-    for char in text:
-        if not category(char)[0] == 'M' or not result:
-            result.append(char)
-        else:
-            result[-1] += char
-    return result
-
-
-
 class Tokenizer:
     pass
 
+import re
+
 class MLTokenizer(Tokenizer):
-    pass
+    parser = re.compile(r"\[[^\[].*?\]")
+
+    def __init__(self, initial=""):
+        """Parses a string with special Markup and prepare for rendering
+
+        After instantiating, keep calling '.update' to add more text,
+        at any point call ".render()" to create a StyledSequence instance
+        and render it to a text plane.
+        """
+        self.raw_text = ""
+        self.update(initial)
+
+    def update(self, text):
+        # Imitates Python's hashlib interface
+        self.raw_text += text
+
+    def parse(self):
+        raw_tokens = []
+        offset = 0
+        def annotate_and_strip_tokens(match):
+            nonlocal offset
+            token = match.group()
+            raw_tokens.append((match.start() - offset, token.strip("[]")))
+            offset += match.end() - match.start()
+            return ""
+
+
+        self.parsed_text = self.parser.sub(annotate_and_strip_tokens, self.raw_text)
+        self._tokens_to_marks(raw_tokens)
+
+
+    def _tokens_to_marks(self, raw_tokens):
+        self.mark_sequence = {}
+        for offset, token in raw_tokens:
+            attributes = None
+            pop_attributes = None
+            rmoveto = None
+            moveto = None
+
+            token = token.lower()
+            if ":" in token:
+                action, value = [v.strip() for v in token.split(":")]
+            else:
+                action = token.strip()
+                value = None
+                if action in {"left", "right", "up", "down"}:
+                    value = action
+                    action = "direction"
+
+            if action in {'effect', 'color', 'foreground', 'background', 'direction', 'transformer', 'char', 'font'}:
+                attributes = {action:(
+                    Color(value) if action in ('color', 'foreground', 'background') else
+                    Effects.__members__.get(value) if action == 'effect' else
+                    getattr(Direction, action) if action == "direction" else
+                    getattr(terminedia.transformers.library, value) if action=='transformer' else
+                    value
+                )}
+            if action[0] == "/" and action[1:] in {'effect', 'color', 'foreground', 'background', 'direction', 'transformer', 'char', 'font'}:
+                # pop_attributes = ...
+                pass
+            if "," in action:
+                nx, ny = [v.strip() for v in action.split(",")]
+                nnx, nny = int(nx), int(ny)
+                if nx[0] in ("+", "-") and ny[1] in ("+", "-"):
+                    rmoveto = nnx, nny
+                elif nx[0] in ("+", "-") and ny[1] not in ("+", "-"):
+                    moveto = RETAIN_POS, nny
+                    rmoveto = nnx, 0
+                elif nx[0] not in ("+", "-") and ny[1] in ("+", "-"):
+                    moveto = nnx, RETAIN_POS
+                    rmoveto = 0, nny
+                else:
+                    moveto = nnx, nny
+            # Unknown token action - simply drop for now"
+            mark = Mark(attributes, pop_attributes, moveto, rmoveto)
+            if offset in self.mark_sequence:
+                mark = Mark.merge(self.mark_sequence[offset], mark)
+            self.mark_sequence[offset] = mark
+
+    def __call__(self, text_plane=None, context=None, starting_point=(0,0)):
+        self.parse()
+        self.styled_sequence = StyledSequence(self.parsed_text, self.mark_sequence, text_plane=text_plane, context=context, starting_point=starting_point)
+        return self.styled_sequence
 
 class ANSITokenizer(Tokenizer):
     pass
