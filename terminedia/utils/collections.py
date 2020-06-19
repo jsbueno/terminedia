@@ -250,3 +250,38 @@ class LazyDict(MutableMapping):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.data!r})"
+
+
+class Grapheme2DArray:
+    """[WIP] This may evolve to replace the use of lists
+    at the core of Shape objects
+    """
+
+    wordsize = 4
+    encoding = "utf_32_le"
+
+    def __init__(self, size, encoding=None):
+        from terminedia.utils.vector import V2
+        from terminedia.values import EMPTY
+
+        if encoding is not None:
+            self.encoding = encoding
+
+        self.size = V2(size)
+        self.linear_size = size[0] * size[1]
+
+        self.data = bytearray(EMPTY.encode(self.encoding) * self.linear_size)
+
+    def __getitem__(self, index):
+        rindex = (index[1] * self.size[0] + index[0]) * 4
+        return self.data[rindex: rindex + self.wordsize].decode(self.encoding)
+
+    def __setitem__(self, index, item):
+        rindex = (index[1] * self.size[0] + index[0]) * 4
+        self.data[rindex: rindex + self.wordsize] = item.encode(self.encoding)
+
+    def __delitem__(self, index):
+        self.__setitem__(index, EMPTY)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({tuple(self.size)!r})"
