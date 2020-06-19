@@ -51,6 +51,7 @@ def lookup(name_part, chars_only=False):
         return results
     return [char.char for char in results]
 
+
 CGJ = "\u034f" # character used to _separate_ graphemes that would otherwise be joined - combining grapheme joiner (CGJ) U+034F
 
 
@@ -68,3 +69,15 @@ def split_graphemes(text):
         else:
             result[-1] += char
     return result
+
+
+@lru_cache()
+def char_width(char):
+    from terminedia.subpixels import BlockChars
+
+    if char in BlockChars.chars:
+        return 1
+    if len(char) > 1:
+        return max(char_width(combining) for combining in char)
+    v = unicodedata.east_asian_width(char)
+    return 1 if v in ("N", "Na", "A") else 2  # (?) include "A" as single width?

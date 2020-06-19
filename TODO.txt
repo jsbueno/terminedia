@@ -46,19 +46,26 @@ Targeted for next release (0.4):
 Implement "big square" 2 block resolution:
 make way for 6x3 block core transformers in order to use half-triangle characters
 
-Promote Shapes in Sprites whitespace to explict transparency [WIP]:
-    - Add "alpha" paramater to Sprite constructor and SpriteContainer.add (V)
-    - Create a transformer to changes whitespace into transparency
-    - create a "transformercontainer.bake" method
-    - make the alpha=True parameter on sprite bake the whitespace-to-transparency transformation
-    - (plan B): Add 'shapes_to_transparency' Shape method (?)
-
-Partial windows support (cmder and maybe microsoft's new terminal)[WIP]:
     - Document work around for use under windows (WIP)
     - Create color-reducing code so that colors (mostly) work
     - future: Windows terminal backend bypassing colorama, using full capabilities;
     - Fix windows keyboard handling on new- MS terminal (2019)
     - Known Issue: the rendering through colorama is super-slow. most animation applications will be just proof of concepts until another way is found.
+
+- Refactor utils.py into proper folder [WIP]
+- Efficient MutableString/struct container to replace "list" as main data storage [WIP]:
+    - backed by bytearray
+    - use abc.MutableSequence for and store utf-32-le data for characters
+    - slice set/get uses strings
+    - But how could this be ever faster than lists of one-character strings?? :-(
+        - temptative:
+            - abuse slice operations - these should go fast
+            - change internal read operations to operate on row-chunks
+            - make image.__getitem__ a special case of getting a single item and move
+                most of its code to a method that operate on chunks.
+                - make client methods (draw.blit, text.char_at, backend reading) use the chunky method
+
+
 
 Resolve "can't output a lot of things to terminal if stdin set to non blocking" bug on windows
 
@@ -99,9 +106,16 @@ smaller features:
                 This should be useful for tagging sprites and the event system -
                 and also for providing a single "transformers library" object
                 using tags for the transformers categories.
+            - Refactor Transformers.process so that the setup does not have to be
+                repeated for each pixel. (an strategy like the used by
+                StyledText.render will likely be possible):
+                    - create a benchmarking script
+                    - create a two-step process that yields a callback
+                        with the signature of current Transformers.Process
 
-        - add 'bake' operation: render a transformers stack into a shape
 
+
+        -Enhance transforners __repr__
 
     Sprites:
         - Add Spatial transformation
@@ -220,6 +234,13 @@ Enhance color and composition:
 Sprites:
     create tagging system
     and easy tag-based event api
+
+Improving Shape objects:
+    - Change the internal representation of data in FullShape (if not other shapes) -
+        - it is absoltely wasteful
+        - check if Numpy can be used optionally without complicating too much the code (do not force Numpy data - Python arrays, or some ctypes Struct should be preferable)
+             - Perceived problem - there is no "char array" in stdlib.array.
+    - Add Shape public functions to retrieve the raw shape data in ways useful outside of terminedia, other than by rendering (shape.as_string? what about other attributes than chars?)
 
 MS-Windows support (colorama/mscrvt/color reducing)[WIP]
 
@@ -376,4 +397,8 @@ Bugs
     bug: Pallette shapes need to be overhauled - currently tests are broken due to reading from it back just yielding "True" and "False"
     bug: (big issue): workaround stdout blocking and raising error when in input.keyboard reading mode.
     bug: TM.DEFAULT_FG always rendering as White when comming from blitted [transformed] source
-
+    bug: terminedia-shapes example has stopped working properly, due to differences in how
+    whitespace is blitted. To fix: refactor script to use Sprites instead of raw shapes.(V)
+    bug: TrasnformersContainer.bake breaking with KernelTransformers (and any transforemrs that will use 'source' and 'pos') (V)
+    bug: terminedia-shapes for colored shapes(shape2) is behaving weird for the first frame, after refactoring how Transparency works with sprites
+    bug: Screen.data.render yielding strange results for just some text rendered on screen.

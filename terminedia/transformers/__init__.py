@@ -54,9 +54,24 @@ class Transformer:
 
 
     def __repr__(self):
-        return "Transformer <{}{}>".format(
-            ", ".join(channel for channel in self.channels if getattr(self, channel + "_f", None)),
-            f", source={self.source!r},  mode={self.mode!r}" if getattr(self, "source", None) else "",
+        channel_list = []
+        for channel_name in self.channels:
+            channel = getattr(self, channel_name, None)
+            if not channel:
+                continue
+            if callable(channel):
+                channel_repr = "<{}>{}({})".format(
+                    'method' if hasattr(channel, '__func__') else 'function',
+                    channel.__name__,
+                    ', '.join(sig for sig in self.signatures[channel_name])
+                )
+            else:
+                channel_repr = repr(channel)
+            channel_list.append((channel_name, channel_repr))
+
+        return "{}({})".format(
+            self.__class__.__name__,
+            ", ".join(f"{name}={rpr}" for name, rpr in channel_list)
         )
 
 
@@ -209,8 +224,31 @@ class TransformersContainer(HookList):
         pixel = pcls(*values)
         return pixel
 
-    def bake(self, shape):
-        """Apply the transformation stack for each pixel in the given shape, inplace"""
-        for pos, pixel in shape:
-            shape[pos] = self.process(shape, pos, pixel)
-        return shape
+    def bake(self, shape, target=None, offset=(0, 0)):
+        """Apply the transformation stack for each pixel in the given shape
+
+        Args:
+          - shape: Source shape object to be processed
+          - target [Optional]: optional target where final pixels are blitted into.
+                If target is not given, 'shape' is modified inplace. Defaults to None.
+          - offset: pixel-offset to blit the data to. Most useful with the target
+          option.
+
+        Returns:
+          the affected Shape object
+        """
+        from terminedia.image import FullShape
+
+        if target:
+            source = shape
+        else:
+            # Creates a copy of all data channels, sans sprites neither transformers:
+            source = FullShape.promote(shape)
+            target = shape
+
+        # if target is shape, bad things will happen for some transformers - specially Kernel based transforms
+
+        offset = V2(offset)
+        for pos, pixel in source:
+            target[pos + offset] = self.process(source, pos, pixel)
+        return target

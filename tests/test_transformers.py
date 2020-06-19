@@ -120,5 +120,21 @@ def test_transform_pixel_channel_works():
     sh.context.transformers.append(TM.Transformer(pixel=new_pixel, background=TM.Color("green")))
     assert tuple(sh[0,0]) == ("*", TM.Color("red"), TM.Color("green"), TM.Effects.underline)
 
+
+
 # Test injection for "pos" parameter -
 
+def test_transformers_container_bake_method_for_source_consuming_transformers():
+    sh = TM.shape((5,5))
+    sh.draw.set((2,2))
+    reference_shape = TM.shape((5,5))
+    # Emulates Dilate filter -
+    for point in [(2,2), (2, 1), (1, 2), (3, 2), (2, 3)]:
+        reference_shape.draw.set(point)
+
+    TM.TransformersContainer([TM.transformers.library.Dilate]).bake(sh)
+
+    #FIXME: compares the internal characters relying on the internal
+    # representation of shape data:
+    joiner = lambda d: '\n'.join(''.join(char for char in d[i: i + 5]) for i in range(0, 5 * 5, 5))
+    assert joiner(sh.value_data) == joiner(reference_shape.value_data)
