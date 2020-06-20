@@ -165,10 +165,7 @@ class StyledSequence:
             for char, context, position in self:
                 char_fn(char, position)
         finally:
-            try:
-                next(render_lock)
-            except StopIteration:
-                pass
+            next(render_lock, None)
 
 
 class Mark:
@@ -265,7 +262,7 @@ class MLTokenizer(Tokenizer):
 
     def _tokens_to_marks(self, raw_tokens):
         from terminedia.transformers import library as transformers_library
-        from terminedia import Effects, Color, Direction
+        from terminedia import Effects, Color, Directions
 
         self.mark_sequence = {}
         for offset, token in raw_tokens:
@@ -277,6 +274,8 @@ class MLTokenizer(Tokenizer):
             token = token.lower()
             if ":" in token:
                 action, value = [v.strip() for v in token.split(":")]
+                if action == "effect":
+                    action = "effects"
             else:
                 action = token.strip()
                 value = None
@@ -285,7 +284,7 @@ class MLTokenizer(Tokenizer):
                     action = "direction"
 
             if action in {
-                "effect",
+                "effects",
                 "color",
                 "foreground",
                 "background",
@@ -296,15 +295,12 @@ class MLTokenizer(Tokenizer):
             }:
                 attributes = {
                     action: (
-                        Color(value)
-                        if action in ("color", "foreground", "background")
-                        else Effects.__members__.get(value)
-                        if action == "effect"
-                        else getattr(Direction, action)
-                        if action == "direction"
-                        else getattr(transformers_library, value)
-                        if action == "transformer"
-                        else value
+                        Color(value) if action in ("color", "foreground", "background") else
+                        sum(Effects.__members__.get(v.strip(), 0) for v in value.split("|"))
+                            if action == "effects" else
+                        getattr(Directions, value.upper()) if action == "direction" else
+                        getattr(transformers_library, value) if action == "transformer" else
+                        value
                     )
                 }
             if action[0] == "/" and action[1:] in {
@@ -322,12 +318,12 @@ class MLTokenizer(Tokenizer):
             if "," in action:
                 nx, ny = [v.strip() for v in action.split(",")]
                 nnx, nny = int(nx), int(ny)
-                if nx[0] in ("+", "-") and ny[1] in ("+", "-"):
+                if nx[0] in ("+", "-") and ny[0] in ("+", "-"):
                     rmoveto = nnx, nny
-                elif nx[0] in ("+", "-") and ny[1] not in ("+", "-"):
+                elif nx[0] in ("+", "-") and ny[0] not in ("+", "-"):
                     moveto = RETAIN_POS, nny
                     rmoveto = nnx, 0
-                elif nx[0] not in ("+", "-") and ny[1] in ("+", "-"):
+                elif nx[0] not in ("+", "-") and ny[0] in ("+", "-"):
                     moveto = nnx, RETAIN_POS
                     rmoveto = 0, nny
                 else:

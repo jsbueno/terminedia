@@ -219,7 +219,7 @@ class Text:
     def _render_styled(self, context):
         with self.owner.context(context=context) as ctx, self._render_lock:
             yield self._char_at
-            self.set_ctx("last_pos", ctx.last_pos)
+            self.set_ctx("last_pos", getattr(ctx, "last_pos", (0, 0)))
 
     def _char_at(self, char, pos):
         self.plane[pos] = char
