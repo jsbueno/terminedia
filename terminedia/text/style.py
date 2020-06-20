@@ -262,7 +262,7 @@ class MLTokenizer(Tokenizer):
 
     def _tokens_to_marks(self, raw_tokens):
         from terminedia.transformers import library as transformers_library
-        from terminedia import Effects, Color, Directions
+        from terminedia import Effects, Color, Directions, DEFAULT_BG, DEFAULT_FG, TRANSPARENT
 
         self.mark_sequence = {}
         for offset, token in raw_tokens:
@@ -282,6 +282,14 @@ class MLTokenizer(Tokenizer):
                 if action in {"left", "right", "up", "down"}:
                     value = action
                     action = "direction"
+
+            # Allow for special color values:
+            if action in ("color", "foreground") and value == "default":
+                value = DEFAULT_FG
+            if action == "background" and value == "default":
+                value = DEFAULT_BG
+            if value == "transparent" and action in {"effects", "color", "foreground", "background"}:
+                value = TRANSPARENT
 
             if action in {
                 "effects",

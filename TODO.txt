@@ -25,8 +25,11 @@ Targeted for next release (0.4):
                     - accept tokens in embedded square-brackets in the string ex.: "abc[color:red]def[V]
                     - Accept absolute/relative movement with "[+x,+y]" tokens embedd in the string[V]
                     - allow for 'pop last parameter of this type' tokens ([/color], [/effects])[WIP]
-                    - allow for default colors with [color:default] (WIP)
+                    - allow for default colors with [color:default] (V) (but check default-color bug bellow)
+                    -
 
+            - Apply transformers eagerly on a  per-character base (context-transformers are currently lazy, appied at
+                                                                   rendering time only, and are "flat" for the whole shape)
             - these marks can come embedded in the text, standalone
                     (and programatically depending on "tick count" or rendering position). or
             - these marks can be placed in the text_plane entity at fixed locations
