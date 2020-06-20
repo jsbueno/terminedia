@@ -21,19 +21,19 @@ here comes some text [color:blue] with apples [background:red] infinite [/color 
 """
 from __future__ import annotations
 
+import re
 import typing as T
 
 from terminedia.contexts import Context
-from terminedia import Effects, Color, Direction
 from terminedia.utils import V2
 
 RETAIN_POS = object()
 
 
 class StyledSequence:
-
-
-    def __init__(self, text, mark_sequence, text_plane=None, context=None, starting_point=None):
+    def __init__(
+        self, text, mark_sequence, text_plane=None, context=None, starting_point=None
+    ):
         """
         Args:
           text (Sequence): the stream of characters to be rendered  - it can be a string or a list of 1-grapheme strings.
@@ -78,7 +78,7 @@ class StyledSequence:
         self._last_index_processed = None
         self.context = Context()
         self.text_plane = text_plane
-        self.starting_point = V2(starting_point) if starting_point else V2(0,0)
+        self.starting_point = V2(starting_point) if starting_point else V2(0, 0)
         self.current_position = self.starting_point
         self._context_layers = 0
         self._sanity_counter = 0
@@ -87,10 +87,15 @@ class StyledSequence:
 
         if self._last_index_processed is None and index == 0:
             self.current_position = self.starting_point
-        elif self._last_index_processed is None or index != self._last_index_processed + 1:
+        elif (
+            self._last_index_processed is None
+            or index != self._last_index_processed + 1
+        ):
             self._sanity_counter += 1
             if self._sanity_counter > 1:
-                raise RuntimeError("Something resetting marked text internal state in infinite loop")
+                raise RuntimeError(
+                    "Something resetting marked text internal state in infinite loop"
+                )
             self.context._clear()
             self._context_layers = 0
             self._last_index_processed = None
@@ -143,7 +148,9 @@ class StyledSequence:
 
     def __iter__(self):
         for index, char in enumerate(self.text):
-            yield self.text[index], self._process_to(index), self._get_position_at(char, index)
+            yield self.text[index], self._process_to(index), self._get_position_at(
+                char, index
+            )
         self._unwind()
 
     def render(self):
@@ -164,7 +171,6 @@ class StyledSequence:
                 pass
 
 
-
 class Mark:
     """Control object to be added to a text_plane or StyledStream
 
@@ -176,6 +182,7 @@ class Mark:
 
 
     """
+
     # This is supposed to evolve to be programable
     # and depend on injected parameters like position, ticks -
     # like transformers.Transformer
@@ -184,10 +191,12 @@ class Mark:
     # 'context' and 'pos' attributes are set on the instance
     # prior to reading the other property values.
 
-    __slots__ = "attributes moveto rmoveto context pos".split()
+    __slots__ = "attributes pop_attributes moveto rmoveto context pos".split()
     attributes: T.Mapping
+    pop_attributes: T.Mapping
     moveto: V2
     rmoveto: V2
+
     def __init__(self, attributes=None, pop_attributes=None, moveto=None, rmoveto=None):
         self.attributes = attributes
         self.pop_attributes = pop_attributes
@@ -205,8 +214,12 @@ class Mark:
             rmoveto = m1.rmoveto + m2.rmoveto
         else:
             rmoveto = m1.rmoveto or m2.rmoveto
-        return cls(attributes=attributes, pop_attributes=pop_attributes, moveto=moveto, rmoveto=rmoveto)
-
+        return cls(
+            attributes=attributes,
+            pop_attributes=pop_attributes,
+            moveto=moveto,
+            rmoveto=rmoveto,
+        )
 
     def __repr__(self):
         return f"Mark({('attributes=%r, ' % self.attributes) if self.attributes else ''}{('moveto=%r, ' % self.moveto) if self.moveto else ''}{('rmoveto=%r' % self.rmoveto) if self.rmoveto else ''})"
@@ -218,7 +231,6 @@ EmptyMark = Mark()
 class Tokenizer:
     pass
 
-import re
 
 class MLTokenizer(Tokenizer):
     parser = re.compile(r"\[[^\[].*?\]")
@@ -240,6 +252,7 @@ class MLTokenizer(Tokenizer):
     def parse(self):
         raw_tokens = []
         offset = 0
+
         def annotate_and_strip_tokens(match):
             nonlocal offset
             token = match.group()
@@ -247,12 +260,13 @@ class MLTokenizer(Tokenizer):
             offset += match.end() - match.start()
             return ""
 
-
         self.parsed_text = self.parser.sub(annotate_and_strip_tokens, self.raw_text)
         self._tokens_to_marks(raw_tokens)
 
-
     def _tokens_to_marks(self, raw_tokens):
+        from terminedia.transformers import library as transformers_library
+        from terminedia import Effects, Color, Direction
+
         self.mark_sequence = {}
         for offset, token in raw_tokens:
             attributes = None
@@ -270,15 +284,39 @@ class MLTokenizer(Tokenizer):
                     value = action
                     action = "direction"
 
-            if action in {'effect', 'color', 'foreground', 'background', 'direction', 'transformer', 'char', 'font'}:
-                attributes = {action:(
-                    Color(value) if action in ('color', 'foreground', 'background') else
-                    Effects.__members__.get(value) if action == 'effect' else
-                    getattr(Direction, action) if action == "direction" else
-                    getattr(terminedia.transformers.library, value) if action=='transformer' else
-                    value
-                )}
-            if action[0] == "/" and action[1:] in {'effect', 'color', 'foreground', 'background', 'direction', 'transformer', 'char', 'font'}:
+            if action in {
+                "effect",
+                "color",
+                "foreground",
+                "background",
+                "direction",
+                "transformer",
+                "char",
+                "font",
+            }:
+                attributes = {
+                    action: (
+                        Color(value)
+                        if action in ("color", "foreground", "background")
+                        else Effects.__members__.get(value)
+                        if action == "effect"
+                        else getattr(Direction, action)
+                        if action == "direction"
+                        else getattr(transformers_library, value)
+                        if action == "transformer"
+                        else value
+                    )
+                }
+            if action[0] == "/" and action[1:] in {
+                "effect",
+                "color",
+                "foreground",
+                "background",
+                "direction",
+                "transformer",
+                "char",
+                "font",
+            }:
                 # pop_attributes = ...
                 pass
             if "," in action:
@@ -300,10 +338,17 @@ class MLTokenizer(Tokenizer):
                 mark = Mark.merge(self.mark_sequence[offset], mark)
             self.mark_sequence[offset] = mark
 
-    def __call__(self, text_plane=None, context=None, starting_point=(0,0)):
+    def __call__(self, text_plane=None, context=None, starting_point=(0, 0)):
         self.parse()
-        self.styled_sequence = StyledSequence(self.parsed_text, self.mark_sequence, text_plane=text_plane, context=context, starting_point=starting_point)
+        self.styled_sequence = StyledSequence(
+            self.parsed_text,
+            self.mark_sequence,
+            text_plane=text_plane,
+            context=context,
+            starting_point=starting_point,
+        )
         return self.styled_sequence
+
 
 class ANSITokenizer(Tokenizer):
     pass
