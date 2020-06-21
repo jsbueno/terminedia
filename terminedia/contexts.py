@@ -89,7 +89,7 @@ class Context:
     direction = ContextVar(V2, Directions.RIGHT)
     transformers = ContextVar(TransformersContainer, None)
     fill = ContextVar(bool, False)
-    font = ContextVar(str, "")
+    font = ContextVar((str, type(None)), "")
 
     def __init__(self, **kw):
         self._locals = threading.local()
