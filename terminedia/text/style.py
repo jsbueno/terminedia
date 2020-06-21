@@ -54,8 +54,9 @@ Markup description:
                - Using the "+" and "-" characers as a numeric prefix will use those numbrs as relative positions
                ex.: "[0, +1]" will move the beginning of text the next line.
 
-        If tags are not closed, styls are not "popped", but this is no problem - closing styles
-        is just a matter of convenience to return to previous values of the same attribute. Also,
+        If tags are not closed, styles are not "popped", but this is no problem (no memory laks or such)
+        the closing styles feature  is just a matter of convenience to return to previous values
+        of the same attribute. Also,
         unlike XML, there is no problem crossing tags; This is valid input:
         "[color: blue] hello [background: #ddd] world [/color] for you [/background]!!"
 
@@ -66,6 +67,7 @@ from __future__ import annotations
 
 import re
 import typing as T
+import threading
 
 from terminedia.contexts import Context
 from terminedia.utils import V2
@@ -123,8 +125,8 @@ class StyledSequence:
         self.text_plane = text_plane
         self.starting_point = V2(starting_point) if starting_point else V2(0, 0)
         self.current_position = self.starting_point
-        self._context_layers = 0
         self._sanity_counter = 0
+        self.locals = threading.local()
 
     def _process_to(self, index):
 
@@ -140,7 +142,6 @@ class StyledSequence:
                     "Something resetting marked text internal state in infinite loop"
                 )
             self.context._clear()
-            self._context_layers = 0
             self._last_index_processed = None
             for i in range(0, index + 1):
                 self._process_to(i)
@@ -152,8 +153,8 @@ class StyledSequence:
         if mark_here is not EmptyMark:
             mark_here.context = self.context
             mark_here.pos = self.current_position
-        if mark_here.attributes:
-            self._context_push(**mark_here.attributes)
+        if mark_here.attributes or mark_here.pop_attributes:
+            self._context_push(mark_here.attributes, mark_here.pop_attributes)
         if mark_here.moveto:
             mtx = mark_here.moveto[0]
             mty = mark_here.moveto[1]
@@ -165,21 +166,31 @@ class StyledSequence:
         self._last_index_processed = index
         return self.context
 
-    def _context_push(self, **kwargs):
-        # FIXME - have a 'lightweight layers' Context class instead of doing this.
-        # (or maybe, keep doing the __enter__ call, but having a lighter 'enter'
-        #  than the current implementation (2020-06-16), which creates a new
-        # Context instance)
-        self.context(**kwargs).__enter__()
-        self._context_layers += 1
+    def _enter_iteration(self):
+        cm = self.locals.context_map = {}
+        for key, value in self.context:
+            cm[key] = [value]
 
-    def _context_pop(self, n=1):
-        for i in range(n):
-            self.context.__exit__(None, None, None)
-            self._context_layers -= 1
+    def _context_push(self, attributes, pop_attributes):
+        cm = self.locals.context_map
+        changed = set()
+        attributes = attributes or {}
+        pop_attributes = pop_attributes or {}
+        for key in pop_attributes:
+            stack = cm.setdefault(key, [])
+            if stack:
+                changed.add(key)
+                stack.pop()
+        for key, value in attributes.items():
+            stack = cm.setdefault(key, [])
+            stack.append(value)
+            changed.add(key)
 
-    def _unwind(self):
-        self._context_pop(self._context_layers)
+        for attr in changed:
+            if cm[attr]:
+                setattr(self.context, attr, cm[attr][-1])
+            else:
+                pass
 
     def _get_position_at(self, char, index):
         if self._last_index_processed != index:
@@ -190,11 +201,13 @@ class StyledSequence:
         return position
 
     def __iter__(self):
-        for index, char in enumerate(self.text):
-            yield self.text[index], self._process_to(index), self._get_position_at(
-                char, index
-            )
-        self._unwind()
+        self._enter_iteration()
+        with self.context():
+            for index, char in enumerate(self.text):
+                yield self.text[index], self._process_to(index), self._get_position_at(
+                    char, index
+                )
+        # self._unwind()
 
     def render(self):
         if not self.text_plane:
@@ -262,7 +275,7 @@ class Mark:
         )
 
     def __repr__(self):
-        return f"Mark({('attributes=%r, ' % self.attributes) if self.attributes else ''}{('moveto=%r, ' % self.moveto) if self.moveto else ''}{('rmoveto=%r' % self.rmoveto) if self.rmoveto else ''})"
+        return f"Mark({('attributes=%r, ' % self.attributes) if self.attributes else ''}{('pop_attributes=%r, ' % self.attributes) if self.pop_attributes else ''}{('moveto=%r, ' % self.moveto) if self.moveto else ''}{('rmoveto=%r' % self.rmoveto) if self.rmoveto else ''})"
 
 
 EmptyMark = Mark()
@@ -370,7 +383,7 @@ class MLTokenizer(Tokenizer):
                 "char",
                 "font",
             }:
-                pop_attributes = {action: None}
+                pop_attributes = {action.lstrip("/"): None}
 
             if "," in action and attributes is None and pop_attributes is None:
                 nx, ny = [v.strip() for v in action.split(",")]
