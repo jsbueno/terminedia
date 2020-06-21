@@ -17,6 +17,49 @@ TMMarkup example:
 here comes some text [color:blue] with apples [background:red] infinite [/color /background effect:blink]in joy and blink[/effect]
 [direction:up]happy[effect:bold]new year[/effect][direction:left]there we go[/direction]up again[direction: right] the end.
 
+Markup description:
+    any text outside of a [...] block is treated as plain text
+    double use of square brackets - [[...]] escape on single bracket pair(wip)
+    the tag name inside squares can be any of:
+        - "color": sets the text foreground color. The color can be spelled as
+            a CSS color name ('red', 'yellow', etc...) or using a numeric notation
+            with a numeric triplet inside parenthesis (this will be parsed as if
+            it were a Pythn tuple. Besides that the special color names "transparent" and
+            "default" can also be used. The first ignores color and uses the correspondent
+            color already set in the underlying character cell.
+        - "foreground": the same as "color"
+        - "background": Sets the text foreground color
+        - "effect": any effect name from those listed in the "terminedia.effects" enum.
+            more than one effect can be activated in the same markup - separate the
+            effect names with a "|". Example: "[effect: blink|underline]".
+            Some of th provided effects rely on terminal capabilities, such as underline,
+            while others depend on an actual character replacing for unicode characters
+            providing the visual effect named. The later are not meant to be cumullative,
+            as characters can only be replaced once; ex.: "[effect: encircled]". Besides
+            all existing effets, the special value "transparent" is also affected, and should
+            preserve the effects active in the cell the character will be rendered to.
+        - "effects": an alias for "effect"
+        - "font" - the font to be used to render the text. Only works for multi-block sized text,
+                and for the embedded UNSCII fonts: "fantasy","mcr" and "thin". Ex:
+                "[font; thin]", "[font]"
+        - "char": replaces all characters inside this tag with the givern one.
+        - "direction": One of the 4 directions for text flow: up, down, right and left
+            instead of "[direction: left]" , the direction names can be used as tag names.,
+            so these are valid: "[left]abcd[up]efgh[right]ijklm"
+        - "transformers": one of the Transformer instances listed in "terminedia.transformers.library" (wip)
+        - tag name starting with an "/": pops the last corresponding tag and drops its modifications to
+        the text flow. ex. "[/color]" (wip)
+        - Two comma separated numbers: "teleports" the text the text for that coordinate in
+               - the target rendering area. ex. "Hello[5, 3]World", prints 'world" at the 5,3 coordinates.
+               - Using the "+" and "-" characers as a numeric prefix will use those numbrs as relative positions
+               ex.: "[0, +1]" will move the beginning of text the next line.
+
+        If tags are not closed, styls are not "popped", but this is no problem - closing styles
+        is just a matter of convenience to return to previous values of the same attribute. Also,
+        unlike XML, there is no problem crossing tags; This is valid input:
+        "[color: blue] hello [background: #ddd] world [/color] for you [/background]!!"
+
+
 
 """
 from __future__ import annotations
@@ -230,7 +273,7 @@ class Tokenizer:
 
 
 class MLTokenizer(Tokenizer):
-    parser = re.compile(r"\[[^\[].*?\]")
+    _parser = re.compile(r"\[[^\[].*?\]")
 
     def __init__(self, initial=""):
         """Parses a string with special Markup and prepare for rendering
@@ -247,6 +290,10 @@ class MLTokenizer(Tokenizer):
         self.raw_text += text
 
     def parse(self):
+        """Parses the raw_text in  the instance, and sets
+        setting a stripped "parsed_text" attribute along a ".mark_sequence" attribute
+        containing the described marks embedded in the text as Mark instances.
+        """
         raw_tokens = []
         offset = 0
 
@@ -257,7 +304,7 @@ class MLTokenizer(Tokenizer):
             offset += match.end() - match.start()
             return ""
 
-        self.parsed_text = self.parser.sub(annotate_and_strip_tokens, self.raw_text)
+        self.parsed_text = self._parser.sub(annotate_and_strip_tokens, self.raw_text)
         self._tokens_to_marks(raw_tokens)
 
     def _tokens_to_marks(self, raw_tokens):
@@ -290,6 +337,8 @@ class MLTokenizer(Tokenizer):
                 value = DEFAULT_BG
             if value == "transparent" and action in {"effects", "color", "foreground", "background"}:
                 value = TRANSPARENT
+            if value and value.startswith("(") and action in {"color", "foreground", "background"}:
+                value = ast.literal_eval(value)
 
             if action in {
                 "effects",
@@ -312,7 +361,7 @@ class MLTokenizer(Tokenizer):
                     )
                 }
             if action[0] == "/" and action[1:] in {
-                "effect",
+                "effects",
                 "color",
                 "foreground",
                 "background",
@@ -321,9 +370,9 @@ class MLTokenizer(Tokenizer):
                 "char",
                 "font",
             }:
-                # pop_attributes = ...
-                pass
-            if "," in action:
+                pop_attributes = {action: None}
+
+            if "," in action and attributes is None and pop_attributes is None:
                 nx, ny = [v.strip() for v in action.split(",")]
                 nnx, nny = int(nx), int(ny)
                 if nx[0] in ("+", "-") and ny[0] in ("+", "-"):

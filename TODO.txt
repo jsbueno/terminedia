@@ -28,8 +28,10 @@ Targeted for next release (0.4):
                     - allow for default colors with [color:default] (V) (but check default-color bug bellow)
                     -
 
-            - Apply transformers eagerly on a  per-character base (context-transformers are currently lazy, appied at
-                                                                   rendering time only, and are "flat" for the whole shape)
+            - Apply transformers eagerly on a  per-character base (context-transformers are currently lazy, applied at
+                        rendering time only, and are "flat" for the whole shape)
+            - Allow a call to MLToken.parse to be passed a transformers-mapping, and us it as a source for
+                    transformers objects in the  markup [transformer:...] elements
             - these marks can come embedded in the text, standalone
                     (and programatically depending on "tick count" or rendering position). or
             - these marks can be placed in the text_plane entity at fixed locations
