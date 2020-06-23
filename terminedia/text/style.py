@@ -115,7 +115,6 @@ class StyledSequence:
         push a new printing direction, but also "teleport" the
         rendering point for the next character altogether.
 
-
         """
         self.text = text
         self.mark_sequence = mark_sequence
