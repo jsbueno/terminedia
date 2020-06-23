@@ -148,20 +148,21 @@ class StyledSequence:
             self._sanity_counter -= 1
             return self.context
 
-        mark_here = self.mark_sequence.get(index, EmptyMark)
-        if mark_here is not EmptyMark:
+        mark_seq = self.mark_sequence.get(index, ())
+        mark_seq = [mark_seq] if isinstance(mark_seq, Mark) else mark_seq
+        for mark_here in mark_seq:
             mark_here.context = self.context
             mark_here.pos = self.current_position
-        if mark_here.attributes or mark_here.pop_attributes:
-            self._context_push(mark_here.attributes, mark_here.pop_attributes)
-        if mark_here.moveto:
-            mtx = mark_here.moveto[0]
-            mty = mark_here.moveto[1]
-            mtx = mtx if mtx is not RETAIN_POS else self.current_position.x
-            mty = mty if mty is not RETAIN_POS else self.current_position.y
-            self.current_position = V2(mtx, mty)
-        if mark_here.rmoveto:
-            self.current_position += V2(mark_here.rmoveto)
+            if mark_here.attributes or mark_here.pop_attributes:
+                self._context_push(mark_here.attributes, mark_here.pop_attributes)
+            if mark_here.moveto:
+                mtx = mark_here.moveto[0]
+                mty = mark_here.moveto[1]
+                mtx = mtx if mtx is not RETAIN_POS else self.current_position.x
+                mty = mty if mty is not RETAIN_POS else self.current_position.y
+                self.current_position = V2(mtx, mty)
+            if mark_here.rmoveto:
+                self.current_position += V2(mark_here.rmoveto)
         self._last_index_processed = index
         return self.context
 

@@ -110,3 +110,31 @@ def test_styled_sequence_pops_attributes(pos1, attrname, value, pos2, default):
         else:
             assert getattr(sc.data[i, 0], attrname) == default
 
+
+@pytest.mark.parametrize(
+    ("attrname", "value", "attr2", "value2"), [
+        ("color", TM.Color("red"), "background", TM.Color("white")),
+])
+@pytest.mark.parametrize(*fast_and_slow_render_mark)
+@rendering_test
+def test_styled_sequence_mark_objects_can_be_sequence(attrname, value, attr2, value2):
+    sc, sh, text_plane = styled_text()
+    msg = "Hello World!"
+    aa = StyledSequence(
+        msg, {
+            0: [
+                Mark(attributes={attrname: value}),
+                Mark(attributes={attr2: value2})
+        ]},
+        text_plane
+    )
+    aa.render()
+    sc.update()
+    yield None
+    # TODO: these should be aliased in TM.Context class.
+    if attrname == "color":
+        attrname = "foreground"
+    for i, char in enumerate(msg):
+        assert getattr(sc.data[i, 0], attrname) == value
+        assert getattr(sc.data[i, 0], attr2) == value2
+
