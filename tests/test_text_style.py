@@ -1,3 +1,4 @@
+import random
 from collections.abc import Sequence
 import terminedia as TM
 from terminedia.text.style import StyledSequence, Mark, MLTokenizer
@@ -112,6 +113,46 @@ def test_styled_sequence_pops_attributes(pos1, attrname, value, pos2, default):
             assert getattr(sc.data[i, 0], attrname) == default
 
 
+@pytest.mark.parametrize(("method",),[("merged",),("sequence",)])
+@pytest.mark.parametrize(
+    ("moveto", "rmoveto", "expected_pos"), [
+        ((0,1), None, (0,1)),
+        ((5,1), None, (5,1)),
+        (None, (0, 1), (5,1)),
+        (None, (-2, 3), (3, 3)),
+        ((10, 6), (-1, -1), (9, 5)),
+])
+@pytest.mark.parametrize(*fast_and_slow_render_mark)
+@rendering_test
+def test_styled_sequence_move_and_relative_move_work(moveto, rmoveto, expected_pos, method):
+    sc, sh, text_plane = styled_text()
+    msg = "01234566789"
+    if method == "merged":
+        mark_seq = Mark(moveto=moveto, rmoveto=rmoveto)
+    elif method == "sequence":
+        mark_seq = [Mark(moveto=moveto), Mark(rmoveto=rmoveto)]
+
+    # let's trhow in some color -
+    r = random.Random(hash((moveto, rmoveto, method)))
+    pos = r.randrange(0, 5)
+    attr = r.choice(["color", "background"])
+    color = r.choice(["yellow", "red", "green", "blue"])
+
+
+    aa = StyledSequence(
+        msg, {
+            pos: Mark(attributes={attr: color}),
+            5: mark_seq,
+        },
+        text_plane
+    )
+    aa.render()
+    sc.update()
+    yield None
+    # TODO: these should be aliased in TM.Context class.
+    assert sc.data[5,0].value == TM.values.EMPTY if expected_pos != (5,0) else True
+    assert sc.data[expected_pos].value == '5'
+
 @pytest.mark.parametrize(
     ("attrname", "value", "attr2", "value2"), [
         ("color", TM.Color("red"), "background", TM.Color("white")),
@@ -139,12 +180,14 @@ def test_styled_sequence_mark_objects_can_be_sequence(attrname, value, attr2, va
         assert getattr(sc.data[i, 0], attrname) == value
         assert getattr(sc.data[i, 0], attr2) == value2
 
+
 def test_mltokenizer_generates_marks():
     x = MLTokenizer("[color: blue]Hello World!")
     x.parse()
     assert x.parsed_text == "Hello World!"
     assert len(x.mark_sequence) == 1
     assert x.mark_sequence[0].attributes == {"color": TM.Color("blue")}
+
 
 def test_mltokenizer_generates_mark_sequences_with_marksups_at_same_place():
     x = MLTokenizer("[color: blue][background: white]Hello World!")
