@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 import terminedia as TM
-from terminedia.text.style import StyledSequence, Mark
+from terminedia.text.style import StyledSequence, Mark, MLTokenizer
 
 import pytest
 
@@ -138,3 +139,18 @@ def test_styled_sequence_mark_objects_can_be_sequence(attrname, value, attr2, va
         assert getattr(sc.data[i, 0], attrname) == value
         assert getattr(sc.data[i, 0], attr2) == value2
 
+def test_mltokenizer_generates_marks():
+    x = MLTokenizer("[color: blue]Hello World!")
+    x.parse()
+    assert x.parsed_text == "Hello World!"
+    assert len(x.mark_sequence) == 1
+    assert x.mark_sequence[0].attributes == {"color": TM.Color("blue")}
+
+def test_mltokenizer_generates_mark_sequences_with_marksups_at_same_place():
+    x = MLTokenizer("[color: blue][background: white]Hello World!")
+    x.parse()
+    assert x.parsed_text == "Hello World!"
+    assert isinstance(x.mark_sequence[0], Sequence)
+    assert len(x.mark_sequence[0]) == 2
+    assert x.mark_sequence[0][0].attributes == {"color": TM.Color("blue")}
+    assert x.mark_sequence[0][1].attributes == {"background": TM.Color("white")}

@@ -258,21 +258,30 @@ class Mark:
 
     @classmethod
     def merge(cls, m1, m2):
-        attributes = m1.attributes or {}
-        attributes.update(m2.attributes or {})
-        pop_attributes = m1.pop_attributes or {}
-        pop_attributes.update(m2.pop_attributes or {})
-        moveto = m2.moveto or m1.moveto
-        if m1.rmoveto and m2.rmoveto:
-            rmoveto = m1.rmoveto + m2.rmoveto
-        else:
-            rmoveto = m1.rmoveto or m2.rmoveto
-        return cls(
-            attributes=attributes,
-            pop_attributes=pop_attributes,
-            moveto=moveto,
-            rmoveto=rmoveto,
-        )
+        if not isinstance(m1, list):
+            m1 = [m1]
+        m1.append(m2)
+        return m1
+
+        # The following code is nice, and might still be used to
+        # consolidate moveto + rmoveto -
+        # However, it would not preserve the order of popping attibutes
+        # so, we'd better allow Sequences with a single Key in the "mark_sequence" dictionary.
+        #attributes = m1.attributes or {}
+        #attributes.update(m2.attributes or {})
+        #pop_attributes = m1.pop_attributes or {}
+        #pop_attributes.update(m2.pop_attributes or {})
+        #moveto = m2.moveto or m1.moveto
+        #if m1.rmoveto and m2.rmoveto:
+            #rmoveto = m1.rmoveto + m2.rmoveto
+        #else:
+            #rmoveto = m1.rmoveto or m2.rmoveto
+        #return cls(
+            #attributes=attributes,
+            #pop_attributes=pop_attributes,
+            #moveto=moveto,
+            #rmoveto=rmoveto,
+        #)
 
     def __repr__(self):
         return f"Mark({('attributes=%r, ' % self.attributes) if self.attributes else ''}{('pop_attributes=%r, ' % self.attributes) if self.pop_attributes else ''}{('moveto=%r, ' % self.moveto) if self.moveto else ''}{('rmoveto=%r' % self.rmoveto) if self.rmoveto else ''})"
