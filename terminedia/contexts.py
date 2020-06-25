@@ -105,6 +105,16 @@ class Context:
                 continue
             setattr(self, attr, value)
 
+    def _clear(self):
+        if getattr(self._locals, "_context_stack", None):
+            return self._locals._context_stack[-1].clear()
+        for name, attr in self.__class__.__dict__.items():
+            if isinstance(attr, ContextVar):
+                setattr(self, name, attr.default)
+        for name, attr in list(self.__dict__.items()):
+            if name and not name.startswith("_"):
+                del self.__dict__[name]
+
     def __setattr__(self, name, value):
         if name.startswith("_"):
             return super().__setattr__(name, value)
@@ -238,3 +248,14 @@ class _RootContext(Context):
         if value is DEFAULT_BG:
             raise ValueError("The source for default_bg can't be set as DEFAULT_BG")
         self._default_bg = Color(value)
+
+
+
+# TODO: check benchmark of stacking contexts on text.style usage
+#class FastStackableContext(Context):
+    ## Hold context stack data in a chainmap structure
+    ## in order to get lightweight layers of changing context
+    ## parameters. (The original context class can do that,
+    ## but it does that by creating a full context class
+    ## in _locals - while text-styling might need another context
+    ## attribute on a per-character basis.

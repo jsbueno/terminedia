@@ -1,8 +1,64 @@
 Targeted for next release (0.4):
 =================================
 
+[text-branch]
+
+    - Refactor 'text.py' into directory:[V]
+        - separate 'font' code into text/fonts.py [V]
+        - text_planes/big text into text/planes.py (V)
+        - file with text utilities for parsing/rendering text:
+            - split string into units containing a single grapheme, by grouping "combining characters" together (V)
+            - Refactor code to have a core to be used by  backend.print, screen.print, text.at, shape.print
+    - Make assignment of string to shape or text area cell spread the text across as many cells as needed:[WIP]
+        - correctly detect combining characters so that combined characters live on the same cell (V)
+        - correctly detect if final transformed character takes more than 1 cell width after applying effects, and correctly use 2 cells for character
+    - create markup language for embedding context changing directives inside a single string:
+        - make it usable by assignment, `print` and `at` methods
+    - Text entity, akim to "shape" or "sprite" which allows for flowing text [WIP]:
+        - BUG: when rendering spaces, attributes (like background) are not updated (V) - fixed by sprite transparency handling implementation.
+        - This can be current "text_planes" themselves [v]
+        - these should be decorateable with frames using unicode frame drawing characters
+        - Think of a way to "stream" text inside these containers [V]:
+        - Implement a way to "stream" text rich text inside these containers [WIP]:
+            - TM.text.StyledSequence is the class[v]
+            - Streamed text should allow marks for changing style (color, bg, effects, direction, position)[v]
+                - accept tokens in embedded square-brackets in the string ex.: "abc[color:red]def[V]
+                - Accept absolute/relative movement with "[+x,+y]" tokens embedd in the string (and work as "portals")[V]
+                - allow for 'pop last parameter of this type' tokens ([/color], [/effects])[V]
+                - allow for default colors with [color:default] (V) (but check default-color bug bellow)
+            - Apply transformers eagerly on a  per-character base
+                    (context-transformers are currently lazy, applied at rendering time only, and are "flat" for the whole shape)
+            - Allow a call to MLToken.parse to be passed a transformers-mapping, and us it as a source for
+                    transformers objects in the  markup [transformer:...] elements [wip]
+            - these marks can come embedded in the text, standalone
+                    (and programatically depending on "tick count" or rendering position). or
+            - these marks can be placed in the text_plane entity at fixed locations
+                and compose with the styledtext rendering.
+            - special marks should allow programatic text modfication based on ticks and position
+            - end-of-lines are marked by special "portal" objects poiting the
+                text to the beginning of the next line
+                 - (teleporters also indicate the direction the remainder of the text will flow)
+
+            - These "portal" are created automatically (lazily?) for
+                    left-to-right, top-down text, but can be customized
+                    for greater good and funny layouts
+        - Think of a nice API to make use of TM.text.StyledSequence that is shorter than instantiating one, passing the screen.data.text[1] as text_plane kwarg, and calling "render" on it followed by "screen.update()" :-) (probably changing "print", "at" and "__setitem__" on .text to use it :-) ):[wip]
+            - modify text_plane.at method to use styled sequence[V]
+            - fix and modify "=" in text_plane to use styled_sequence[V]
+            - modify "print" and "print_at" functions across the board to accept MLed text
+        - create an ANSI Sequence parser based on the MLTkenizer parser.
+        - Allow parsing mixed markup-and-ansi text and create a unique rich text object that can be rendered.
+
+
+    - create aliased string names for the text[...] text planes [V]
+    - Make shape.text alone behave like shape.text[1], with no need for indexing.
+    - Add tests to terminedia-planes [WIP]:
+        - Avoid creating a new "Text" instance on each text-plane access![V]
+
+    - pickle terminedia.unicode.CHAR_BASE as part of setup.py install (?)
+
+
 [WIP]
-Change image-loading mechanism to easy loading to a square-resolution full-shape
 Implement "big square" 2 block resolution:
 make way for 6x3 block core transformers in order to use half-triangle characters
 
@@ -353,10 +409,10 @@ Bugs
     bug: plot example script prints completly bogus values on the y scale.
     bug:fix printing of colored double-width characters . (b0rk on konsole) (WIP)
     bug: when apple shows up over snake body, it is erased from screen (snake.py) (easy) (external) (hacktober)
-    bug: Screen.clear() should clear the associated shape in Screen.data.
     bug: Effects.super_script not working for letters 'n' and 'q' - check if there is a suitable custom glyph
     bug: Pallette shapes need to be overhauled - currently tests are broken due to reading from it back just yielding "True" and "False"
     bug: (big issue): workaround stdout blocking and raising error when in input.keyboard reading mode.
+    bug: TM.DEFAULT_FG always rendering as White when comming from blitted [transformed] source
     bug: terminedia-shapes example has stopped working properly, due to differences in how
     whitespace is blitted. To fix: refactor script to use Sprites instead of raw shapes.(V)
     bug: TrasnformersContainer.bake breaking with KernelTransformers (and any transforemrs that will use 'source' and 'pos') (V)

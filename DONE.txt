@@ -18,6 +18,37 @@ New 'transformers library':
     - AddAlpha Transformer to replace empty spaces, default-fg, default-bg, no effect with TRANSPARENT special value
 
 
+New rich-text and text-handling features:
+    [text-branch]
+
+    - Refactor 'text.py' into directory:[V]
+        - separate 'font' code into text/fonts.py [V]
+        - text_planes/big text into text/planes.py (V)
+        - file with text utilities for parsing/rendering text:
+            - split string into units containing a single grapheme, by grouping "combining characters" together (V)
+            - Refactor code to have a core to be used by  backend.print, screen.print, text.at, shape.print [V]
+    - Make assignment of string to shape or text area cell spread the text across as many cells as needed:[V]
+        - correctly detect combining characters so that combined characters live on the same cell (V)
+    - create markup language for embedding context changing directives inside a single string:[V]
+        - make it usable by assignment, `text[x].print` and `at` methods
+        - BUG: when rendering spaces from text-planes, attributes (like background) are not updated (V):
+                - fixed by sprite transparency handling implementation.[V]
+        - Implement a way to "stream" rich text inside these text-plane containers [WIP]:
+            - TM.text.style.StyledSequence is the class used for that [v]
+            - Streamed text should allow marks for changing style (color, bg, effects, direction, position)[v]
+                - accept tokens in embedded square-brackets in the string ex.: "abc[color:red]def[V]
+                - Accept absolute/relative movement with "[+x,+y]" tokens embedded in the string (and work as "portals")[V]
+                - allow for 'pop last parameter of this type' tokens ([/color], [/effects])[V]
+                - allow for default colors with [color:default] (V) (but check default-color bug)
+            - Allow a call to MLToken.parse to be passed a transformers-mapping, and us it as a source for
+                    transformers objects in the  markup [transformer:...] elements [wip]
+
+    - create aliased string names for the text[...] text planes [V]
+    - Add tests to terminedia-planes [WIP]:
+        - Avoid creating a new "Text" instance on each text-plane access![V]
+        - Tests for styling bases classes in progress - testing attribute changing and position
+
+
 
 version 0.3
 ============

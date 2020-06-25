@@ -2,6 +2,7 @@ import io
 from unittest import mock
 
 import terminedia as TM
+from terminedia.utils import combine_signatures
 
 import pytest
 
@@ -31,12 +32,12 @@ fast_and_slow_render_mark = (
 
 
 def rendering_test(func):
-    # @wraps(func)
-    def rendering_test(set_render_method, DISPLAY, DELAY):
+    @combine_signatures(func)
+    def rendering_test(*args, set_render_method, DISPLAY, DELAY, **kwargs):
         set_render_method()
         stdout = io.StringIO()
 
-        fn = func()
+        fn = func(*args, **kwargs)
         with mock.patch("sys.stdout", stdout):
             next(fn)
 

@@ -1,113 +1,15 @@
 import binascii
 from copy import copy
 from pathlib import Path
+import threading
 
 from terminedia.image import Shape, PalettedShape
+from terminedia.unicode import split_graphemes
 from terminedia.utils import contextkwords, V2, Rect
 from terminedia.values import Directions, EMPTY, TRANSPARENT
 
-try:
-    # This is the only Py 3.7+ specific thing in the project
-    from importlib import resources
-except ImportError:
-    resources = None
-
-
-font_registry = {}
-
-
-def _normalize_font_path(font_path):
-    font_is_resource = font_path == "" or not Path(font_path).exists()
-    if font_is_resource:
-        if font_path == "16":
-            font_path = "unscii-16-full.hex"
-        elif "unscii-8" not in font_path:
-            if font_path in ("", "fantasy", "mcr", "thin"):
-                font_path = f"unscii-8{'-' if font_path else ''}{font_path}.hex"
-    return font_path, font_is_resource
-
-
-def list_fonts():
-    """List font-files available with installed terminedia.
-
-        Compliant fonts can be used and rendered if their
-        full-file-path is supplied in target.context.font
-        (current implementation uses human-readable, one glyph per line,
-        hex font files as made available by the UNSCII project).
-
-        Fonts can be used by their aliases: default unscii-8-font is used
-        if font is the empty string  "". unscii-16, if the name includes
-        "16", and unscii 8 variants need only their distinct infix
-        like "fantasy", "mcr" or "thin".
-    """
-    if not resources:
-        path = Path(__file__).parent / "data"
-        files = [str(f) for f in path.iterdir()]
-    else:
-        files = list(resources.contents("terminedia.data"))
-    return [f for f in files if f.endswith(".hex")]
-
-
-def load_font(font_path, font_is_resource, page=0, ch1=EMPTY, ch2="#"):
-
-    initial = page << 8
-    last = initial + 0x100
-
-    if font_is_resource and resources:
-        data = list(resources.open_text("terminedia.data", font_path))
-
-    elif font_is_resource and not resources:
-        path = Path(__file__).parent / "data" / font_path
-        data = list(open(path).readlines())
-    else:
-        # TODO: enable more font types, and
-        # TODO: enable fallback to other fonts if glyphs not present in the requested one
-        data = list(open(font_path).readlines())
-
-    font = {}
-
-    for i, line in enumerate(data[initial:last], initial):
-        line = line.split(":")[1].strip()
-        line = binascii.unhexlify(line)
-        char = "\n".join(f"{bin(v).split('b')[1]}".zfill(8) for v in line)
-        char = char.replace("0", ch1).replace("1", ch2)
-        font[chr(i)] = char
-
-    return font
-
-
-GLYPH_CACHE = {}
-
-
-def render(text, font=None, shape_cls=PalettedShape, direction=Directions.RIGHT):
-    if font is None:
-        font = ""
-    font_id, is_resource = _normalize_font_path(font)
-
-    font = font_registry.get(font_id, None)
-
-    if not font:
-        # Always load page-0 (first 256 chars)
-        font_registry.setdefault(font_id, {}).update(load_font(font_id, is_resource))
-        font = font_registry[font_id]
-
-    cache_index = (font_id, shape_cls, text)
-    if len(text) == 1 and cache_index in GLYPH_CACHE:
-        return GLYPH_CACHE[cache_index]
-
-    phrase = []
-    for char in text:
-        if char not in font:
-            font.update(load_font(font_id, is_resource, page=ord(char)//0x100))
-        phrase.append(shape_cls(font[char]))
-
-    if len(text) == 0:
-        return shape_cls.new((0, 0))
-    elif len(text) == 1:
-        GLYPH_CACHE[cache_index] = phrase[0]
-        return phrase[0]
-    return phrase[0].concat(*phrase[1:], direction=direction)
-
+from .fonts import render
+from ..text import style
 
 class CharPlaneData(dict):
     """2D Data structure to hold the text contents of a text plane.
@@ -148,6 +50,14 @@ class CharPlaneData(dict):
         super().__setitem__(pos, value)
 
 
+plane_alias = {
+    "block": 8,
+    "high": 4,
+    "square": (8, 4),
+    "braille": 2,
+    "normal": 1,
+}
+
 class Text:
     """Text handling API
 
@@ -168,6 +78,8 @@ class Text:
     for the text[1] plane.
     """
 
+    _render_lock = threading.Lock()
+
     def __init__(self, owner):
         """Not intented to be instanced directly - instantiated as a Shape property.
 
@@ -177,13 +89,6 @@ class Text:
         self.owner = owner
         self.planes = {}
 
-    @property
-    def current_plane(self):
-        if not isinstance(self.__dict__.get("current_plane"), (int, tuple)):
-            raise TypeError(
-                "Please select the character plane with `.text[#]` before using this method"
-            )
-        return self.__dict__["current_plane"]
 
     def set_ctx(self, key, value):
         return setattr(self.owner.context, f"local_storage_text_{self.current_plane}_{key}", value)
@@ -191,13 +96,9 @@ class Text:
     def get_ctx(self, key, default=None):
         return getattr(self.owner.context, f"local_storage_text_{self.current_plane}_{key}", default)
 
-    @current_plane.setter
-    def current_plane(self, value):
-        self.__dict__["current_plane"] = value
-
     @property
-    def plane(self):
-        return self.planes[self.current_plane]
+    def size(self):
+        return self.plane.size
 
     def _build_plane(self, index, char_width=None):
         char_height = index
@@ -207,10 +108,18 @@ class Text:
         if not char_width:
             char_width = char_height
         self.planes[index] = plane = dict()
+        if getattr(self, "current_plane", False):
+            raise RuntimeError("Concrete instance of text - can't create further planes")
         plane["width"] = width = self.owner.width // char_width
         plane["height"] = height = self.owner.height // char_height
         plane["data"] = data = CharPlaneData((width, height))
-        plane["font"] = ""
+        concretized_text = copy(self)
+        concretized_text.current_plane = index
+        concretized_text.plane = data
+        concretized_text.font = ""
+        concretized_text.width = width
+        concretized_text.height = height
+        plane["text"] = concretized_text
 
     def _checkplane(self, index):
         if not isinstance(index, (int, tuple)):
@@ -222,24 +131,28 @@ class Text:
         return self.planes[index]
 
     def __getitem__(self, index):
+        index = plane_alias.get(index, index)
         if "current_plane" not in self.__dict__:
             self._checkplane(index)
-            selected_text = copy(self)
-            selected_text.current_plane = index
-            return selected_text
-        return self.plane["data"][index]
+            return self.planes[index]["text"]
+        return self.plane[index]
 
     def __setitem__(self, index, value):
         if isinstance(index[0], slice) or isinstance(index[1], slice):
-            raise NotImplementedError
-        self.plane["data"][index] = value
+            raise NotImplementedError()
+        if len(value) > 1 and len(split_graphemes(value)) > 1:
+            self._at(index, value)
+            return
+
+        self.plane[index] = value
+        self.set_ctx("last_pos", index)
         self.blit(index)
 
     def blit(self, index, target=None, clear=True):
         if target is None:
             target = self.owner
 
-        char = self.plane["data"][index]
+        char = self.plane[index]
 
         if char is EMPTY and not clear:
             return
@@ -250,7 +163,7 @@ class Text:
             return
 
         rendered_char = render(
-            self.plane["data"][index], font=target.context.font or self.plane["font"]
+            self.plane[index], font=target.context.font or self.font
         )
         index = (V2(index) * 8).as_int
         if self.current_plane == 2:
@@ -280,7 +193,7 @@ class Text:
 
         if target is None:
             target = self.owner
-        data = self.plane["data"]
+        data = self.plane
 
         if not rect:
             rect = Rect((0,0), data.size)
@@ -295,24 +208,25 @@ class Text:
             for pos in rect.iter_cells():
                 self.blit(pos, target=target, clear=clear)
 
+    def _render_styled(self, context):
+        with self.owner.context(context=context) as ctx, self._render_lock:
+            yield self._char_at
+            self.set_ctx("last_pos", getattr(ctx, "last_pos", (0, 0)))
+
+    def _char_at(self, char, pos):
+        self.plane[pos] = char
+        self.owner.context.last_pos = pos
+        self.blit(pos)
+
     @contextkwords(context_path="owner.context", text_attrs=True)
     def at(self, pos, text):
-        pos = V2(pos)
-        for char in text:
-            self[pos] = char
-            pos += self.owner.context.direction
-            # FIXME: handle char-width guessing standalone here
-            # That will enable double width detection for other text planes than 1,
-            # and fix ltr case properly.
-            if getattr(self.owner.context, "shape_lastchar_was_double", False):
-                if 0 < self.owner.context.direction[0] < 2:
-                    pos += (1, 0)
-                elif -2 < self.owner.context.direction[0] < 0:
-                    # FIXME: not perfect, as next char might not be double width.
-                    # will handle common case of rtl with double-width chars string, tough.
-                    pos -= (1, 0)
+        return self._at(pos, text)
 
-        self.set_ctx("last_pos", pos)
+    def _at(self, pos, text):
+        tokens = style.MLTokenizer(text)
+        styled = tokens(text_plane=self, starting_point=pos)
+        styled.render()
+        return self.get_ctx("last_pos")
 
     @contextkwords(context_path="owner.context")
     def print(self, text):
