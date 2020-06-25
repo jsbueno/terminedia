@@ -362,16 +362,8 @@ class MLTokenizer(Tokenizer):
             if value and value.startswith("(") and action in {"color", "foreground", "background"}:
                 value = ast.literal_eval(value)
 
-            if action in {
-                "effects",
-                "color",
-                "foreground",
-                "background",
-                "direction",
-                "transformer",
-                "char",
-                "font",
-            }:
+            attribute_names = {"effects", "color", "foreground", "background", "direction", "transformer", "char", "font", }
+            if action in attribute_names:
                 attributes = {
                     action: (
                         Color(value) if action in ("color", "foreground", "background") else
@@ -382,16 +374,7 @@ class MLTokenizer(Tokenizer):
                         value
                     )
                 }
-            if action[0] == "/" and action[1:] in {
-                "effects",
-                "color",
-                "foreground",
-                "background",
-                "direction",
-                "transformer",
-                "char",
-                "font",
-            }:
+            if action[0] == "/" and action[1:] in attribute_names:
                 pop_attributes = {action.lstrip("/"): None}
 
             if "," in action and attributes is None and pop_attributes is None:

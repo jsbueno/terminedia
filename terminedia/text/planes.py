@@ -9,6 +9,7 @@ from terminedia.utils import contextkwords, V2, Rect
 from terminedia.values import Directions, EMPTY, TRANSPARENT
 
 from .fonts import render
+from ..text import style
 
 class CharPlaneData(dict):
     """2D Data structure to hold the text contents of a text plane.
@@ -139,19 +140,10 @@ class Text:
     def __setitem__(self, index, value):
         if isinstance(index[0], slice) or isinstance(index[1], slice):
             raise NotImplementedError()
-        if len(value) > 1:
-            # FIXME: when the project gets py3.8+, ':=' can merge these two 'if's
-            elements = split_graphemes(value)
-            if len(elements) > 1:
-                if not isinstance(index, V2):
-                    index = V2(index)
-                direction = self.owner.context.direction
-                for grapheme in elements:
-                    self[index] = grapheme
-                    # FIXME: check placing of double-characters.
-                    # FIXME 2: refactor "at" method to use this code instead.
-                    index += direction
-                return
+        if len(value) > 1 and len(split_graphemes(value)) > 1:
+            self._at(index, value)
+            return
+
         self.plane[index] = value
         self.set_ctx("last_pos", index)
         self.blit(index)
@@ -228,22 +220,13 @@ class Text:
 
     @contextkwords(context_path="owner.context", text_attrs=True)
     def at(self, pos, text):
-        pos = V2(pos)
-        for char in text:
-            self[pos] = char
-            pos += self.owner.context.direction
-            # FIXME: handle char-width guessing standalone here^w - in! __setitem__ -
-            # That will enable double width detection for other text planes than 1,
-            # and fix ltr case properly.
-            if getattr(self.owner.context, "shape_lastchar_was_double", False):
-                if 0 < self.owner.context.direction[0] < 2:
-                    pos += (1, 0)
-                elif -2 < self.owner.context.direction[0] < 0:
-                    # FIXME: not perfect, as next char might not be double width.
-                    # will handle common case of rtl with double-width chars string, tough.
-                    pos -= (1, 0)
+        return self._at(pos, text)
 
-        self.set_ctx("last_pos", pos)
+    def _at(self, pos, text):
+        tokens = style.MLTokenizer(text)
+        styled = tokens(text_plane=self, starting_point=pos)
+        styled.render()
+        return self.get_ctx("last_pos")
 
     @contextkwords(context_path="owner.context")
     def print(self, text):
