@@ -197,3 +197,21 @@ def test_mltokenizer_generates_mark_sequences_with_marksups_at_same_place():
     assert len(x.mark_sequence[0]) == 2
     assert x.mark_sequence[0][0].attributes == {"color": TM.Color("blue")}
     assert x.mark_sequence[0][1].attributes == {"background": TM.Color("white")}
+
+
+@pytest.mark.parametrize(*fast_and_slow_render_mark)
+@rendering_test
+def test_styled_sequence_retrives_marks_from_text_plane():
+    sc, sh, text_plane = styled_text()
+    text_plane.marks[1,0] = Mark(attributes={"color": TM.Color("yellow")})
+    msg = "Hello World!"
+    aa = StyledSequence(
+        msg, {},
+        text_plane
+    )
+    aa.render()
+    sc.update()
+    yield None
+    assert sc.data[0,0].foreground == TM.DEFAULT_FG
+    for i, letter in enumerate(msg[1:],1):
+        assert sc.data[i,0].foreground == TM.Color("yellow")

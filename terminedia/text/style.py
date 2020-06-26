@@ -65,6 +65,7 @@ Markup description:
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 import re
 import typing as T
 import threading
@@ -148,8 +149,15 @@ class StyledSequence:
             self._sanity_counter -= 1
             return self.context
 
-        mark_seq = self.mark_sequence.get(index, ())
+        mark_seq = self.mark_sequence.get(index, [])
         mark_seq = [mark_seq] if isinstance(mark_seq, Mark) else mark_seq
+        if self.text_plane:
+            marks_plane = self.text_plane.marks.get(self.current_position, None)
+            if isinstance (marks_plane, Sequence):
+                mark_seq = marks_plane + mark_seq
+            elif isinstance(marks_plane, Mark):
+                mark_seq.insert(0, marks_plane)
+
         for mark_here in mark_seq:
             mark_here.context = self.context
             mark_here.pos = self.current_position

@@ -113,9 +113,11 @@ class Text:
         plane["width"] = width = self.owner.width // char_width
         plane["height"] = height = self.owner.height // char_height
         plane["data"] = data = CharPlaneData((width, height))
+        plane["marks"] = marks = CharPlaneData((width, height))
         concretized_text = copy(self)
         concretized_text.current_plane = index
         concretized_text.plane = data
+        concretized_text.marks = marks
         concretized_text.font = ""
         concretized_text.width = width
         concretized_text.height = height
