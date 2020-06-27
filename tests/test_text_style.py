@@ -215,3 +215,21 @@ def test_styled_sequence_retrives_marks_from_text_plane():
     assert sc.data[0,0].foreground == TM.DEFAULT_FG
     for i, letter in enumerate(msg[1:],1):
         assert sc.data[i,0].foreground == TM.Color("yellow")
+
+
+@pytest.mark.parametrize(*fast_and_slow_render_mark)
+@rendering_test
+def test_text_wraps_at_text_plane_boundary():
+    sc, sh, text_plane = styled_text()
+    msg = "Hello World!"
+    # Wrapping depends on Mark objects automatically
+    # placed at the text_plane border to move
+    # the rendering to the following line.
+    text_plane[text_plane.width - 4, 5] = msg
+
+    sc.update()
+    yield None
+    assert sc.data[text_plane.width -1, 5].value == "l"
+    assert sc.data[0, 6].value == "o"
+    assert sc.data[2, 6].value == "W"
+    assert sc.data[text_plane.width, 5].value == " "

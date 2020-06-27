@@ -113,7 +113,8 @@ class Text:
         plane["width"] = width = self.owner.width // char_width
         plane["height"] = height = self.owner.height // char_height
         plane["data"] = data = CharPlaneData((width, height))
-        plane["marks"] = marks = CharPlaneData((width, height))
+        plane["marks"] = marks = style.MarkMap()
+        marks[Rect((width, 0, width + 1, height))] = style.Mark(moveto=(0, style.RETAIN_POS), rmoveto=(0,1))
         concretized_text = copy(self)
         concretized_text.current_plane = index
         concretized_text.plane = data

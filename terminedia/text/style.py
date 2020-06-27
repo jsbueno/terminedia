@@ -65,13 +65,14 @@ Markup description:
 """
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Sequence, MutableMapping
+from copy import copy
 import re
 import typing as T
 import threading
 
 from terminedia.contexts import Context
-from terminedia.utils import V2
+from terminedia.utils import V2, Rect, get_current_tick
 
 RETAIN_POS = object()
 
@@ -136,29 +137,9 @@ class StyledSequence:
             self._last_index_processed is None
             or index != self._last_index_processed + 1
         ):
-            self._sanity_counter += 1
-            if self._sanity_counter > 1:
-                raise RuntimeError(
-                    "Something resetting marked text internal state in infinite loop"
-                )
-            self.context._clear()
-            self._last_index_processed = None
-            for i in range(0, index + 1):
-                self._process_to(i)
+            return self._reprocess_from_start(index)
 
-            self._sanity_counter -= 1
-            return self.context
-
-        mark_seq = self.mark_sequence.get(index, [])
-        mark_seq = [mark_seq] if isinstance(mark_seq, Mark) else mark_seq
-        if self.text_plane:
-            marks_plane = self.text_plane.marks.get(self.current_position, None)
-            if isinstance (marks_plane, Sequence):
-                mark_seq = marks_plane + mark_seq
-            elif isinstance(marks_plane, Mark):
-                mark_seq.insert(0, marks_plane)
-
-        for mark_here in mark_seq:
+        for mark_here in self.marks.get_full(index, self.current_position):
             mark_here.context = self.context
             mark_here.pos = self.current_position
             if mark_here.attributes or mark_here.pop_attributes:
@@ -174,10 +155,28 @@ class StyledSequence:
         self._last_index_processed = index
         return self.context
 
+    def _reprocess_from_start(self, index):
+        self._sanity_counter += 1
+        if self._sanity_counter > 1:
+            raise RuntimeError(
+                "Something resetting marked text internal state in infinite loop"
+            )
+        self.context._clear()
+        self._last_index_processed = None
+        for i in range(0, index + 1):
+            self._process_to(i)
+
+        self._sanity_counter -= 1
+        return self.context
+
+
     def _enter_iteration(self):
         cm = self.locals.context_map = {}
         for key, value in self.context:
             cm[key] = [value]
+        marks = self.text_plane.marks if self.text_plane else MarkMap()
+        self.marks = marks.prepare(self.mark_sequence, get_current_tick(), self.context)
+
 
     def _context_push(self, attributes, pop_attributes):
         cm = self.locals.context_map
@@ -215,6 +214,8 @@ class StyledSequence:
                 yield self.text[index], self._process_to(index), self._get_position_at(
                     char, index
                 )
+        if hasattr(self, "marks"):
+            del self.marks
         # self._unwind()
 
     def render(self):
@@ -230,6 +231,94 @@ class StyledSequence:
                 char_fn(char, position)
         finally:
             next(render_lock, None)
+
+
+class MarkMap(MutableMapping):
+    """Mapping attached to each text plane -
+
+    TL;DR: this is an internal mapping used to control
+    rich text rendering and flow. An instance is attached
+    to each text plane and can be reachd at shape.text[size].marks
+
+
+    It contains Mark objects that
+    are "virtually" hidden in the plane and can chang the attributes or
+    position of any rich text that would be printed were they are located.
+
+    The positional Marks can also be "virtual" in a sense one can set
+    a rectangle of special marks in a single call: this is used
+    to setup the "teleporter" marks at text-plane boundaries
+    that enable text to continue on the next line, when printing
+    left-to-right.
+
+    A third Mark category can be added, consisting of Marks which index
+    wll change overtime (a callable gets the "tick" number and that yields
+    a 1D or 2D index for that Mark)
+
+    The instances of MarkMap are consumed by StyledSequence objects when rendering,
+    and those will set a 1D positional-mark mapping (this creates a shallow copy
+    of a MarkMap instance). The StyledSequence then consumes marks when iterating
+    itself for rendering, retrieving both marks in the text stream (1D positional
+    marking), Marks fixed on the text plane, and special marks with time-variant
+    position. When retrieving the Marks at a given position, the location on th
+    2D plane, and tick number are available to be consumed by callables on
+    special Mark objects
+
+
+    """
+    def __init__(self):
+        self.data = {}
+        self.tick = 0
+        self.seq_data = {}
+
+    def prepare(self, seq_data, tick=0, context=None):
+        instance = copy(self)
+        instance.tick = tick
+        instance.seq_data = seq_data
+        instance.context = context
+        # self.data is the same object on purpose -
+        return instance
+
+    def get_full(self, seq_pos, pos):
+
+        self.seq_pos = seq_pos
+        self.pos = pos
+
+        mark_seq = self.seq_data.get(seq_pos, [])
+        mark_seq = [mark_seq] if isinstance(mark_seq, Mark) else mark_seq
+
+        marks_plane = self.get(pos)
+        if isinstance (marks_plane, Sequence):
+            mark_seq = marks_plane + mark_seq
+        elif isinstance(marks_plane, Mark):
+            mark_seq.insert(0, marks_plane)
+
+        return mark_seq
+
+    def __setitem__(self, index, value):
+        if isinstance(index, Rect):
+            # TODO: enable lazy virtual Marks instead of these eager ones
+            for pos in index.iter_cells():
+                self[pos] = value
+            return
+
+        self.data[index] = value
+
+    def __getitem__(self, index):
+        # TODO retrieve MagicMarks and virtual marks
+        return self.data[index]
+
+    def __delitem__(self, index):
+        del self.data[index]
+
+    def __len__(self):
+        return len(self.data)
+
+    def __iter__(self):
+        return iter(self.data)
+
+    def __repr__(self):
+        return "MarkMap < >"
 
 
 class Mark:
@@ -292,7 +381,7 @@ class Mark:
         #)
 
     def __repr__(self):
-        return f"Mark({('attributes=%r, ' % self.attributes) if self.attributes else ''}{('pop_attributes=%r, ' % self.attributes) if self.pop_attributes else ''}{('moveto=%r, ' % self.moveto) if self.moveto else ''}{('rmoveto=%r' % self.rmoveto) if self.rmoveto else ''})"
+        return f"Mark({('attributes=%r, ' % self.attributes) if self.attributes else ''}{('pop_attributes=%r, ' % self.pop_attributes) if self.pop_attributes else ''}{('moveto={!r}, '.format(self.moveto)) if self.moveto else ''}{('rmoveto={!r}'.format(self.rmoveto)) if self.rmoveto else ''})"
 
 
 EmptyMark = Mark()

@@ -33,15 +33,22 @@ Targeted for next release (0.4):
             - these marks can come embedded in the text, standalone
                     (and programatically depending on "tick count" or rendering position). or
             - these marks can be placed in the text_plane entity at fixed locations
-                and compose with the styledtext rendering.
+                and compose with the styledtext rendering.[V]
             - special marks should allow programatic text modfication based on ticks and position
-            - end-of-lines are marked by special "portal" objects poiting the
-                text to the beginning of the next line
-                 - (teleporters also indicate the direction the remainder of the text will flow)
+            - end-of-lines are marked by special "portal" objects poiting the text to the beginning of the next line[WIP]
+                 - (teleporters also indicate the direction the remainder of the text will flow)[V]
 
-            - These "portal" are created automatically (lazily?) for
-                    left-to-right, top-down text, but can be customized
-                    for greater good and funny layouts
+                - These "portal" are created automatically (lazily?) for
+                        left-to-right, top-down text, but can be customized
+                        for greater good and funny layouts[WIP]
+
+                - To enable the automatic portals and some other features, a specialized container
+                    for Marks assigned to a textplane is created (MarkMap) [WIP]:
+                        - it is tightly coupled with Mark, StyledSequence and TextPlanes (sorry purists)[V]
+                        - It can draw "rectangles" of markers in order to create the portals at
+                            text-plane boundaries[V]
+                        - These rectangle could be "virtual" (they are eager)
+                        - it can handle special Marks which position varies with the current tick [TBD]
         - Think of a nice API to make use of TM.text.StyledSequence that is shorter than instantiating one, passing the screen.data.text[1] as text_plane kwarg, and calling "render" on it followed by "screen.update()" :-) (probably changing "print", "at" and "__setitem__" on .text to use it :-) ):[wip]
             - modify text_plane.at method to use styled sequence[V]
             - fix and modify "=" in text_plane to use styled_sequence[V]
