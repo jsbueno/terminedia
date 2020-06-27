@@ -392,7 +392,7 @@ class Tokenizer:
 
 
 class MLTokenizer(Tokenizer):
-    _parser = re.compile(r"\[[^\[].*?\]")
+    _parser = re.compile(r"(?<!\[)\[[^\[].*?\]")
 
     def __init__(self, initial=""):
         """Parses a string with special Markup and prepare for rendering

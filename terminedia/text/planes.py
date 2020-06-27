@@ -114,7 +114,6 @@ class Text:
         plane["height"] = height = self.owner.height // char_height
         plane["data"] = data = CharPlaneData((width, height))
         plane["marks"] = marks = style.MarkMap()
-        marks[Rect((width, 0, width + 1, height))] = style.Mark(moveto=(0, style.RETAIN_POS), rmoveto=(0,1))
         concretized_text = copy(self)
         concretized_text.current_plane = index
         concretized_text.plane = data
@@ -122,7 +121,12 @@ class Text:
         concretized_text.font = ""
         concretized_text.width = width
         concretized_text.height = height
+        concretized_text._reset_marks()
         plane["text"] = concretized_text
+
+    def _reset_marks(self):
+        self.marks.clear()
+        self.marks[Rect((self.width, 0, self.width + 1, self.height))] = style.Mark(moveto=(0, style.RETAIN_POS), rmoveto=(0,1))
 
     def _checkplane(self, index):
         if not isinstance(index, (int, tuple)):
@@ -210,6 +214,10 @@ class Text:
 
             for pos in rect.iter_cells():
                 self.blit(pos, target=target, clear=clear)
+
+    def clear(self):
+        self.plane.clear()
+        self._reset_marks()
 
     def _render_styled(self, context):
         with self.owner.context(context=context) as ctx, self._render_lock:
