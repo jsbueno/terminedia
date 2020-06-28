@@ -31,6 +31,14 @@ fast_and_slow_render_mark = (
 )
 
 
+fast_render_mark = (
+    "set_render_method",
+    [
+        (lambda: setattr(TM.context, "fast_render", True)),
+    ],
+)
+
+
 def rendering_test(func):
     @combine_signatures(func)
     def rendering_test(*args, set_render_method, DISPLAY, DELAY, **kwargs):

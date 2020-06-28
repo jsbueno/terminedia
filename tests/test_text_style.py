@@ -5,7 +5,7 @@ from terminedia.text.style import StyledSequence, Mark, MLTokenizer
 
 import pytest
 
-from conftest import rendering_test, fast_and_slow_render_mark
+from conftest import rendering_test, fast_render_mark
 
 @pytest.mark.fixture
 def styled_text():
@@ -16,7 +16,7 @@ def styled_text():
     return sc, sh, text_plane
 
 
-@pytest.mark.parametrize(*fast_and_slow_render_mark)
+@pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_sequence_is_rendered():
     sc, sh, text_plane = styled_text()
@@ -34,7 +34,7 @@ def test_styled_sequence_is_rendered():
         ("background", TM.Color("green"),),
         ("effects", TM.Effects.blink),
 ])
-@pytest.mark.parametrize(*fast_and_slow_render_mark)
+@pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_sequence_is_rendered_with_attribute(attrname, value):
     sc, sh, text_plane = styled_text()
@@ -56,7 +56,7 @@ def test_styled_sequence_is_rendered_with_attribute(attrname, value):
         ("color", TM.Color("blue"), 1, "effects", TM.Effects.underline),
         ("color", TM.Color("yellow"), 100, "effects", TM.Effects.blink),
 ])
-@pytest.mark.parametrize(*fast_and_slow_render_mark)
+@pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_sequence_adds_attributes_at_mark(attrname, value, position, attr2, value2):
     sc, sh, text_plane = styled_text()
@@ -88,7 +88,7 @@ def test_styled_sequence_adds_attributes_at_mark(attrname, value, position, attr
         (2, "background", TM.Color("blue"),7, TM.DEFAULT_BG),
         (2, "effects", TM.Effects.blink, 50, TM.Effects.none),
 ])
-@pytest.mark.parametrize(*fast_and_slow_render_mark)
+@pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_sequence_pops_attributes(pos1, attrname, value, pos2, default):
     sc, sh, text_plane = styled_text()
@@ -122,7 +122,7 @@ def test_styled_sequence_pops_attributes(pos1, attrname, value, pos2, default):
         (None, (-2, 3), (3, 3)),
         ((10, 6), (-1, -1), (9, 5)),
 ])
-@pytest.mark.parametrize(*fast_and_slow_render_mark)
+@pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_sequence_move_and_relative_move_work(moveto, rmoveto, expected_pos, method):
     sc, sh, text_plane = styled_text()
@@ -157,7 +157,7 @@ def test_styled_sequence_move_and_relative_move_work(moveto, rmoveto, expected_p
     ("attrname", "value", "attr2", "value2"), [
         ("color", TM.Color("red"), "background", TM.Color("white")),
 ])
-@pytest.mark.parametrize(*fast_and_slow_render_mark)
+@pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_sequence_mark_objects_can_be_sequence(attrname, value, attr2, value2):
     sc, sh, text_plane = styled_text()
@@ -199,7 +199,7 @@ def test_mltokenizer_generates_mark_sequences_with_marksups_at_same_place():
     assert x.mark_sequence[0][1].attributes == {"background": TM.Color("white")}
 
 
-@pytest.mark.parametrize(*fast_and_slow_render_mark)
+@pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_sequence_retrives_marks_from_text_plane():
     sc, sh, text_plane = styled_text()
@@ -217,7 +217,7 @@ def test_styled_sequence_retrives_marks_from_text_plane():
         assert sc.data[i,0].foreground == TM.Color("yellow")
 
 
-@pytest.mark.parametrize(*fast_and_slow_render_mark)
+@pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_text_wraps_at_text_plane_boundary():
     sc, sh, text_plane = styled_text()
