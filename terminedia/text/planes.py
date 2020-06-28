@@ -224,9 +224,9 @@ class Text:
         """
         self.ticks += 1
         for writting in self.writtings:
-            if not writting.mark_sequence.special:
+            if not writting.mark_sequence["special"] or not self.marks.special:
                 continue
-            self._at(writting.pos, writting.sequence)
+            self.render_styled_sequence(styled)
 
 
     def clear(self):
@@ -236,7 +236,7 @@ class Text:
         self.plane.clear()
         self._reset_marks()
 
-    def _render_styled(self, context):
+    def _render_styled_lock(self, context):
         with self.owner.context(context=context) as ctx, self._render_lock:
             yield self._char_at
             self.set_ctx("last_pos", getattr(ctx, "last_pos", (0, 0)))
@@ -251,14 +251,16 @@ class Text:
         return self._at(pos, text)
 
     def _at(self, pos, text):
-        if not ((pos, text)) in self.writtings_index:
-            pair = pos, text
-            self.writtings_index.add(pair)
-            self.writtings.append(pair)
         tokens = style.MLTokenizer(text)
         styled = tokens(text_plane=self, starting_point=pos)
-        styled.render()
+        self.render_styled_sequence(styled)
         return self.get_ctx("last_pos")
+
+    def render_styled_sequence(self, styled):
+        if not styled in self.writtings_index:
+            self.writtings_index.add(styled)
+            self.writtings.append(styled)
+        styled.render()
 
     @contextkwords(context_path="owner.context")
     def print(self, text):

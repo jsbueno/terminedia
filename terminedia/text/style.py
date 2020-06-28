@@ -175,7 +175,7 @@ class StyledSequence:
         for key, value in self.context:
             cm[key] = [value]
         marks = self.text_plane.marks if self.text_plane else MarkMap()
-        self.marks = marks.prepare(self.mark_sequence, get_current_tick(), self.context)
+        self.marks = marks.prepare(self.mark_sequence, self.text_plane.ticks if self.text_plane else get_current_tick(), self.context)
 
 
     def _context_push(self, attributes, pop_attributes):
@@ -223,7 +223,7 @@ class StyledSequence:
             return
         # FIXME: if self.parent_context is not self.text_plane.owner.context, combine parent and current context
         # otherwise combination is already in place at the render_lock
-        render_lock = self.text_plane._render_styled(self.context)
+        render_lock = self.text_plane._render_styled_lock(self.context)
         try:
             char_fn = next(render_lock)
 
@@ -277,6 +277,9 @@ class MarkMap(MutableMapping):
         instance.tick = tick
         instance.seq_data = seq_data
         instance.context = context
+        instance.special = self.special.copy()
+        if "special" in seq_data:
+            instance.special.update(seq_data["special"])
         # self.data is the same object on purpose -
         return instance
 

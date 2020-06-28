@@ -234,7 +234,31 @@ def test_text_wraps_at_text_plane_boundary():
     assert sc.data[2, 6].value == "W"
     assert sc.data[text_plane.width, 5].value == " "
 
+def test_styled_text_anotates_writtings():
+    sc, sh, text_plane = styled_text()
+    msg = "Hello World!"
+    # Special mark callable index uses dependency injection, like TM.Transformers.
+    m = SpecialMark(index=lambda sequence, length: pos % length, attributes={"color": TM.Color("red")})
+    m1 = SpecialMark(index=lambda sequence, length: (pos + 1) % length, pop_attributes={"color": None})
 
+    # text_plane.marks.special.update(m, m1)
+    mm = {"special": [m, m1]}
+
+    aa = StyledSequence(
+        msg, mark_sequence=mm,
+        text_plane=text_plane,
+        starting_point=(0, 5)
+    )
+    text_plane.render_styled_sequence(aa)
+
+    # text_plane[0, 5] = msg
+
+    assert text_plane.writtings
+    assert text_plane.writtings_index
+    assert text_plane.writtings[0] is aa
+
+
+@pytest.mark.skip
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_text_render_and_animate_special_marks():
