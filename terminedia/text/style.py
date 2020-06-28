@@ -270,6 +270,7 @@ class MarkMap(MutableMapping):
         self.data = {}
         self.tick = 0
         self.seq_data = {}
+        self.special = set()
 
     def prepare(self, seq_data, tick=0, context=None):
         instance = copy(self)
@@ -385,6 +386,13 @@ class Mark:
 
 
 EmptyMark = Mark()
+
+class SpecialMark(Mark):
+    __slots__=["index"]
+    def __init__(self, index, *args, **kwargs):
+        self.index = index
+        super().__init__(*args, **kwargs)
+
 
 
 class Tokenizer:

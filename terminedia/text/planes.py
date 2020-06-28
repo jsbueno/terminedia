@@ -121,11 +121,15 @@ class Text:
         concretized_text.font = ""
         concretized_text.width = width
         concretized_text.height = height
+        concretized_text.ticks = 0
+        concretized_text.writtings = []
+        concretized_text.writtings_index = set()
         concretized_text._reset_marks()
         plane["text"] = concretized_text
 
     def _reset_marks(self):
         self.marks.clear()
+        self.marks.special.clear()
         self.marks[Rect((self.width, 0, self.width + 1, self.height))] = style.Mark(moveto=(0, style.RETAIN_POS), rmoveto=(0,1))
 
     def _checkplane(self, index):
@@ -215,7 +219,20 @@ class Text:
             for pos in rect.iter_cells():
                 self.blit(pos, target=target, clear=clear)
 
+    def update(self):
+        """Re-render any writting on the plane that was done using SpecialMarks
+        """
+        self.ticks += 1
+        for writting in self.writtings:
+            if not writting.mark_sequence.special:
+                continue
+            self._at(writting.pos, writting.sequence)
+
+
     def clear(self):
+        self.ticks = 0
+        self.writtings[:] = []
+        self.writtings_index.clear()
         self.plane.clear()
         self._reset_marks()
 
@@ -234,6 +251,10 @@ class Text:
         return self._at(pos, text)
 
     def _at(self, pos, text):
+        if not ((pos, text)) in self.writtings_index:
+            pair = pos, text
+            self.writtings_index.add(pair)
+            self.writtings.append(pair)
         tokens = style.MLTokenizer(text)
         styled = tokens(text_plane=self, starting_point=pos)
         styled.render()

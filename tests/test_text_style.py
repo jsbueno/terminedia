@@ -1,7 +1,7 @@
 import random
 from collections.abc import Sequence
 import terminedia as TM
-from terminedia.text.style import StyledSequence, Mark, MLTokenizer
+from terminedia.text.style import StyledSequence, SpecialMark, Mark, MLTokenizer
 
 import pytest
 
@@ -233,3 +233,33 @@ def test_text_wraps_at_text_plane_boundary():
     assert sc.data[0, 6].value == "o"
     assert sc.data[2, 6].value == "W"
     assert sc.data[text_plane.width, 5].value == " "
+
+
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_styled_text_render_and_animate_special_marks():
+    sc, sh, text_plane = styled_text()
+    msg = "Hello World!"
+    # Special mark callable index uses dependency injection, like TM.Transformers.
+    m = SpecialMark(index=lambda sequence, length: pos % length, attributes={"color": TM.Color("red")})
+    m1 = SpecialMark(index=lambda sequence, length: (pos + 1) % length, pop_attributes={"color": None})
+
+    text_plane.marks.special.update(m, m1)
+
+    text_plane[0, 5] = msg
+
+    sc.update()
+    yield None
+    assert sc.data[0, 5].foreground == TM.Color("red")
+    assert sc.data[1, 5].foreground == TM.values.DEFAULT_FG
+    sc.update()
+    sc.text[1].update()
+    assert sc.data[0, 5].foreground == TM.values.DEFAULT_FG
+    assert sc.data[1, 5].foreground == TM.Color("red")
+    assert sc.data[2, 5].foreground == TM.values.DEFAULT_FG
+    sc.update()
+    sc.text[1].update()
+    assert sc.data[0, 5].foreground == TM.values.DEFAULT_FG
+    assert sc.data[1, 5].foreground == TM.values.DEFAULT_FG
+    assert sc.data[2, 5].foreground == TM.Color("red")
+    assert sc.data[3, 5].foreground == TM.values.DEFAULT_FG
