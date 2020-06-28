@@ -48,8 +48,9 @@ Targeted for next release (0.4):
                         - It can draw "rectangles" of markers in order to create the portals at
                             text-plane boundaries[V]
                         - These rectangle could be "virtual" (they are eager)
-                        - it can handle special Marks which position varies with the current tick [TBD]
-        - Think of a nice API to make use of TM.text.StyledSequence that is shorter than instantiating one, passing the screen.data.text[1] as text_plane kwarg, and calling "render" on it followed by "screen.update()" :-) (probably changing "print", "at" and "__setitem__" on .text to use it :-) ):[wip]
+                        - it can handle special Marks which position varies with the current tick [V]
+                        - Connect screen.update to text_planes.update (maybe via sprite re-rendering)
+        - Think of a nice API to make use of TM.text.StyledSequence that is shorter than instantiating one, passing the screen.data.text[1] as text_plane kwarg, and calling "render" on it followed by "screen.update()" :-) (probably changing "print", "at" and "__setitem__" on .text to use it :-) ):[WIP]
             - modify text_plane.at method to use styled sequence[V]
             - fix and modify "=" in text_plane to use styled_sequence[V]
             - modify "print" and "print_at" functions across the board to accept MLed text

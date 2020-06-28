@@ -238,8 +238,8 @@ def test_styled_text_anotates_writtings():
     sc, sh, text_plane = styled_text()
     msg = "Hello World!"
     # Special mark callable index uses dependency injection, like TM.Transformers.
-    m = SpecialMark(index=lambda sequence, length: pos % length, attributes={"color": TM.Color("red")})
-    m1 = SpecialMark(index=lambda sequence, length: (pos + 1) % length, pop_attributes={"color": None})
+    m = SpecialMark(index=lambda tick, length: tick % length, attributes={"color": TM.Color("red")})
+    m1 = SpecialMark(index=lambda tick, length: (tick + 1) % length, pop_attributes={"color": None})
 
     # text_plane.marks.special.update(m, m1)
     mm = {"special": [m, m1]}
@@ -258,32 +258,29 @@ def test_styled_text_anotates_writtings():
     assert text_plane.writtings[0] is aa
 
 
-@pytest.mark.skip
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_text_render_and_animate_special_marks():
     sc, sh, text_plane = styled_text()
     msg = "Hello World!"
     # Special mark callable index uses dependency injection, like TM.Transformers.
-    m = SpecialMark(index=lambda sequence, length: pos % length, attributes={"color": TM.Color("red")})
-    m1 = SpecialMark(index=lambda sequence, length: (pos + 1) % length, pop_attributes={"color": None})
+    m = SpecialMark(index=lambda tick, length: tick % length, attributes={"color": TM.Color("red")})
+    m1 = SpecialMark(index=lambda tick, length: (tick + 1) % length, pop_attributes={"color": None})
 
-    text_plane.marks.special.update(m, m1)
+    text_plane.marks.special.update([m, m1])
 
     text_plane[0, 5] = msg
 
     sc.update()
     yield None
+
     assert sc.data[0, 5].foreground == TM.Color("red")
     assert sc.data[1, 5].foreground == TM.values.DEFAULT_FG
-    sc.update()
-    sc.text[1].update()
-    assert sc.data[0, 5].foreground == TM.values.DEFAULT_FG
-    assert sc.data[1, 5].foreground == TM.Color("red")
-    assert sc.data[2, 5].foreground == TM.values.DEFAULT_FG
-    sc.update()
-    sc.text[1].update()
-    assert sc.data[0, 5].foreground == TM.values.DEFAULT_FG
-    assert sc.data[1, 5].foreground == TM.values.DEFAULT_FG
-    assert sc.data[2, 5].foreground == TM.Color("red")
-    assert sc.data[3, 5].foreground == TM.values.DEFAULT_FG
+    for i, char in enumerate(msg[:-1], 1):
+        text_plane.update()
+        sc.update()
+        yield None
+        assert sc.data[i - 1, 5].foreground == TM.values.DEFAULT_FG
+        assert sc.data[i, 5].foreground == TM.Color("red")
+        assert sc.data[i + 1, 5].foreground == TM.values.DEFAULT_FG
+        assert sc.data[i + 2, 5].foreground == TM.values.DEFAULT_FG

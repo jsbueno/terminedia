@@ -224,9 +224,9 @@ class Text:
         """
         self.ticks += 1
         for writting in self.writtings:
-            if not writting.mark_sequence["special"] or not self.marks.special:
+            if not writting.mark_sequence.get("special") and not self.marks.special:
                 continue
-            self.render_styled_sequence(styled)
+            self.render_styled_sequence(writting)
 
 
     def clear(self):
@@ -257,6 +257,14 @@ class Text:
         return self.get_ctx("last_pos")
 
     def render_styled_sequence(self, styled):
+        """Render an instance of terminedia.text.style.StyledSequence directly
+
+        Usually, will be called automatically by assignments to a position in the text
+        plane, but a styled_sequence can be crafted with SpecialMarks in a way
+        automatic assignment would not work.
+
+        Also, called internally to update SyledSequences that contain animations.
+        """
         if not styled in self.writtings_index:
             self.writtings_index.add(styled)
             self.writtings.append(styled)

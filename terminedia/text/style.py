@@ -175,7 +175,12 @@ class StyledSequence:
         for key, value in self.context:
             cm[key] = [value]
         marks = self.text_plane.marks if self.text_plane else MarkMap()
-        self.marks = marks.prepare(self.mark_sequence, self.text_plane.ticks if self.text_plane else get_current_tick(), self.context)
+        self.marks = marks.prepare(
+            self.mark_sequence,
+            self.text_plane.ticks if self.text_plane else get_current_tick(),
+            self.text,
+            self.context
+        )
 
 
     def _context_push(self, attributes, pop_attributes):
@@ -271,31 +276,48 @@ class MarkMap(MutableMapping):
         self.tick = 0
         self.seq_data = {}
         self.special = set()
+        self._concrete_special = {}
 
-    def prepare(self, seq_data, tick=0, context=None):
+    def prepare(self, seq_data, tick=0, parsed_text="", context=None):
         instance = copy(self)
         instance.tick = tick
         instance.seq_data = seq_data
         instance.context = context
+        instance.parsed_text = parsed_text
         instance.special = self.special.copy()
         if "special" in seq_data:
             instance.special.update(seq_data["special"])
+        instance.concretize_special_marks()
+
         # self.data is the same object on purpose -
         return instance
+
+    def concretize_special_marks(self):
+        self._concrete_special = {}
+        for mark in self.special:
+            # TODO: inject parameters to compute index according to its signature
+            # currently hardcoded to 2 parameters: tick and length of target text
+            index = mark.index(self.tick, len(self.parsed_text))
+            self._concrete_special.setdefault(index, []).append(mark)
 
     def get_full(self, seq_pos, pos):
 
         self.seq_pos = seq_pos
         self.pos = pos
 
-        mark_seq = self.seq_data.get(seq_pos, [])
-        mark_seq = [mark_seq] if isinstance(mark_seq, Mark) else mark_seq
+        mark_seq = self._concrete_special.get(seq_pos, [])
+        mark_seq += self._concrete_special.get(pos, [])
+        mark_at_pos = self.seq_data.get(seq_pos, [])
+        if not isinstance(mark_at_pos, Sequence):
+            mark_at_pos = [mark_at_pos]
+        mark_seq += mark_at_pos
 
         marks_plane = self.get(pos)
         if isinstance (marks_plane, Sequence):
             mark_seq = marks_plane + mark_seq
         elif isinstance(marks_plane, Mark):
             mark_seq.insert(0, marks_plane)
+
 
         return mark_seq
 
@@ -385,7 +407,7 @@ class Mark:
         #)
 
     def __repr__(self):
-        return f"Mark({('attributes=%r, ' % self.attributes) if self.attributes else ''}{('pop_attributes=%r, ' % self.pop_attributes) if self.pop_attributes else ''}{('moveto={!r}, '.format(self.moveto)) if self.moveto else ''}{('rmoveto={!r}'.format(self.rmoveto)) if self.rmoveto else ''})"
+        return f"{self.__class__.__name__}({('attributes=%r, ' % self.attributes) if self.attributes else ''}{('pop_attributes=%r, ' % self.pop_attributes) if self.pop_attributes else ''}{('moveto={!r}, '.format(self.moveto)) if self.moveto else ''}{('rmoveto={!r}'.format(self.rmoveto)) if self.rmoveto else ''})"
 
 
 EmptyMark = Mark()

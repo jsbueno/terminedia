@@ -27,7 +27,8 @@ class ContextVar:
         if not isinstance(value, self.type):
             # May generate ValueError TypeError: expected behavior
             type_ = self.type[0] if isinstance(self.type, tuple) else self.type
-            value = type_(value)
+            if value != self.default:  # Allow setting typed values back to None
+                value = type_(value)
         setattr(instance._locals, self.name, value)
 
     def __get__(self, instance, owner):

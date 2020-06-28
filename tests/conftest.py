@@ -49,13 +49,17 @@ def rendering_test(func):
         with mock.patch("sys.stdout", stdout):
             next(fn)
 
-        if DISPLAY:
-            print(stdout.getvalue())
-            TM.pause(DELAY)
-        try:
-            fn.send(stdout.getvalue())
-        except StopIteration:
-            pass
+        while True:
+
+            if DISPLAY:
+                print(stdout.getvalue())
+                TM.pause(DELAY)
+            try:
+                fn.send(stdout.getvalue())
+                stdout.seek(0)
+                stdout.truncate()
+            except StopIteration:
+                break
 
     # functools.wraps won't do in this case: py.test must "see" the original name _and_ the
     # wrapper's signature, not the signarure from the decorated function
