@@ -111,10 +111,11 @@ class Context:
 
     def _clear(self):
         if getattr(self._locals, "_context_stack", None):
-            return self._locals._context_stack[-1].clear()
+            return self._locals._context_stack[-1]._clear()
         for name, attr in self.__class__.__dict__.items():
             if isinstance(attr, ContextVar):
-                setattr(self, name, attr.default)
+                if hasattr(self._locals, name):
+                    delattr(self._locals, name)
         for name, attr in list(self.__dict__.items()):
             if name and not name.startswith("_"):
                 del self.__dict__[name]

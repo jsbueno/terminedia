@@ -161,7 +161,7 @@ class StyledSequence:
             raise RuntimeError(
                 "Something resetting marked text internal state in infinite loop"
             )
-        self.context._clear()
+        self._reset_context()
         self._last_index_processed = None
         for i in range(0, index + 1):
             self._process_to(i)
@@ -223,11 +223,24 @@ class StyledSequence:
             del self.marks
         # self._unwind()
 
+    def _reset_context(self):
+        for key, value in self._parent_context_data.items():
+            if key in ("transformers", "pretransformers"):
+                value = copy(value)
+            setattr(self.context, key, value)
+
+    def _prepare_context(self):
+        self.context = Context()
+        source = self.text_plane.owner.context
+        self._parent_context_data = {key:value for key, value in source}
+        self._reset_context()
+
     def render(self):
         if not self.text_plane:
             return
         # FIXME: if self.parent_context is not self.text_plane.owner.context, combine parent and current context
         # otherwise combination is already in place at the render_lock
+        self._prepare_context()
         render_lock = self.text_plane._render_styled_lock(self.context)
         try:
             char_fn = next(render_lock)
