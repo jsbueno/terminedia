@@ -93,6 +93,8 @@ class Context:
     font = ContextVar((str, type(None)), "")
     pretransformers = ContextVar(TransformersContainer, TransformersContainer)
 
+    foreground = property((lambda s: s.color), (lambda s, v: setattr(s, "color", v)))
+
     def __init__(self, **kw):
         self._locals = threading.local()
         self._update_from_global()
