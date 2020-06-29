@@ -88,9 +88,10 @@ class Context:
     background = ContextVar(Color, DEFAULT_BG)
     effects = ContextVar((Effects, SpecialColor), Effects.none)
     direction = ContextVar(V2, Directions.RIGHT)
-    transformers = ContextVar(TransformersContainer, None)
+    transformers = ContextVar(TransformersContainer, TransformersContainer)
     fill = ContextVar(bool, False)
     font = ContextVar((str, type(None)), "")
+    pretransformers = ContextVar(TransformersContainer, TransformersContainer)
 
     def __init__(self, **kw):
         self._locals = threading.local()
@@ -195,6 +196,7 @@ class Context:
             if name in ("default_bg", "default_fg", "transformers"):
                 continue
             setattr(self, name, attr)
+
 
     def __dir__(self):
         if getattr(self._locals, "_context_stack", None):

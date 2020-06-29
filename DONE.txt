@@ -11,6 +11,7 @@ version 0.4
  - create a "TransformerContainer.bake" method to eagerly apply a stack of transformers to a shape.
  - Sprites promote shapes whitespace and default colors to transparency when created by default (pass alpha=False to prevent)
  - Sprite stack rendering honors TRANSPARENT special value
+ - Add 'pretransformers' context value which can hold a TransformersContainer and eagerly transform data when writting to a Shape(__setitem__). The "transformers" context value, on the other hand, works on _reading_ shape data (__getitem__)
 
 New 'transformers library':
     - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters

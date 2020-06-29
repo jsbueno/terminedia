@@ -224,8 +224,8 @@ class Text:
         """
         self.ticks += 1
         for writting in self.writtings:
-            if not writting.mark_sequence.get("special") and not self.marks.special:
-                continue
+            # if not writting.mark_sequence.get("special") and not self.marks.special:
+            #    continue
             self.render_styled_sequence(writting)
 
 

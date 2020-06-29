@@ -16,6 +16,7 @@ Targeted for next release (0.4):
         - make it usable by assignment, `print` and `at` methods
     - Text entity, akim to "shape" or "sprite" which allows for flowing text [WIP]:
         - BUG: when rendering spaces, attributes (like background) are not updated (V) - fixed by sprite transparency handling implementation.
+        - BUG: on rendering rich text, text_plane's context is not being taken in account. (i.e. if color is "red", DEFAULT_FG is being used instead)
         - This can be current "text_planes" themselves [v]
         - these should be decorateable with frames using unicode frame drawing characters
         - Think of a way to "stream" text inside these containers [V]:
@@ -27,8 +28,8 @@ Targeted for next release (0.4):
                 - allow for 'pop last parameter of this type' tokens ([/color], [/effects])[V]
                 - allow for default colors with [color:default] (V) (but check default-color bug bellow)
             - Apply transformers eagerly on a  per-character base
-                    (context-transformers are currently lazy, applied at rendering time only, and are "flat" for the whole shape)
-            - Allow a call to MLToken.parse to be passed a transformers-mapping, and us it as a source for
+                    (context-transformers are currently lazy, applied at rendering time only, and are "flat" for the whole shape) [wip]
+            - Allow a call to MLToken.parse to be passed a transformers-mapping, and use it as a source for
                     transformers objects in the  markup [transformer:...] elements [wip]
             - these marks can come embedded in the text, standalone
                     (and programatically depending on "tick count" or rendering position). or
@@ -50,6 +51,29 @@ Targeted for next release (0.4):
                         - These rectangle could be "virtual" (they are eager)
                         - it can handle special Marks which position varies with the current tick [V]
                         - Connect screen.update to text_planes.update (maybe via sprite re-rendering)
+        - Any rich writting on a text-plane is recorded in a non destructive way, so it can be retrieved and
+            re-rendered in a follow-up frame (with possibly differing attributes)[WIP]:
+                - base suport [V]
+                - Refactor to specialized data object instead of parallel list and set (to preserve order) (maybe a dict would suffice?)
+                - Consider if the character data in each plane (text_plane.plane dictionary) is worth keeping:
+                    - static characters are stored there without any attributes
+                    - they are reflected on the owner shape data anyway (keeping the attributes)
+                    - rendering rich text automatically rewrites the shape-data
+                    - written text is stored at the "writtings" object anyway
+        - create special markup for possible but hard to create patterns: apply gradients, modify color by tick and position:
+            - allow "lenght" field on markups and Mark?
+            - add active marks to a data structure in the styledtext being rendered, so it is called
+                to modify a set of attributes
+        - allow programatic attributes on Mark objects (computed Color, etc...)
+        - Allow "offset" parameters to styled text, so that text can move according to tick:
+            - pad right with"nop" characters
+            - select a renderable window of text
+            - allow negative offset;
+
+        - Consider merging "SpecialMark" and "Mark" classes. (They are distinguishable by the presence of
+                                                              an ".index" attribute)
+
+
         - Think of a nice API to make use of TM.text.StyledSequence that is shorter than instantiating one, passing the screen.data.text[1] as text_plane kwarg, and calling "render" on it followed by "screen.update()" :-) (probably changing "print", "at" and "__setitem__" on .text to use it :-) ):[WIP]
             - modify text_plane.at method to use styled sequence[V]
             - fix and modify "=" in text_plane to use styled_sequence[V]
