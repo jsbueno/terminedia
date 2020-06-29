@@ -189,7 +189,7 @@ def test_mltokenizer_generates_marks():
     assert x.mark_sequence[0].attributes == {"color": TM.Color("blue")}
 
 
-def test_mltokenizer_generates_mark_sequences_with_marksups_at_same_place():
+def test_mltokenizer_generates_mark_sequences_with_markups_at_same_place():
     x = MLTokenizer("[color: blue][background: white]Hello World!")
     x.parse()
     assert x.parsed_text == "Hello World!"
@@ -216,6 +216,20 @@ def test_styled_sequence_retrives_marks_from_text_plane():
     for i, letter in enumerate(msg[1:],1):
         assert sc.data[i,0].foreground == TM.Color("yellow")
 
+
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_richtext_rendering_respects_existing_context():
+    sc, sh, text_plane = styled_text()
+    msg = "H[color: yellow]ell[/color]o World!"
+    sh.context.color="red"
+    text_plane[0, 0] = msg
+
+    sc.update()
+    yield None
+    assert sc.data[0, 0].foreground == TM.Color("red")
+    assert sc.data[1, 0].foreground == TM.Color("yellow")
+    assert sc.data[4, 0].foreground == TM.Color("red")
 
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test

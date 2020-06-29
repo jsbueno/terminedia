@@ -135,7 +135,11 @@ class Context:
 
     def __getattr__(self, name):
         if getattr(self._locals, "_context_stack", None):
-            return getattr(self._locals._context_stack[-1], name)
+            for stacked_ctx in reversed(self._locals._context_stack):
+                # FIXME: Use walrus on 3.8+ cut
+                val = getattr(stacked_ctx._locals, name, _sentinel)
+                if val is not _sentinel:
+                    return val
         return getattr(self._locals, name)
 
     def __call__(self, **kw):
