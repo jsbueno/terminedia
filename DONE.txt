@@ -13,6 +13,7 @@ version 0.4
  - Sprite stack rendering honors TRANSPARENT special value
  - Add 'pretransformers' context value which can hold a TransformersContainer and eagerly transform data when writting to a Shape(__setitem__). The "transformers" context value, on the other hand, works on _reading_ shape data (__getitem__)
 
+
 New 'transformers library':
     - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters
     - ThresholdTransformer - apply a threshold filter to a colored image.
@@ -30,6 +31,7 @@ New rich-text and text-handling features:
             - Refactor code to have a core to be used by  backend.print, screen.print, text.at, shape.print [V]
     - Make assignment of string to shape or text area cell spread the text across as many cells as needed:[V]
         - correctly detect combining characters so that combined characters live on the same cell (V)
+
     - create markup language for embedding context changing directives inside a single string:[V]
         - make it usable by assignment, `text[x].print` and `at` methods
         - BUG: when rendering spaces from text-planes, attributes (like background) are not updated (V):
@@ -49,7 +51,8 @@ New rich-text and text-handling features:
         - Avoid creating a new "Text" instance on each text-plane access![V]
         - Tests for styling bases classes in progress - testing attribute changing and position
 
-
+Minor Features:
+ - TransformersContainer and SpriteContainer (TM.Utils.Hooklist)s can be shallow-copied with copy.copy()
 
 version 0.3
 ============

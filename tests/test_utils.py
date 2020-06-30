@@ -3,7 +3,7 @@ from inspect import signature
 
 import pytest
 
-from terminedia.utils import combine_signatures, TaggedDict
+from terminedia.utils import combine_signatures, TaggedDict, HookList
 
 def test_combine_signatures_works():
     context = {}
@@ -158,3 +158,39 @@ def test_tagged_dictionary_views_can_remove_by_value():
     with pytest.raises(ValueError):
         y.remove("dog")
 
+def test_hook_list_compares_eq_ok():
+    from copy import copy
+    a = HookList([1,2,3])
+    b = HookList([1,2,3])
+
+    assert a == b
+    b.append(4)
+    assert a != b
+    b.pop()
+    b[0] = 0
+    assert a != b
+
+
+def test_hook_list_shallow_copy_yields_a_copy():
+    from copy import copy
+    a = HookList([1,2,3])
+    b = copy(a)
+    c = a.copy()
+
+    assert a == b
+    assert a == c
+
+    a.append(4)
+    assert a != b
+    assert a != c
+
+def test_hook_list_shallow_copy_dont_trigger_side_effects():
+
+    class DoubleList(HookList):
+        def insert_hook(self, item):
+            return 2 * item
+
+    a = DoubleList([1,2,3])
+    c = a.copy()
+
+    assert a == c

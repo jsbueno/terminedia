@@ -1,6 +1,7 @@
 import threading
 
-from collections.abc import MutableSequence, MutableMapping, Iterable, Mapping
+from collections.abc import MutableSequence, MutableMapping, Iterable, Mapping, Set
+from copy import copy
 
 
 def mirror_dict(dct):
@@ -87,6 +88,22 @@ class HookList(MutableSequence):
     def insert(self, index, item):
         item = self.insert_hook(item)
         self.data.insert(index, item)
+
+    def __eq__(self, other):
+        # why is not this free with MutableSequence? (posted on python-ideas, 2020-6-30)
+        if not issubclass(type(other), type(self)) and not issubclass(type(self), type(other)):
+            return False
+        # FIXME: use zip-strict on Python 3.10+
+        return all(a == b for a, b in zip(self, other)) and len(self) == len(other)
+
+    def __copy__(self):
+        cls = type(self)
+        new = cls.__new__(cls)
+        new.data = copy(self.data)
+        return new
+
+    def copy(self):
+        return copy(self)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.data!r})"
