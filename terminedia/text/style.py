@@ -184,25 +184,31 @@ class StyledSequence:
 
 
     def _context_push(self, attributes, pop_attributes):
+        seq_attrs = {"transformer": "transformers", "pretransformer": "pretransformers"}
         cm = self.locals.context_map
         changed = set()
         attributes = attributes or {}
         pop_attributes = pop_attributes or {}
         for key in pop_attributes:
+            key = seq_attrs.get(key, key)
             stack = cm.setdefault(key, [])
             if stack:
                 changed.add(key)
                 stack.pop()
         for key, value in attributes.items():
+            if key in seq_attrs:
+                key = seq_attrs[key]
+                new_value = copy(getattr(self.context, key))
+                new_value.append(value)
+                value = new_value
             stack = cm.setdefault(key, [])
             stack.append(value)
+
             changed.add(key)
 
         for attr in changed:
             if cm[attr]:
                 setattr(self.context, attr, cm[attr][-1])
-            else:
-                pass
 
     def _get_position_at(self, char, index):
         if self._last_index_processed != index:
@@ -504,6 +510,8 @@ class MLTokenizer(Tokenizer):
                 value = TRANSPARENT
             if value and value.startswith("(") and action in {"color", "foreground", "background"}:
                 value = ast.literal_eval(value)
+            if action == "transformer":
+                action = "pretransformer"
 
             attribute_names = {"effects", "color", "foreground", "background", "direction", "transformer", "char", "font", }
             if action in attribute_names:
@@ -513,7 +521,7 @@ class MLTokenizer(Tokenizer):
                         sum(Effects.__members__.get(v.strip(), 0) for v in value.split("|"))
                             if action == "effects" else
                         getattr(Directions, value.upper()) if action == "direction" else
-                        getattr(transformers_library, value) if action == "transformer" else
+                        getattr(transformers_library, value) if action == "pretransformer" else
                         value
                     )
                 }

@@ -33,7 +33,7 @@ Targeted for next release (0.4):
                     - find a way to declare an retrieve meaningful pretransformers from markup:
                         - have a "transformer" namespace on text_planes that chainmaps to TM.transformers.library (?)
 
-                    - Manage list of pretransformers in context during StyledText rendering [wip]
+                    - Manage list of pretransformers in context during StyledText rendering [V]
 
             - Allow a call to MLToken.parse to be passed a transformers-mapping, and use it as a source for
                     transformers objects in the  markup [transformer:...] elements [wip]

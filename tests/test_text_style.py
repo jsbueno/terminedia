@@ -298,3 +298,44 @@ def test_styled_text_render_and_animate_special_marks():
         assert sc.data[i, 5].foreground == TM.Color("red")
         assert sc.data[i + 1, 5].foreground == TM.values.DEFAULT_FG
         assert sc.data[i + 2, 5].foreground == TM.values.DEFAULT_FG
+
+
+# Inner unit testing for StyledSequence
+
+def test_styled_text_push_context_attribute():
+    seq = StyledSequence("", {})
+    seq._enter_iteration()
+    color = TM.Color("red")
+    color2 = TM.Color("yellow")
+
+    assert seq.context.color != color
+    original = seq.context.color
+    seq._context_push({"color": color}, {})
+    assert seq.context.color == color
+    seq._context_push({"color": color2}, {})
+    assert seq.context.color == color2
+    seq._context_push({}, {"color": None})
+    assert seq.context.color == color
+    seq._context_push({}, {"color": None})
+    assert seq.context.color == original
+
+
+def test_styled_text_push_context_sequence_attribute():
+    from copy import copy
+    seq = StyledSequence("", {})
+    seq._enter_iteration()
+    tr1 = TM.Transformer(foreground="red")
+    tr2 = TM.Transformer(background="yellow")
+
+    assert tr1 not in seq.context.pretransformers
+    original = copy(seq.context.pretransformers)
+    seq._context_push({"pretransformer": tr1}, {})
+    assert seq.context.pretransformers[-1] == tr1
+    seq._context_push({"pretransformer": tr2}, {})
+    assert seq.context.pretransformers[-1] == tr2
+    assert seq.context.pretransformers[-2] == tr1
+    seq._context_push({}, {"pretransformer": None})
+    assert seq.context.pretransformers[-1] == tr1
+    seq._context_push({}, {"pretransformer": None})
+    assert seq.context.pretransformers == original
+

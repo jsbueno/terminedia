@@ -53,6 +53,7 @@ New rich-text and text-handling features:
 
 Minor Features:
  - TransformersContainer and SpriteContainer (TM.Utils.Hooklist)s can be shallow-copied with copy.copy()
+ - Context.foreground is an alias for context.color
 
 version 0.3
 ============
