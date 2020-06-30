@@ -16,7 +16,7 @@ Targeted for next release (0.4):
         - make it usable by assignment, `print` and `at` methods
     - Text entity, akim to "shape" or "sprite" which allows for flowing text [WIP]:
         - BUG: when rendering spaces, attributes (like background) are not updated (V) - fixed by sprite transparency handling implementation.
-        - BUG: on rendering rich text, text_plane's context is not being taken in account. (i.e. if color is "red", DEFAULT_FG is being used instead)
+        - BUG: on rendering rich text, text_plane's context is not being taken in account. (i.e. if color is "red", DEFAULT_FG is being used instead) [V]
         - This can be current "text_planes" themselves [v]
         - these should be decorateable with frames using unicode frame drawing characters
         - Think of a way to "stream" text inside these containers [V]:
@@ -27,10 +27,17 @@ Targeted for next release (0.4):
                 - Accept absolute/relative movement with "[+x,+y]" tokens embedd in the string (and work as "portals")[V]
                 - allow for 'pop last parameter of this type' tokens ([/color], [/effects])[V]
                 - allow for default colors with [color:default] (V) (but check default-color bug bellow)
-            - Apply transformers eagerly on a  per-character base
-                    (context-transformers are currently lazy, applied at rendering time only, and are "flat" for the whole shape) [wip]
+            - Apply transformers eagerly on a  per-character base [wip]
+                    - Added "pretransformers"  ( regular context-transformers are currently lazy, applied at rendering time only, and are "flat" for the whole shape) [V]
+                    - Change MLTokenizer to create 'pre-tranformer" context attribute on "transformer" token [V]
+                    - find a way to declare an retrieve meaningful pretransformers from markup:
+                        - have a "transformer" namespace on text_planes that chainmaps to TM.transformers.library (?)
+
+                    - Manage list of pretransformers in context during StyledText rendering [wip]
+
             - Allow a call to MLToken.parse to be passed a transformers-mapping, and use it as a source for
                     transformers objects in the  markup [transformer:...] elements [wip]
+            - Enhance transformers with sequence-position parameters, so they can generate animations/gradients/per character attributes
             - these marks can come embedded in the text, standalone
                     (and programatically depending on "tick count" or rendering position). or
             - these marks can be placed in the text_plane entity at fixed locations
