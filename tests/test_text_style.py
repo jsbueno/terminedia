@@ -248,6 +248,28 @@ def test_text_wraps_at_text_plane_boundary():
     assert sc.data[2, 6].value == "W"
     assert sc.data[text_plane.width, 5].value == " "
 
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_styled_sequence_can_handle_pretransformers():
+    sc, sh, text_plane = styled_text()
+    msg = "0123456789"
+    tt = TM.Transformer(
+        foreground=lambda pos: TM.Color((pos[0] * 25 % 256, 0, 0)),
+        background=lambda pos: TM.Color((0, 0, (255 - pos[0] * 25) % 256)),
+    )
+    aa = StyledSequence(
+        msg,{0: TM.Mark(attributes={"pretransformer": tt})} ,
+        text_plane
+    )
+    aa.render()
+    sc.update()
+    yield None
+    assert sc.data[0,0].foreground == TM.Color((0,0,0))
+    assert sc.data[0,0].background == TM.Color((0,0,255))
+    assert sc.data[9,0].foreground == TM.Color((225,0,0))
+    assert sc.data[9,0].background == TM.Color((0,0,30))
+
+
 def test_styled_text_anotates_writtings():
     sc, sh, text_plane = styled_text()
     msg = "Hello World!"
