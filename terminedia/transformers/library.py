@@ -119,4 +119,4 @@ Dilate = KernelTransformer(kernel_dilate)
 
 
 
-del Transformer, KernelTransformer, kernel_table_ascii, variant, LazyDict
+del Transformer, kernel_table_ascii, variant, LazyDict

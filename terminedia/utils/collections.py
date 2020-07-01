@@ -93,8 +93,7 @@ class HookList(MutableSequence):
         # why is not this free with MutableSequence? (posted on python-ideas, 2020-6-30)
         if not issubclass(type(other), type(self)) and not issubclass(type(self), type(other)):
             return False
-        # FIXME: use zip-strict on Python 3.10+
-        return all(a == b for a, b in zip(self, other)) and len(self) == len(other)
+        return self.data == other.data
 
     def __copy__(self):
         cls = type(self)

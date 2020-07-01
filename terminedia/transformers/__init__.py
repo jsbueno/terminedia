@@ -163,7 +163,9 @@ class GradientTransformer(Transformer):
 class TransformersContainer(HookList):
     def __init__(self, *args):
         super().__init__(*args)
-        self.stack = self.data
+
+    stack = property(lambda s: s.data)
+
 
     def insert_hook(self, item):
         item = super().insert_hook(item)
