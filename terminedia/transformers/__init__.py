@@ -36,7 +36,7 @@ class Transformer:
                     (an evolution of this may give a 'transformed down to here' view
                     of the shape, or a 3x3 and 5x5 kernel options)
                 - "tick" meaning the "frame number" from app start, and in the future
-                    will be used for animations. It is currently injected as "0".
+                    will be used for animations.
 
         It should return the value to be used downstream of the named channel.
 

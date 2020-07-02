@@ -269,6 +269,18 @@ def test_styled_sequence_can_handle_pretransformers():
     assert sc.data[9,0].foreground == TM.Color((225,0,0))
     assert sc.data[9,0].background == TM.Color((0,0,30))
 
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_styled_sequence_retrieves_transformers_from_text_plane_transformers_map():
+    sc, sh, text_plane = styled_text()
+    text_plane.transformers_map["asteriscs"] = TM.Transformer(char="*")
+    text_plane[0, 5] = "012[transformer: asteriscs]345[/transformer]6789"
+    sc.update()
+    yield None
+    assert sc.data[2,5].value == "2"
+    for i in range(3, 6):
+        assert sc.data[i,5].value == "*"
+    assert sc.data[6,5].value == "6"
 
 def test_styled_text_anotates_writtings():
     sc, sh, text_plane = styled_text()

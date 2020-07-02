@@ -1115,7 +1115,6 @@ class FullShape(Shape):
         #####################
 
         if self.context.pretransformers:
-            print(self.context.pretransformers, self.context.pretransformers.process)
             value = self.context.pretransformers.process(self, pos, self.PixelCls(*value))
 
         ############

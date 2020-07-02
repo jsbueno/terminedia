@@ -30,10 +30,18 @@ Targeted for next release (0.4):
             - Apply transformers eagerly on a  per-character base [wip]
                     - Added "pretransformers"  ( regular context-transformers are currently lazy, applied at rendering time only, and are "flat" for the whole shape) [V]
                     - Change MLTokenizer to create 'pre-tranformer" context attribute on "transformer" token [V]
-                    - find a way to declare an retrieve meaningful pretransformers from markup:
-                        - have a "transformer" namespace on text_planes that chainmaps to TM.transformers.library (?)
 
                     - Manage list of pretransformers in context during StyledText rendering [V]
+                    - Add new features to transformers that will make sense for text-streams as opposed to 2D shape data:
+                        - character linear position in text - (what name would suite it better? 'sequence'?)
+                        - character linear position in text in relation to the sequence total length - ('proportional'? )
+                        - allow a markup with a transformer to specify the block length that will be transformed -
+                            (the 'sequence' and 'proportional' parameters are relative to this block):
+                                - a length in the Mark object itself
+                                - a [/transformer]  mark in the text.
+
+                    - find a way to declare an retrieve meaningful pretransformers from markup: [wip]
+                        - have a "transformer" namespace on text_planes that chainmaps to TM.transformers.library (?)
 
             - Allow a call to MLToken.parse to be passed a transformers-mapping, and use it as a source for
                     transformers objects in the  markup [transformer:...] elements [wip]

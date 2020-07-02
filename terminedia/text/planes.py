@@ -88,6 +88,7 @@ class Text:
       """
         self.owner = owner
         self.planes = {}
+        self.transformers_map = {}
 
 
     def set_ctx(self, key, value):

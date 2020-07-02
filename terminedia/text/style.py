@@ -199,6 +199,8 @@ class StyledSequence:
             if key in seq_attrs:
                 key = seq_attrs[key]
                 new_value = copy(getattr(self.context, key))
+                if isinstance(value, str):
+                    value = self.text_plane.transformers_map.get(value)
                 new_value.append(value)
                 value = new_value
             stack = cm.setdefault(key, [])
@@ -500,6 +502,11 @@ class MLTokenizer(Tokenizer):
                 if action in {"left", "right", "up", "down"}:
                     value = action
                     action = "direction"
+            if action.startswith("/"):
+                starting_tag= False
+                action = action[1:]
+            else:
+                starting_tag = True
 
             # Allow for special color values:
             if action in ("color", "foreground") and value == "default":
@@ -513,20 +520,21 @@ class MLTokenizer(Tokenizer):
             if action == "transformer":
                 action = "pretransformer"
 
-            attribute_names = {"effects", "color", "foreground", "background", "direction", "transformer", "char", "font", }
+            attribute_names = {"effects", "color", "foreground", "background", "direction", "pretransformer", "char", "font", }
             if action in attribute_names:
-                attributes = {
-                    action: (
-                        Color(value) if action in ("color", "foreground", "background") else
-                        sum(Effects.__members__.get(v.strip(), 0) for v in value.split("|"))
-                            if action == "effects" else
-                        getattr(Directions, value.upper()) if action == "direction" else
-                        getattr(transformers_library, value) if action == "pretransformer" else
-                        value
-                    )
-                }
-            if action[0] == "/" and action[1:] in attribute_names:
-                pop_attributes = {action.lstrip("/"): None}
+                if starting_tag:
+                    attributes = {
+                        action: (
+                            Color(value) if action in ("color", "foreground", "background") else
+                            sum(Effects.__members__.get(v.strip(), 0) for v in value.split("|"))
+                                if action == "effects" else
+                            getattr(Directions, value.upper()) if action == "direction" else
+                            # getattr(transformers_library, value) if action == "pretransformer" else
+                            value
+                        )
+                    }
+                else:
+                    pop_attributes = {action: None}
 
             if "," in action and attributes is None and pop_attributes is None:
                 nx, ny = [v.strip() for v in action.split(",")]
