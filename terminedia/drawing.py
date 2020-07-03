@@ -394,6 +394,10 @@ class HighResBase:
         w, h = self.parent.get_size()
         return V2(w * self.block_width, h * self.block_height)
 
+    size = property(get_size)
+    width = property(lambda s: s.get_size()[0])
+    height = property(lambda s: s.get_size()[1])
+
     def operate(self, pos, operation):
         """Internal -
 
