@@ -45,7 +45,7 @@ class DummyCtx:
     "resolution",
     "--resolution",
     "-r",
-    type=click.Choice(['square', 'high', 'braille', ''], case_sensitive=False),
+    type=click.Choice(['square', 'high', 'sextant', 'braille', ''], case_sensitive=False),
     default="",
     help="Text resolution to load image"
 )

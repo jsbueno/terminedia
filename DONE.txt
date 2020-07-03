@@ -11,6 +11,7 @@ version 0.4
  - create a "TransformerContainer.bake" method to eagerly apply a stack of transformers to a shape.
  - Sprites promote shapes whitespace and default colors to transparency when created by default (pass alpha=False to prevent)
  - Sprite stack rendering honors TRANSPARENT special value
+ - sextant (1/6 block) (depends on unicode 12 with vintage charset)(V)
 
 New 'transformers library':
     - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters
@@ -76,7 +77,6 @@ multiple backends:
     HTML backend
 
     - "plain stream mode": provide an easy to use "terminedia.print" function to enable the use of colors and character effects without breaking the existing flow on the tty - (no need to instantiate a Screen or print at a specfic position)
-
 
     - braille-block (1/8 block)(WIP):
         - refactor "HighRes" class splittin a base class sub-pixel resolution agnostic (V)

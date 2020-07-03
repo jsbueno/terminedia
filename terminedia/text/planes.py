@@ -52,6 +52,7 @@ class CharPlaneData(dict):
 
 plane_alias = {
     "block": 8,
+    "sextant": 3,
     "high": 4,
     "square": (8, 4),
     "braille": 2,
@@ -105,6 +106,9 @@ class Text:
         if index == (8, 4):
             char_width = 8
             char_height = 4
+        if index == 3:
+            char_width = 4
+            char_height = 2.5
         if not char_width:
             char_width = char_height
         self.planes[index] = plane = dict()
@@ -168,9 +172,11 @@ class Text:
         index = (V2(index) * 8).as_int
         if self.current_plane == 2:
             target.braille.draw.blit(index, rendered_char, erase=clear)
+        elif self.current_plane == 3:
+            target.sextant.draw.blit(index, rendered_char, erase=clear)
         elif self.current_plane == 4:
             target.high.draw.blit(index, rendered_char, erase=clear)
-        elif self.current_plane == (8,4):
+        elif self.current_plane == (8, 4):
             target.square.draw.blit(index, rendered_char, erase=clear)
         elif self.current_plane == 8:
             target.draw.blit(index, rendered_char, erase=clear)
