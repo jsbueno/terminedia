@@ -251,6 +251,7 @@ class Text:
     def _char_at(self, char, pos):
         self.plane[pos] = char
         self.owner.context.last_pos = pos
+        self.planes[self.current_plane]["last_pos"] = pos
         self.blit(pos)
 
     @contextkwords(context_path="owner.context", text_attrs=True)
@@ -261,7 +262,8 @@ class Text:
         tokens = style.MLTokenizer(text)
         styled = tokens(text_plane=self, starting_point=pos)
         self.render_styled_sequence(styled)
-        return self.get_ctx("last_pos")
+        last_pos = self.planes[self.current_plane]["last_pos"]
+        return last_pos
 
     def render_styled_sequence(self, styled):
         """Render an instance of terminedia.text.style.StyledSequence directly
@@ -279,8 +281,9 @@ class Text:
 
     @contextkwords(context_path="owner.context")
     def print(self, text):
-        last_pos = self.get_ctx("last_pos", default=(0, 0))
-        self.at(last_pos, text)
+        # last_pos = self.get_ctx("last_pos", default=(0, 0))
+        last_pos = self.planes[self.current_plane]["last_pos"]
+        self.at(last_pos + self.owner.context.direction, text)
 
     def __repr__(self):
         return "".join(

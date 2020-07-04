@@ -462,3 +462,4 @@ Bugs
     bug: TrasnformersContainer.bake breaking with KernelTransformers (and any transforemrs that will use 'source' and 'pos') (V)
     bug: terminedia-shapes for colored shapes(shape2) is behaving weird for the first frame, after refactoring how Transparency works with sprites
     bug: Screen.data.render yielding strange results for just some text rendered on screen.
+    bug: Screen.print and Screen.text[1].print - not working, (probably broken by markup usage in text[].at)
