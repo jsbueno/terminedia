@@ -154,6 +154,63 @@ class Text:
             return
         self._char_at(char, pos)
 
+    @contextkwords(context_path="owner.context", text_attrs=True)
+    def at(self, pos, text, transformerlib=None):
+        """Renders text at position.
+
+        Args:
+          - pos (2-sequence): Coordinates at which to start the text
+          - text (str): Text to render. May include special markup
+          - transformerlib (Mapping[str:terminedia.Transformer]): updates
+                the internal transformers library and become available
+                to use from the markup
+          - "context-args" (color, background, effects, font, direction):
+                context values to be used to render passed text.
+        Returns:
+            V2: with the last printed position.
+
+
+        Text is rendered same as using the "="  attribution like in
+        screen.text[1][0,0] = "My text" - but this method returns
+        the postion of the last character printed, allows
+        context attributes to be passed as parameters.
+
+        The Transformers parameter accepts  a "transformers" dictionary
+        that will be incorporated into the local "transformers" available
+        to be used by name from markup in the text, like in:
+        `screen.text[1].at((0,0), "[transformers: upper]My text",
+            transformers={"upper": Transformer(char=lambda char: char.upper())}
+        )`
+
+        Note that "transformers" set in a call in this call will
+        update the internal dictionary for the "text" instance
+        associated with a Shape in all resolutions, and remain available
+        after the call.
+
+        For fine-grained control of available transformers,
+        the `Text.transformers_map` attribute is a plain
+        dictionary that can be changed at will.
+
+        """
+        if transformerlib:
+            self.transformers_map.update(transformerlib)
+
+        return self._at(pos, text)
+
+    def _at(self, pos, text):
+        tokens = style.MLTokenizer(text)
+        styled = tokens(text_plane=self, starting_point=pos)
+        self.render_styled_sequence(styled)
+        last_pos = self.planes[self.current_plane]["last_pos"]
+        return last_pos
+
+    def _char_at(self, char, pos):
+        self.plane[pos] = char
+        self.owner.context.last_pos = pos
+        self.planes[self.current_plane]["last_pos"] = pos
+        self.blit(pos)
+
+
     def blit(self, index, target=None, clear=True):
         if target is None:
             target = self.owner
@@ -225,7 +282,6 @@ class Text:
             #    continue
             self.render_styled_sequence(writting)
 
-
     def clear(self):
         self.ticks = 0
         self.writtings[:] = []
@@ -236,23 +292,6 @@ class Text:
     def _render_styled_lock(self, context):
         with self.owner.context(context=context) as ctx, self._render_lock:
             yield self._char_at
-
-    def _char_at(self, char, pos):
-        self.plane[pos] = char
-        self.owner.context.last_pos = pos
-        self.planes[self.current_plane]["last_pos"] = pos
-        self.blit(pos)
-
-    @contextkwords(context_path="owner.context", text_attrs=True)
-    def at(self, pos, text):
-        return self._at(pos, text)
-
-    def _at(self, pos, text):
-        tokens = style.MLTokenizer(text)
-        styled = tokens(text_plane=self, starting_point=pos)
-        self.render_styled_sequence(styled)
-        last_pos = self.planes[self.current_plane]["last_pos"]
-        return last_pos
 
     def render_styled_sequence(self, styled):
         """Render an instance of terminedia.text.style.StyledSequence directly
