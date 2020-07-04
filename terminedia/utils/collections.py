@@ -91,8 +91,9 @@ class HookList(MutableSequence):
 
     def __eq__(self, other):
         # why is not this free with MutableSequence? (posted on python-ideas, 2020-6-30)
-        if not issubclass(type(other), type(self)) and not issubclass(type(self), type(other)):
-            return False
+        if not isinstance(other, type(self)):
+            return NotImplemented
+            # code corrected by suggestion of Serhiy Storchaka on Python-ideas
         return self.data == other.data
 
     def __copy__(self):
