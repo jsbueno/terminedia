@@ -5,20 +5,29 @@ from terminedia.utils import mirror_dict
 
 
 class SubPixels:
-    """Used internally to emulate pixel setting/resetting/reading inside 1/4 block characters
+    """Used internally to emulate pixel setting/resetting/reading inside unicode block characters
 
-    Contains a listing and other mappings of all block characters used in order, so that
-    bits in numbers from 0 to 15 will match the "pixels" on the corresponding block character.
+    Requires that the subclasses contain a listing and other mappings
+    of all block characters to be used in order, so that
+    bits in numbers from 0 to `bit_size` will match the "pixels" on the corresponding block character.
 
     Although this class is purposed for internal use in the emulation of
     a higher resolution canvas, its functions can be used by any application
     that decides to manipulate block chars.
 
-    The class itself is stateless, and it is used as a single-instance which
-    uses the name :any:`BlockChars`. The instance is needed so that one can use the operator
-    ``in`` to check if a character is a block-character.
+    The class itself is stateless, and any subclass can be used as a single-instance.
+    The instance is needed so that one can use the operator
+    ``in`` to check if a character is a block-character in that resolution.
+
+    (originally this code was in the BlockChars class - and was refactored
+    to include the other sub-block pixel resolutions. This class is used as base,
+    and depends mostly of declaring the pixel-representing characters in order
+    in the subclass.)
 
     """
+    # TODO: with proper profiling some better performance to set/unset subpixels
+    # can be achieved (like, declaring the lambda-operators out of the methods
+    # to skip building the function object on each call)
 
     block_width: int
     block_height: int
@@ -194,7 +203,6 @@ class SextantChars_(SubPixels):
     FULL_BLOCK = values.FULL_BLOCK
 
     del codepoint, char
-
 
 
 SextantChars = SextantChars_()
