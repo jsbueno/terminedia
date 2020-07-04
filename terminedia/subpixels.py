@@ -172,6 +172,47 @@ class BrailleChars_(SubPixels):
 
 BrailleChars = BrailleChars_()
 
+
+class SextantChars_(SubPixels):
+    """Used internally to emulate pixel setting/resetting/reading inside 1/6 Unicode Legacy Computing characters"""
+
+    block_width = 2
+    block_height = 3
+    bit_size: int = 0b111111
+
+    EMPTY = values.EMPTY
+
+    for codepoint in range(0x1FB00, 0x1FB3C):
+        char = chr(codepoint)
+        locals()[unicodedata.name(char)] = char
+        # This Unicode plane do not re-implement these 2 chars,
+        # so we insert then manually in the correct order
+        if codepoint == 0x1fb13:
+            LEFT_HALF_BLOCK = "\u258C"
+        if codepoint == 0x1fb27:
+            RIGHT_HALF_BLOCK = "\u2590"
+    FULL_BLOCK = values.FULL_BLOCK
+
+    del codepoint, char
+
+
+
+SextantChars = SextantChars_()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # draft chars to look at later:
 # Future chars to acomodate in extended drawing modes:
 """

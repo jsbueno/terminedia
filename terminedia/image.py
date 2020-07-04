@@ -12,7 +12,7 @@ from weakref import ref, ReferenceType
 
 from terminedia.contexts import Context
 from terminedia.sprites import SpriteContainer
-from terminedia.subpixels import BrailleChars, HalfChars
+from terminedia.subpixels import BrailleChars, HalfChars, SextantChars
 from terminedia.unicode import char_width
 from terminedia.utils import Color, Rect, V2, LazyBindProperty, get_current_tick, size_in_blocks
 from terminedia.unicode_transforms import translate_chars
@@ -194,6 +194,10 @@ class ShapeApiMixin:
     @LazyBindProperty
     def braille(self):
         return self._get_highres(block_class=BrailleChars, block_height=4)
+
+    @LazyBindProperty
+    def sextant(self):
+        return self._get_highres(block_class=SextantChars, block_height=3)
 
     @LazyBindProperty
     def sprites(self):

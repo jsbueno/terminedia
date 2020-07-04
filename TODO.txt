@@ -256,11 +256,8 @@ Future
         - get the color, movement, and effects sequences from terminfo, and use hard-coded common sequences just as fallback. (thanks to Gilles Quenot)
 
 - new "resolution modes":
-    - half character (1/2 block - square aspect ratio)(V)
     - double-character (2 blocks - square aspect ratio)
-        - Add a Text[2] plane using braille chars(WIP)
-        - create a solution equivalent to the ".text[4]" plane selection for resolutions
-    - sextant (1/6 block) (depends on unicode 12 with vintage charset), with square aspect ratio:
+    - create a solution equivalent to the ".text[4]" plane selection for resolutions
     - 1 block width x 1 block height at arbitrary 1/8 block height position. (use "LOWER ONE EIGHTH BLOCK" and friends)
     - 1 block width x 1 block height at arbitrary 1/8 block width position.
     - refactor image loading to be able to use super-resolutions for B&W, while keeping color resolution low (Speccy way)

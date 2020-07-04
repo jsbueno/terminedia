@@ -12,7 +12,7 @@ from terminedia import Screen, pause, DEFAULT_FG, Color
     "--size",
     "-s",
     default="4",
-    help="Block height for char. Allowed values: 1, 2, 4, 8 or 'square'",
+    help="Block height for char. Allowed values: 1, 2, 3, 4, 8 or 'square'",
 )
 @click.option(
     "position",

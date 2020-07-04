@@ -14,6 +14,10 @@ text. Besides that, it is a very useful font, if not essential,
 to use terminedia under Windows, as it features the block-characters
 that are used as pixels.
 
+# Rbanffy's 3270font
+# Install this for best experience with Unicode 13.0 Sextant characters
+https://github.com/rbanffy/3270font
+
 # CMDER terminl emulator
 https://cmder.net/
 Rather complete terminal experience made available under Windows.
@@ -59,3 +63,5 @@ Simpler converter/printer to upsidedown pseudo text:
 https://github.com/cburgmer/upsidedown by Christoph Burgmer
 
 (Pseudo upside down mapping originally lifted from fileformat.info/)
+
+
