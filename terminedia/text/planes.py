@@ -91,13 +91,6 @@ class Text:
         self.planes = {}
         self.transformers_map = {}
 
-
-    def set_ctx(self, key, value):
-        return setattr(self.owner.context, f"local_storage_text_{self.current_plane}_{key}", value)
-
-    def get_ctx(self, key, default=None):
-        return getattr(self.owner.context, f"local_storage_text_{self.current_plane}_{key}", default)
-
     @property
     def size(self):
         return self.plane.size
@@ -159,10 +152,7 @@ class Text:
         if len(value) > 1 and len(split_graphemes(value)) > 1:
             self._at(index, value)
             return
-
-        self.plane[index] = value
-        self.set_ctx("last_pos", index)
-        self.blit(index)
+        self._char_at(char, pos)
 
     def blit(self, index, target=None, clear=True):
         if target is None:
@@ -246,7 +236,6 @@ class Text:
     def _render_styled_lock(self, context):
         with self.owner.context(context=context) as ctx, self._render_lock:
             yield self._char_at
-            self.set_ctx("last_pos", getattr(ctx, "last_pos", (0, 0)))
 
     def _char_at(self, char, pos):
         self.plane[pos] = char
@@ -281,7 +270,6 @@ class Text:
 
     @contextkwords(context_path="owner.context")
     def print(self, text):
-        # last_pos = self.get_ctx("last_pos", default=(0, 0))
         last_pos = self.planes[self.current_plane]["last_pos"]
         self.at(last_pos + self.owner.context.direction, text)
 

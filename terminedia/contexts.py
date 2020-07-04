@@ -168,9 +168,9 @@ class Context:
 
         to_remove = set(self._locals.__dict__.keys()) - data.pop("_previously_existing", set())
         for extra_key in to_remove:
-            # .text shape namespaces have to persist data in the parent's context,
-            # which may be in a context-manager (with) block due to
-            # 'mundane' attribute settings.
+            # Keys with this prefix are preserved across context-exit.
+            # (this feature were previously used by text_planes -
+            #  kept here because some other place might need it)
             if extra_key.startswith("local_storage"):
                 continue
             delattr(self._locals, extra_key)
