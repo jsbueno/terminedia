@@ -28,10 +28,10 @@ def main(phrases=(), effects=(), clear=True):
     with TM.Screen(clear_screen=clear) as sc:
         for line, (phrase, effect) in enumerate(zip(cycle(phrases), effects)):
             sc.context.effects = TM.Effects.none
-            if (len(effects) != 1):
-                sc.print_at((0, line), f"{effect.name}: ")
-            sc.context.effects = effect
-            sc.print(phrase)
+
+            sc.text[1][0, line] = f"{(effect.name + ':') if len(effects) > 1 else ''}[effect: {effect.name}]{phrase}"
+            # sc.context.effects = effect
+            # sc.text[1].print(phrase)
         TM.pause()
 
 
