@@ -143,7 +143,7 @@ class StyledSequence:
             mark_here.context = self.context
             mark_here.pos = self.current_position
             if mark_here.attributes or mark_here.pop_attributes:
-                self._context_push(mark_here.attributes, mark_here.pop_attributes)
+                self._context_push(mark_here.attributes, mark_here.pop_attributes, index)
             if mark_here.moveto:
                 mtx = mark_here.moveto[0]
                 mty = mark_here.moveto[1]
@@ -181,9 +181,10 @@ class StyledSequence:
             self.text,
             self.context
         )
+        self._active_transformers = []
 
 
-    def _context_push(self, attributes, pop_attributes):
+    def _context_push(self, attributes, pop_attributes, index):
         seq_attrs = {"transformer": "transformers", "pretransformer": "pretransformers"}
         cm = self.locals.context_map
         changed = set()
@@ -195,12 +196,26 @@ class StyledSequence:
             if stack:
                 changed.add(key)
                 stack.pop()
+        # NB - even though active transformers may have been killed
+        # before, their copied containers still live in "cm", and
+        # these are popped here, along with all other attrs;
+
         for key, value in attributes.items():
             if key in seq_attrs:
                 key = seq_attrs[key]
                 new_value = copy(getattr(self.context, key))
+                spam = len(self.text) - index
                 if isinstance(value, str):
+                    if " " in value:
+                        value, spam = value.split()
+                        spam = int(spam)
                     value = self.text_plane.transformers_map.get(value)
+                value = copy(value)
+                # Inject values to be available for transformer methods:
+                value.sequence_len = spam
+                value.sequence = self.text[index: index + spam]
+                value.sequence_absolute_start = index
+                self._active_transformers.append(value)
                 new_value.append(value)
                 value = new_value
             stack = cm.setdefault(key, [])
@@ -211,6 +226,17 @@ class StyledSequence:
         for attr in changed:
             if cm[attr]:
                 setattr(self.context, attr, cm[attr][-1])
+
+    def _remove_transformers(self, tr):
+        # Remove active transformers from the 3 places they are present:
+        # self._active_transformers, self.context and self.locals.context_map
+
+        # (TransformersContainer class feature a "safe_remove")
+        self._active_transformers.remove(tr)
+        for key in ("transformers", "pretransformers"):
+            getattr(self.context, key).remove(tr)
+            for container in self.locals.context_map.get(key):
+                container.remove(tr)
 
     def _get_position_at(self, char, index):
         if self._last_index_processed != index:
@@ -224,9 +250,20 @@ class StyledSequence:
         self._enter_iteration()
         with self.context():
             for index, char in enumerate(self.text):
-                yield char, self._process_to(index), self._get_position_at(
+                values = char, self._process_to(index), self._get_position_at(
                     char, index
                 )
+                if self._active_transformers:
+                    # transformers have to be updated after made active...
+                    to_remove = set()
+                    for tr in self._active_transformers:
+                        tr.sequence_index = index - tr.sequence_absolute_start
+                        if tr.sequence_index >= tr.sequence_len:
+                            to_remove.add(tr)
+                    for tr in to_remove:
+                        self._remove_transformers(tr)
+
+                yield values
         if hasattr(self, "marks"):
             del self.marks
         # self._unwind()

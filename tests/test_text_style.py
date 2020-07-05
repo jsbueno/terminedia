@@ -341,6 +341,25 @@ def test_styled_text_render_and_animate_special_marks():
         assert sc.data[i + 2, 5].foreground == TM.values.DEFAULT_FG
 
 
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_styled_text_transformers_spam_based_index_attribute_and_deactivation():
+    sc, sh, text_plane = styled_text()
+    sc.text.transformers_map["red"] = TM.Transformer(foreground=lambda : TM.Color("red"))
+    sc.text.transformers_map["deg1"] = TM.Transformer(background=lambda sequence_index: TM.Color((0, 25 * sequence_index, 255 -25 * sequence_index)))
+
+    sc.text[1][0,0] = "[transformer: red 5]abc[transformer: deg1 10]defghijklmnopqrstyz"
+    sc.update()
+    yield None
+    for i in range(0, 20):
+        assert sc.data[i, 0].foreground == (TM.Color("red") if i < 5 else TM.values.DEFAULT_FG)
+        if i < 3 or 13 <= i:
+            assert sc.data[i, 0].background == TM.values.DEFAULT_BG
+        else:
+            assert sc.data[i, 0].background == TM.Color((0, 25 * (i - 3), 255 - 25 * (i - 3)))
+
+
+
 # Inner unit testing for StyledSequence
 
 def test_styled_text_push_context_attribute():
@@ -351,13 +370,13 @@ def test_styled_text_push_context_attribute():
 
     assert seq.context.color != color
     original = seq.context.color
-    seq._context_push({"color": color}, {})
+    seq._context_push({"color": color}, {}, 0)
     assert seq.context.color == color
-    seq._context_push({"color": color2}, {})
+    seq._context_push({"color": color2}, {}, 0)
     assert seq.context.color == color2
-    seq._context_push({}, {"color": None})
+    seq._context_push({}, {"color": None}, 0)
     assert seq.context.color == color
-    seq._context_push({}, {"color": None})
+    seq._context_push({}, {"color": None}, 0)
     assert seq.context.color == original
 
 
@@ -370,13 +389,13 @@ def test_styled_text_push_context_sequence_attribute():
 
     assert tr1 not in seq.context.pretransformers
     original = copy(seq.context.pretransformers)
-    seq._context_push({"pretransformer": tr1}, {})
-    assert seq.context.pretransformers[-1] == tr1
-    seq._context_push({"pretransformer": tr2}, {})
-    assert seq.context.pretransformers[-1] == tr2
-    assert seq.context.pretransformers[-2] == tr1
-    seq._context_push({}, {"pretransformer": None})
-    assert seq.context.pretransformers[-1] == tr1
-    seq._context_push({}, {"pretransformer": None})
+    seq._context_push({"pretransformer": tr1}, {}, 0)
+    assert seq.context.pretransformers[-1].foreground == tr1.foreground
+    seq._context_push({"pretransformer": tr2}, {}, 0)
+    assert seq.context.pretransformers[-1].background == tr2.background
+    assert seq.context.pretransformers[-2].foreground == tr1.foreground
+    seq._context_push({}, {"pretransformer": None}, 0)
+    assert seq.context.pretransformers[-1].foreground == tr1.foreground
+    seq._context_push({}, {"pretransformer": None}, 0)
     assert seq.context.pretransformers == original
 

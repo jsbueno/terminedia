@@ -75,15 +75,16 @@ Targeted for next release (0.4):
                     - they are reflected on the owner shape data anyway (keeping the attributes)
                     - rendering rich text automatically rewrites the shape-data
                     - written text is stored at the "writtings" object anyway
-        - create special markup for possible but hard to create patterns: apply gradients, modify color by tick and position:[WIP]:
+        - create special markup for possible but hard to create patterns: apply gradients, modify color by tick and position:[V]:
             - these can be achived by adding "transformers" to "attributes" in the Mark objects.[V]
-            - Allow Transformers inlined in Marks to have "sequence_position" and "sequence_len"  allowed dependency injections:
-                - Transformers is changed so that arbitrary dependency injection names can work: their values have to be  set as attributes on the transformer instanc prior to rendering [WIP]
-                - StyledSequence rendering machinnery have to setup these parameters in the transformers.
-                - sequence_position should count from the place the Mark containing the trnasformer is active, not the absolte value.
-                - sequence_len, likewise, should reflect the length of the string that is modified by that Mark.
-                - allow  closing Marks, popping a transformer to specify the affected length
-                - also allow "lenght" field on markups and Mark to specify the affected length of text
+            - Allow Transformers inlined in Marks to have "sequence_index" and "sequence_len"  allowed dependency injections:
+                - Transformers is changed so that arbitrary dependency injection names can work: their values have to be  set as attributes on the transformer instanc prior to rendering [V]
+                - StyledSequence rendering machinnery have to setup these parameters in the transformers.[V]
+                - StyledSequence rendering machinnery have to pop a transformer once its spam is due.[V]
+                - sequence_index should count from the place the Mark containing the trnasformer is active, not the absolte value[V]
+                - sequence_len, likewise, should reflect the length of the string that is modified by that Mark.[V]
+                - allow  closing Marks, popping a transformer to specify the affected length [v]
+                - also allow "lenght" field on markups and Mark to specify the affected length of text [v]
 
             - create a few ready-to-use transformers using these features to apply gradients, and time (tick) changing visibility, or color offset.
 

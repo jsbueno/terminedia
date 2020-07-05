@@ -43,9 +43,11 @@ class Transformer:
             to rendering. For rich-text rendering embedded transformers
             (see terminedia.text.planes and terminedia.txt.sprites), for example,
             the following attribute are available:
-                - "sequence_position": index of the current character inside the string
+                - "sequence_index": index of the current character inside the string
                     affected by the Transformer
                 - "sequence_len": length of the string affected by the Transformer
+                - "sequence": actual text spam affected by the Transformer
+                - "sequence_absolute_start": index in  the text being rendered the transformer was made active
 
         It should return the value to be used downstream of the named channel.
 
@@ -211,10 +213,10 @@ class TransformersContainer(HookList):
                     args["tick"] = get_current_tick()
                 elif parameter == "context":
                     args["context"] = source.context
-                elif hasattr(transformer, parameter, None):
+                elif hasattr(transformer, parameter):
                     # Allows for custom parameters that can be made available
                     # for specific uses of transformers.
-                    # (ex.: 'sequence_position' for transformers inlined in rich-text rendering)
+                    # (ex.: 'sequence_index' for transformers inlined in rich-text rendering)
                     args[parameter] = getattr(transformer, parameter)
             return args
 
@@ -268,3 +270,8 @@ class TransformersContainer(HookList):
         for pos, pixel in source:
             target[pos + offset] = self.process(source, pos, pixel)
         return target
+
+    def remove(self, tr):
+        # override default remove for a safe "pass if not exist" (and faster)
+        if tr in self.data:
+            self.data.remove(tr)
