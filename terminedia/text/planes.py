@@ -210,7 +210,6 @@ class Text:
         self.planes[self.current_plane]["last_pos"] = pos
         self.blit(pos)
 
-
     def blit(self, index, target=None, clear=True):
         if target is None:
             target = self.owner

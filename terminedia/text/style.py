@@ -224,7 +224,7 @@ class StyledSequence:
         self._enter_iteration()
         with self.context():
             for index, char in enumerate(self.text):
-                yield self.text[index], self._process_to(index), self._get_position_at(
+                yield char, self._process_to(index), self._get_position_at(
                     char, index
                 )
         if hasattr(self, "marks"):
@@ -485,17 +485,28 @@ class MLTokenizer(Tokenizer):
         from terminedia import Effects, Color, Directions, DEFAULT_BG, DEFAULT_FG, TRANSPARENT
 
         self.mark_sequence = {}
+        # Separate stack to anottate the length of the affected string inside each Transformer
+        transformer_stack = []
+        last_offset = -1
+        offset_repeat_counter = -1
         for offset, token in raw_tokens:
+            if offset == last_offset:
+                offset_repeat_counter += 1
+            else:
+                offset_repeat_counter = 0
+            last_offset = offset
             attributes = None
             pop_attributes = None
             rmoveto = None
             moveto = None
 
-            token = token.lower()
             if ":" in token:
                 action, value = [v.strip() for v in token.split(":")]
+                action = action.lower()
                 if action == "effect":
                     action = "effects"
+                if action not in ("transformer", "font", "char"):
+                    value = value.lower()
             else:
                 action = token.strip()
                 value = None
@@ -519,6 +530,18 @@ class MLTokenizer(Tokenizer):
                 value = ast.literal_eval(value)
             if action == "transformer":
                 action = "pretransformer"
+                if starting_tag:
+                    transformer_stack.append((value, offset, offset_repeat_counter))
+                else:
+                    closing_transformer, oppening_offset, oppening_repeat = transformer_stack.pop()
+                    if not " " in closing_transformer:
+                        # if there is a space, assume the spam of the transformer is given
+                        # on the opening tag and do nothing.
+                        spam = offset - oppening_offset
+                        closing_mark = self.mark_sequence[oppening_offset]
+                        if isinstance(closing_mark, list):
+                            closing_mark = closing_mark[oppening_repeat]
+                        closing_mark.attributes["pretransformer"] += f" {spam}"
 
             attribute_names = {"effects", "color", "foreground", "background", "direction", "pretransformer", "char", "font", }
             if action in attribute_names:

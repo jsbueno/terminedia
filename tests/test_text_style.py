@@ -198,6 +198,13 @@ def test_mltokenizer_generates_mark_sequences_with_markups_at_same_place():
     assert x.mark_sequence[0][0].attributes == {"color": TM.Color("blue")}
     assert x.mark_sequence[0][1].attributes == {"background": TM.Color("white")}
 
+def test_mltokenizer_properly_accounts_transformers_spam():
+    x = MLTokenizer("[transformer: Z][transformer: Y][transformer: X 20]1[/transformer]2[/transformer]")
+    x.parse()
+    assert x.mark_sequence[0][0].attributes == {"pretransformer": "Z"}
+    assert x.mark_sequence[0][1].attributes == {"pretransformer": "Y 2"}
+    assert x.mark_sequence[0][2].attributes == {"pretransformer": "X 20"}
+
 
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test

@@ -38,6 +38,15 @@ class Transformer:
                 - "tick" meaning the "frame number" from app start, and in the future
                     will be used for animations.
 
+            Depending where the transformers are used, more input paramters may be available -
+            they have to be set as instance attributes in the Transformer instance prior
+            to rendering. For rich-text rendering embedded transformers
+            (see terminedia.text.planes and terminedia.txt.sprites), for example,
+            the following attribute are available:
+                - "sequence_position": index of the current character inside the string
+                    affected by the Transformer
+                - "sequence_len": length of the string affected by the Transformer
+
         It should return the value to be used downstream of the named channel.
 
         """
@@ -202,6 +211,11 @@ class TransformersContainer(HookList):
                     args["tick"] = get_current_tick()
                 elif parameter == "context":
                     args["context"] = source.context
+                elif hasattr(transformer, parameter, None):
+                    # Allows for custom parameters that can be made available
+                    # for specific uses of transformers.
+                    # (ex.: 'sequence_position' for transformers inlined in rich-text rendering)
+                    args[parameter] = getattr(transformer, parameter)
             return args
 
         values = list(pixel)

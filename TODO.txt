@@ -40,8 +40,8 @@ Targeted for next release (0.4):
                                 - a length in the Mark object itself
                                 - a [/transformer]  mark in the text.
 
-                    - find a way to declare an retrieve meaningful pretransformers from markup: [wip]
-                        - have a "transformer" namespace on text_planes that chainmaps to TM.transformers.library (?)
+                    - find a way to declare an retrieve meaningful pretransformers from markup: [V]
+                        - Text class includes a ".transformers_map" attribute - a plain dictionary with transfomer-names as keys, and Transformer instances as values - the names can be used from the rich-text markup
 
             - Allow a call to MLToken.parse to be passed a transformers-mapping, and use it as a source for
                     transformers objects in the  markup [transformer:...] elements [wip]
@@ -54,9 +54,9 @@ Targeted for next release (0.4):
             - end-of-lines are marked by special "portal" objects poiting the text to the beginning of the next line[WIP]
                  - (teleporters also indicate the direction the remainder of the text will flow)[V]
 
-                - These "portal" are created automatically (lazily?) for
-                        left-to-right, top-down text, but can be customized
-                        for greater good and funny layouts[WIP]
+                - These "portal" are created automatically for
+                        left-to-right,  and can be customized for greater good and funny layouts[V]
+                        - have virtual portals crated lazily?
 
                 - To enable the automatic portals and some other features, a specialized container
                     for Marks assigned to a textplane is created (MarkMap) [WIP]:
@@ -70,20 +70,31 @@ Targeted for next release (0.4):
             re-rendered in a follow-up frame (with possibly differing attributes)[WIP]:
                 - base suport [V]
                 - Refactor to specialized data object instead of parallel list and set (to preserve order) (maybe a dict would suffice?)
-                - Consider if the character data in each plane (text_plane.plane dictionary) is worth keeping:
+                - Consider if the character data in each plane (text_plane.plane dictionary) is worth keeping. consider that:
                     - static characters are stored there without any attributes
                     - they are reflected on the owner shape data anyway (keeping the attributes)
                     - rendering rich text automatically rewrites the shape-data
                     - written text is stored at the "writtings" object anyway
-        - create special markup for possible but hard to create patterns: apply gradients, modify color by tick and position:
-            - allow "lenght" field on markups and Mark?
-            - add active marks to a data structure in the styledtext being rendered, so it is called
-                to modify a set of attributes
-        - allow programatic attributes on Mark objects (computed Color, etc...)
+        - create special markup for possible but hard to create patterns: apply gradients, modify color by tick and position:[WIP]:
+            - these can be achived by adding "transformers" to "attributes" in the Mark objects.[V]
+            - Allow Transformers inlined in Marks to have "sequence_position" and "sequence_len"  allowed dependency injections:
+                - Transformers is changed so that arbitrary dependency injection names can work: their values have to be  set as attributes on the transformer instanc prior to rendering [WIP]
+                - StyledSequence rendering machinnery have to setup these parameters in the transformers.
+                - sequence_position should count from the place the Mark containing the trnasformer is active, not the absolte value.
+                - sequence_len, likewise, should reflect the length of the string that is modified by that Mark.
+                - allow  closing Marks, popping a transformer to specify the affected length
+                - also allow "lenght" field on markups and Mark to specify the affected length of text
+
+            - create a few ready-to-use transformers using these features to apply gradients, and time (tick) changing visibility, or color offset.
+
+        - allow programatic attributes on Mark objects (computed Color, etc...)[V]:
+            - implemented as Transformers.
         - Allow "offset" parameters to styled text, so that text can move according to tick:
+            - probably these should be specifid as "SpecilMark" objects.
             - pad right with"nop" characters
             - select a renderable window of text
             - allow negative offset;
+
 
         - Consider merging "SpecialMark" and "Mark" classes. (They are distinguishable by the presence of
                                                               an ".index" attribute)
