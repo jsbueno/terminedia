@@ -127,7 +127,11 @@ make way for 6x3 block core transformers in order to use half-triangle character
     - Fix windows keyboard handling on new- MS terminal (2019)
     - Known Issue: the rendering through colorama is super-slow. most animation applications will be just proof of concepts until another way is found.
 
-- Refactor utils.py into proper folder [WIP]
+- Refactor utils.py into proper folder [V]
+- Spice up "HookedList" to support slice operations and work seamlesly as a list
+     - implement "reversed"
+     - have "remove" and other altering methods to use the cast-hook for proper element matching
+     (suggestions by Serhiy Storchaka)
 - Efficient MutableString/struct container to replace "list" as main data storage [WIP]:
     - backed by bytearray
     - use abc.MutableSequence for and store utf-32-le data for characters
@@ -245,15 +249,15 @@ Write some real nice docs, with tutorials and use suggestions
 Future
 ========
 
-- MARKUP:
+- MARKUP: [V]
     Accept a markup in all string-printing methods to enable interleaving
     context changes during the print:
-        - Example: "TM.print("Hello [color:red]World[/color][effect:blink]!!!")
-        - Allow cursor movement commands into the markup
+        - Example: "TM.print("Hello [color:red]World[/color][effect:blink]!!!") [V]
+        - Allow cursor movement commands into the markup [V]
         - promote the current side-effect that if "context.char" is set
         to a string more than one glyph in length all the string is
         placed instead of a single pixel to a full feature, accepting
-        this markup
+        this markup [V]
 
 - BACKENDS:
     Image 'screenshot' backend
@@ -316,13 +320,15 @@ Improving Shape objects:
 
 MS-Windows support (colorama/mscrvt/color reducing)[WIP]
 
-"business" framed-window api
+"business" framed-window api for apps
+
+
 
 Basic image transform API: resize, rotate, flip.
 
 Table drawing chars drawing API (maybe convert chars with a convolution after block-line art?) [WIP]
 
-Super-high resolution (Unicode vintage charset and "sextant" blocks)
+Super-high resolution (Unicode vintage charset and "sextant" blocks)[V]
 
 Mouse event support
 

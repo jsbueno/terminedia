@@ -7,7 +7,7 @@ import pytest
 
 from conftest import rendering_test, fast_render_mark
 
-@pytest.mark.fixture
+# @pytest.mark.fixture
 def styled_text():
     sc = TM.Screen((20, 10))
     sh = TM.shape((20, 10))
@@ -357,6 +357,44 @@ def test_styled_text_transformers_spam_based_index_attribute_and_deactivation():
             assert sc.data[i, 0].background == TM.values.DEFAULT_BG
         else:
             assert sc.data[i, 0].background == TM.Color((0, 25 * (i - 3), 255 - 25 * (i - 3)))
+
+
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_styled_text_transformers_inline_end_markup_turn_off_just_last_transformer():
+    sc, sh, text_plane = styled_text()
+    sc.text.transformers_map["red"] = TM.Transformer(foreground=lambda : TM.Color("red"))
+    sc.text.transformers_map["blue"]  = TM.Transformer(background=lambda : TM.Color("blue"))
+
+    sc.text[1][0,0] = "[transformer: red]012[transformer: blue]345[/transformer]67[/transformer]89"
+    sc.update()
+    yield None
+
+    assert sc.data[0, 0].foreground == TM.Color("red")
+    assert sc.data[3, 0].foreground == TM.Color("red")
+    assert sc.data[3, 0].background == TM.Color("blue")
+    assert sc.data[6, 0].foreground == TM.Color("red")
+    assert sc.data[6, 0].background == TM.values.DEFAULT_BG
+    assert sc.data[8, 0].foreground == TM.values.DEFAULT_FG
+    assert sc.data[8, 0].background == TM.values.DEFAULT_BG
+
+
+#@pytest.mark.parametrize(*fast_render_mark)
+#@rendering_test
+def test_styled_text_transformers_inline_end_markup_dont_turn_off_location_based_mark():
+    sc, sh, text_plane = styled_text()
+    sc.text.transformers_map["red"] = TM.Transformer(foreground=lambda : TM.Color("red"))
+    sc.text[1].marks[3, 0] = TM.Mark(attributes={"pretransformer": TM.Transformer(background=lambda : TM.Color("blue"))})
+
+    sc.text[1][0,0] = "[transformer: red]012345[/transformer]6789"
+    sc.update()
+    # yield None
+
+    assert sc.data[0, 0].foreground == TM.Color("red")
+    assert sc.data[3, 0].foreground == TM.Color("red")
+    assert sc.data[3, 0].background == TM.Color("blue")
+    assert sc.data[6, 0].foreground == TM.values.DEFAULT_FG
+    assert sc.data[6, 0].background == TM.Color("blue")
 
 
 

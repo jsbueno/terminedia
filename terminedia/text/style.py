@@ -195,7 +195,18 @@ class StyledSequence:
             stack = cm.setdefault(key, [])
             if stack:
                 changed.add(key)
-                stack.pop()
+                if key != "pretransformers":
+                    stack.pop()
+                else:
+                    # Ensure closing tag disables transformer passed in as
+                    # tag inlined in text, not one embedded in text_plane.marks or
+                    # in an SpecialMark: remove the container container_snapshot
+                    # were that markup was added from the stack.
+                    for i, container_snapshot in enumerate(reversed(stack)):
+                        if getattr(container_snapshot[-1], "from_markup", False):
+                            stack.pop(-(i + 1))
+                            break
+
         # NB - even though active transformers may have been killed
         # before, their copied containers still live in "cm", and
         # these are popped here, along with all other attrs;
@@ -210,7 +221,12 @@ class StyledSequence:
                         value, spam = value.split()
                         spam = int(spam)
                     value = self.text_plane.transformers_map.get(value)
+                    from_markup = True
+                else:
+                    spam = getattr(value, "sequence_len", spam)
+                    from_markup = False
                 value = copy(value)
+                value.from_markup = from_markup
                 # Inject values to be available for transformer methods:
                 value.sequence_len = spam
                 value.sequence = self.text[index: index + spam]
