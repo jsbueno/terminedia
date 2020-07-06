@@ -216,15 +216,18 @@ class StyledSequence:
                 key = seq_attrs[key]
                 new_value = copy(getattr(self.context, key))
                 spam = len(self.text) - index
+                if isinstance(value, tuple):
+                    from_markup = value[1]
+                    value = value[0]
+                else:
+                    from_markup = False
                 if isinstance(value, str):
                     if " " in value:
                         value, spam = value.split()
                         spam = int(spam)
                     value = self.text_plane.transformers_map.get(value)
-                    from_markup = True
                 else:
                     spam = getattr(value, "sequence_len", spam)
-                    from_markup = False
                 value = copy(value)
                 value.from_markup = from_markup
                 # Inject values to be available for transformer methods:
@@ -384,6 +387,12 @@ class MarkMap(MutableMapping):
         mark_at_pos = self.seq_data.get(seq_pos, [])
         if not isinstance(mark_at_pos, Sequence):
             mark_at_pos = [mark_at_pos]
+
+        # Mark transformers found inlined so they can be matched properly
+        # by closing marks
+        for mark in mark_at_pos:
+            if mark.attributes and mark.attributes.get("pretransformer"):
+                mark.attributes["pretransformer"] = (mark.attributes["pretransformer"], True)
         mark_seq += mark_at_pos
 
         marks_plane = self.get(pos)

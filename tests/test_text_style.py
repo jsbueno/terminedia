@@ -379,8 +379,8 @@ def test_styled_text_transformers_inline_end_markup_turn_off_just_last_transform
     assert sc.data[8, 0].background == TM.values.DEFAULT_BG
 
 
-#@pytest.mark.parametrize(*fast_render_mark)
-#@rendering_test
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
 def test_styled_text_transformers_inline_end_markup_dont_turn_off_location_based_mark():
     sc, sh, text_plane = styled_text()
     sc.text.transformers_map["red"] = TM.Transformer(foreground=lambda : TM.Color("red"))
@@ -388,7 +388,27 @@ def test_styled_text_transformers_inline_end_markup_dont_turn_off_location_based
 
     sc.text[1][0,0] = "[transformer: red]012345[/transformer]6789"
     sc.update()
-    # yield None
+    yield None
+
+    assert sc.data[0, 0].foreground == TM.Color("red")
+    assert sc.data[3, 0].foreground == TM.Color("red")
+    assert sc.data[3, 0].background == TM.Color("blue")
+    assert sc.data[6, 0].foreground == TM.values.DEFAULT_FG
+    assert sc.data[6, 0].background == TM.Color("blue")
+
+
+
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_styled_text_transformers_inline_end_markup_dont_turn_off_location_based_mark_when_both_are_defined_as_string():
+    sc, sh, text_plane = styled_text()
+    sc.text.transformers_map["red"] = TM.Transformer(foreground=lambda : TM.Color("red"))
+    sc.text.transformers_map["blue"] = TM.Transformer(background=lambda : TM.Color("blue"))
+    sc.text[1].marks[3, 0] = TM.Mark(attributes={"pretransformer": "blue"})
+
+    sc.text[1][0,0] = "[transformer: red]012345[/transformer]6789"
+    sc.update()
+    yield None
 
     assert sc.data[0, 0].foreground == TM.Color("red")
     assert sc.data[3, 0].foreground == TM.Color("red")
