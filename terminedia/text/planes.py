@@ -109,7 +109,7 @@ class Text:
         if getattr(self, "current_plane", False):
             raise RuntimeError("Concrete instance of text - can't create further planes")
         plane["width"] = width = self.owner.width // char_width
-        plane["height"] = height = self.owner.height // char_height
+        plane["height"] = height = int(self.owner.height // char_height)
         plane["data"] = data = CharPlaneData((width, height))
         plane["marks"] = marks = style.MarkMap()
         concretized_text = copy(self)
