@@ -11,14 +11,28 @@ Targeted for next release (0.4):
             - Refactor code to have a core to be used by  backend.print, screen.print, text.at, shape.print
     - Make assignment of string to shape or text area cell spread the text across as many cells as needed:[WIP]
         - correctly detect combining characters so that combined characters live on the same cell (V)
-        - correctly detect if final transformed character takes more than 1 cell width after applying effects, and correctly use 2 cells for character
+        - correctly detect if final transformed character takes more than 1 cell width after applying effects, and correctly use 2 cells for character:
+            - retrieve character width from Shape.__setitem__
     - create markup language for embedding context changing directives inside a single string:
-        - make it usable by assignment, `print` and `at` methods
+        - make it usable by assignment, `print` and `at` methods on shapes, scren and text [V]
+        - make it usable by standalone "terminedia.print" (terminedia.print should work without an underlying shape):
+            - parse text, and create a transient shape if markup is used
+            - test negative Y offsets on transient shape
+            - render transient shape at cursor position, clipped to generated content extents.
     - Text entity, akim to "shape" or "sprite" which allows for flowing text [WIP]:
         - BUG: when rendering spaces, attributes (like background) are not updated (V) - fixed by sprite transparency handling implementation.
         - BUG: on rendering rich text, text_plane's context is not being taken in account. (i.e. if color is "red", DEFAULT_FG is being used instead) [V]
         - This can be current "text_planes" themselves [v]
-        - these should be decorateable with frames using unicode frame drawing characters
+        - these should be decorateable with frames using unicode frame drawing characters:
+            - Allow text_planes to feature CSS-like "padding" attributes, so that when there is a frame, padding offset contents  to the inner part.
+            - create a method to:
+                - clear host shape
+                - draw frame ,
+                - "bake" it on the host shape using one of the transformers-library border transformers
+                - change padding
+                - redraw any contents with new padding in consideration
+            - clear frame:
+                - same steps as create frame
         - Think of a way to "stream" text inside these containers [V]:
         - Implement a way to "stream" text rich text inside these containers [WIP]:
             - TM.text.StyledSequence is the class[v]
@@ -50,7 +64,8 @@ Targeted for next release (0.4):
                     (and programatically depending on "tick count" or rendering position). or
             - these marks can be placed in the text_plane entity at fixed locations
                 and compose with the styledtext rendering.[V]
-            - special marks should allow programatic text modfication based on ticks and position
+            - ensure closing mark attributes defined on plane and on sequence do not clash.[v]
+            - special marks should allow programatic text modification based on ticks and position
             - end-of-lines are marked by special "portal" objects poiting the text to the beginning of the next line[WIP]
                  - (teleporters also indicate the direction the remainder of the text will flow)[V]
 
@@ -89,7 +104,9 @@ Targeted for next release (0.4):
             - create a few ready-to-use transformers using these features to apply gradients, and time (tick) changing visibility, or color offset.
 
         - allow programatic attributes on Mark objects (computed Color, etc...)[V]:
-            - implemented as Transformers.
+            - implemented as Transformers.[V]
+
+        - Add transformers "offset" (or "translate") channel: modify the placement of the given character (without changing "last_pos" on  the the caller machinery)
         - Allow "offset" parameters to styled text, so that text can move according to tick:
             - probably these should be specifid as "SpecilMark" objects.
             - pad right with"nop" characters
