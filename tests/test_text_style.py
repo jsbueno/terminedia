@@ -381,6 +381,26 @@ def test_styled_text_transformers_inline_end_markup_turn_off_just_last_transform
 
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
+def test_styled_text_marks_inline_end_markup_dont_turn_off_location_based_mark():
+    sc, sh, text_plane = styled_text()
+    sc.text[1].marks[3, 0] = TM.Mark(attributes={"color": "green"})
+    sc.text[1].marks[4, 0] = TM.Mark(pop_attributes={"color": None})
+    sc.text[1].marks[5, 0] = TM.Mark(attributes={"color": "green"})
+    sc.text[1].marks[7, 0] = TM.Mark(pop_attributes={"color": None})
+
+    sc.text[1][0,0] = "[color: purple]012345[/color]6789"
+    sc.update()
+    yield None
+
+    assert sc.data[0, 0].foreground == TM.Color("purple")
+    assert sc.data[3, 0].foreground == TM.Color("green")
+    assert sc.data[4, 0].foreground == TM.Color("purple")
+    assert sc.data[6, 0].foreground == TM.Color("green")
+    assert sc.data[7, 0].foreground == TM.values.DEFAULT_FG
+
+
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
 def test_styled_text_transformers_inline_end_markup_dont_turn_off_location_based_mark():
     sc, sh, text_plane = styled_text()
     sc.text.transformers_map["red"] = TM.Transformer(foreground=lambda : TM.Color("red"))
@@ -417,7 +437,6 @@ def test_styled_text_transformers_inline_end_markup_dont_turn_off_location_based
     assert sc.data[6, 0].background == TM.Color("blue")
 
 
-
 # Inner unit testing for StyledSequence
 
 def test_styled_text_push_context_attribute():
@@ -428,13 +447,13 @@ def test_styled_text_push_context_attribute():
 
     assert seq.context.color != color
     original = seq.context.color
-    seq._context_push({"color": color}, {}, 0)
+    seq._context_push({"color": color}, {}, "sequence", 0)
     assert seq.context.color == color
-    seq._context_push({"color": color2}, {}, 0)
+    seq._context_push({"color": color2}, {}, "sequence", 0)
     assert seq.context.color == color2
-    seq._context_push({}, {"color": None}, 0)
+    seq._context_push({}, {"color": None}, "sequence", 0)
     assert seq.context.color == color
-    seq._context_push({}, {"color": None}, 0)
+    seq._context_push({}, {"color": None}, "sequence", 0)
     assert seq.context.color == original
 
 
@@ -447,13 +466,13 @@ def test_styled_text_push_context_sequence_attribute():
 
     assert tr1 not in seq.context.pretransformers
     original = copy(seq.context.pretransformers)
-    seq._context_push({"pretransformer": tr1}, {}, 0)
+    seq._context_push({"pretransformer": tr1}, {}, "sequence", 0)
     assert seq.context.pretransformers[-1].foreground == tr1.foreground
-    seq._context_push({"pretransformer": tr2}, {}, 0)
+    seq._context_push({"pretransformer": tr2}, {}, "sequence", 0)
     assert seq.context.pretransformers[-1].background == tr2.background
     assert seq.context.pretransformers[-2].foreground == tr1.foreground
-    seq._context_push({}, {"pretransformer": None}, 0)
+    seq._context_push({}, {"pretransformer": None}, "sequence", 0)
     assert seq.context.pretransformers[-1].foreground == tr1.foreground
-    seq._context_push({}, {"pretransformer": None}, 0)
+    seq._context_push({}, {"pretransformer": None}, "sequence", 0)
     assert seq.context.pretransformers == original
 

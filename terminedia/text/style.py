@@ -139,11 +139,11 @@ class StyledSequence:
         ):
             return self._reprocess_from_start(index)
 
-        for mark_here in self.marks.get_full(index, self.current_position):
+        for mark_here, mark_origin in self.marks.get_full(index, self.current_position):
             mark_here.context = self.context
             mark_here.pos = self.current_position
             if mark_here.attributes or mark_here.pop_attributes:
-                self._context_push(mark_here.attributes, mark_here.pop_attributes, index)
+                self._context_push(mark_here.attributes, mark_here.pop_attributes, mark_origin, index)
             if mark_here.moveto:
                 mtx = mark_here.moveto[0]
                 mty = mark_here.moveto[1]
@@ -173,7 +173,7 @@ class StyledSequence:
     def _enter_iteration(self):
         cm = self.locals.context_map = {}
         for key, value in self.context:
-            cm[key] = [value]
+            cm[key] = [(value, "original")]
         marks = self.text_plane.marks if self.text_plane else MarkMap()
         self.marks = marks.prepare(
             self.mark_sequence,
@@ -184,7 +184,7 @@ class StyledSequence:
         self._active_transformers = []
 
 
-    def _context_push(self, attributes, pop_attributes, index):
+    def _context_push(self, attributes, pop_attributes, mark_origin, index):
         seq_attrs = {"transformer": "transformers", "pretransformer": "pretransformers"}
         cm = self.locals.context_map
         changed = set()
@@ -193,34 +193,19 @@ class StyledSequence:
         for key in pop_attributes:
             key = seq_attrs.get(key, key)
             stack = cm.setdefault(key, [])
-            if stack:
-                changed.add(key)
-                if key != "pretransformers":
-                    stack.pop()
-                else:
-                    # Ensure closing tag disables transformer passed in as
-                    # tag inlined in text, not one embedded in text_plane.marks or
-                    # in an SpecialMark: remove the container container_snapshot
-                    # were that markup was added from the stack.
-                    for i, container_snapshot in enumerate(reversed(stack)):
-                        if getattr(container_snapshot[-1], "from_markup", False):
-                            stack.pop(-(i + 1))
-                            break
-
-        # NB - even though active transformers may have been killed
-        # before, their copied containers still live in "cm", and
-        # these are popped here, along with all other attrs;
+            if not stack:
+                continue
+            changed.add(key)
+            for i, (snapshot_attribute, snapshot_origin) in enumerate(reversed(stack)):
+                if snapshot_origin == mark_origin:
+                    stack.pop(-(i + 1))
+                    break
 
         for key, value in attributes.items():
             if key in seq_attrs:
                 key = seq_attrs[key]
                 new_value = copy(getattr(self.context, key))
                 spam = len(self.text) - index
-                if isinstance(value, tuple):
-                    from_markup = value[1]
-                    value = value[0]
-                else:
-                    from_markup = False
                 if isinstance(value, str):
                     if " " in value:
                         value, spam = value.split()
@@ -229,7 +214,6 @@ class StyledSequence:
                 else:
                     spam = getattr(value, "sequence_len", spam)
                 value = copy(value)
-                value.from_markup = from_markup
                 # Inject values to be available for transformer methods:
                 value.sequence_len = spam
                 value.sequence = self.text[index: index + spam]
@@ -238,13 +222,13 @@ class StyledSequence:
                 new_value.append(value)
                 value = new_value
             stack = cm.setdefault(key, [])
-            stack.append(value)
+            stack.append((value, mark_origin))
 
             changed.add(key)
 
         for attr in changed:
             if cm[attr]:
-                setattr(self.context, attr, cm[attr][-1])
+                setattr(self.context, attr, cm[attr][-1][0])
 
     def _remove_transformers(self, tr):
         # Remove active transformers from the 3 places they are present:
@@ -254,7 +238,7 @@ class StyledSequence:
         self._active_transformers.remove(tr)
         for key in ("transformers", "pretransformers"):
             getattr(self.context, key).remove(tr)
-            for container in self.locals.context_map.get(key):
+            for container, origin in self.locals.context_map.get(key):
                 container.remove(tr)
 
     def _get_position_at(self, char, index):
@@ -313,6 +297,12 @@ class StyledSequence:
                 char_fn(char, position)
         finally:
             next(render_lock, None)
+
+def _force_iter(item):
+    if isinstance(item, Sequence):
+        yield from item
+    else:
+        yield item
 
 
 class MarkMap(MutableMapping):
@@ -377,30 +367,15 @@ class MarkMap(MutableMapping):
             index = mark.index(self.tick, len(self.parsed_text))
             self._concrete_special.setdefault(index, []).append(mark)
 
-    def get_full(self, seq_pos, pos):
+    def get_full(self, sequence_index, pos):
 
-        self.seq_pos = seq_pos
+        self.sequence_index = sequence_index
         self.pos = pos
 
-        mark_seq = self._concrete_special.get(seq_pos, [])
-        mark_seq += self._concrete_special.get(pos, [])
-        mark_at_pos = self.seq_data.get(seq_pos, [])
-        if not isinstance(mark_at_pos, Sequence):
-            mark_at_pos = [mark_at_pos]
-
-        # Mark transformers found inlined so they can be matched properly
-        # by closing marks
-        for mark in mark_at_pos:
-            if mark.attributes and mark.attributes.get("pretransformer"):
-                mark.attributes["pretransformer"] = (mark.attributes["pretransformer"], True)
-        mark_seq += mark_at_pos
-
-        marks_plane = self.get(pos)
-        if isinstance (marks_plane, Sequence):
-            mark_seq = marks_plane + mark_seq
-        elif isinstance(marks_plane, Mark):
-            mark_seq.insert(0, marks_plane)
-
+        mark_seq = [(item, "plane") for item in self._concrete_special.get(pos, [])]
+        mark_seq += [(item, "sequence") for item in self._concrete_special.get(sequence_index, [])]
+        mark_seq += [(item, "plane") for item in _force_iter(self.get(pos, []))]
+        mark_seq += [(item, "sequence") for item in _force_iter(self.seq_data.get(sequence_index, []))]
 
         return mark_seq
 
