@@ -90,10 +90,22 @@ class Text:
         self.owner = owner
         self.planes = {}
         self.transformers_map = {}
+        self.reset_padding()
+
+    def reset_padding(self):
+        self.padding = 0
+        self.pad_left = self.pad_right = self.pad_top = self.pad_bottom = None
 
     @property
     def size(self):
-        return self.plane.size
+        base = self.plane.size
+        size = base - (
+            (self.padding if self.pad_left is None else self.pad_left)
+            (self.padding if self.pad_right is None else self.pad_right),
+            (self.padding if self.pad_top is None else self.pad_top)
+            (self.padding if self.pad_bottom is None else self.pad_bottom)
+        )
+        return size
 
     def _build_plane(self, index, char_width=None):
         char_height = index
@@ -152,7 +164,7 @@ class Text:
         if len(value) > 1 and len(split_graphemes(value)) > 1:
             self._at(index, value)
             return
-        self._char_at(char, pos)
+        self._char_at(value, pos)
 
     @contextkwords(context_path="owner.context", text_attrs=True)
     def at(self, pos, text, transformerlib=None):
@@ -219,15 +231,44 @@ class Text:
         if char is EMPTY and not clear:
             return
 
+        index = V2(index)
+        cur_plane = self.current_plane
+        padx_factors = {
+            1: 1,
+            2: 2,
+            3: 2,
+            4: 2,
+            (8, 4): 1,
+            8: 1
+        }
+        pady_factors = {
+            1: 1,
+            2: 4,
+            3: 3,
+            4: 2,
+            (8, 4): 2,
+            8: 1
+        }
+
+        if self.padding or self.pad_top or self.pad_left:
+            pad_top = self.pad_top if self.pad_top is not None else self.padding
+            pad_left = self.pad_left if self.pad_left is not None else self.padding
+            index_offset = (
+                pad_left * padx_factors[self.current_plane],
+                pad_top * pady_factors[self.current_plane]
+            )
+        else:
+            index_offset = (0, 0)
+
         if self.current_plane == 1:
             # self.context.shape_lastchar_was_double is set in this operation.
-            target[index] = char
+            target[index + index_offset] = char
             return
 
         rendered_char = render(
             self.plane[index], font=target.context.font or self.font
         )
-        index = (V2(index) * 8).as_int
+        index = (index * 8).as_int + index_offset
         if self.current_plane == 2:
             target.braille.draw.blit(index, rendered_char, erase=clear)
         elif self.current_plane == 3:

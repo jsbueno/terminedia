@@ -24,7 +24,9 @@ Targeted for next release (0.4):
         - BUG: on rendering rich text, text_plane's context is not being taken in account. (i.e. if color is "red", DEFAULT_FG is being used instead) [V]
         - This can be current "text_planes" themselves [v]
         - these should be decorateable with frames using unicode frame drawing characters:
-            - Allow text_planes to feature CSS-like "padding" attributes, so that when there is a frame, padding offset contents  to the inner part.
+            - Allow text_planes to feature CSS-like "padding" attributes, so that when there is a frame, padding offset contents  to the inner part.[WIP]
+            - on changing padding or padding_right, update text-wrapper Marks.
+            - check extents when padding on CharPlaneData(?)
             - create a method to:
                 - clear host shape
                 - draw frame ,
