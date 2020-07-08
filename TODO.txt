@@ -19,6 +19,7 @@ Targeted for next release (0.4):
             - parse text, and create a transient shape if markup is used
             - test negative Y offsets on transient shape
             - render transient shape at cursor position, clipped to generated content extents.
+    - changed text rendering to silently "swallow" out of range characters, instead of raising
     - Text entity, akim to "shape" or "sprite" which allows for flowing text [WIP]:
         - BUG: when rendering spaces, attributes (like background) are not updated (V) - fixed by sprite transparency handling implementation.
         - BUG: on rendering rich text, text_plane's context is not being taken in account. (i.e. if color is "red", DEFAULT_FG is being used instead) [V]
@@ -48,26 +49,29 @@ Targeted for next release (0.4):
                     - Change MLTokenizer to create 'pre-tranformer" context attribute on "transformer" token [V]
 
                     - Manage list of pretransformers in context during StyledText rendering [V]
-                    - Add new features to transformers that will make sense for text-streams as opposed to 2D shape data:
-                        - character linear position in text - (what name would suite it better? 'sequence'?)
-                        - character linear position in text in relation to the sequence total length - ('proportional'? )
+                    - Add new features to transformers that will make sense for text-streams as opposed to 2D shape data:[V]
+                        - character linear position in text - sequence_index [V]
+                        - transformation starting point inside main sequence - sequence_absolute_start [V]
+                        - transformed sequence_len - sequence_len [V]
+                        - transformed sequence itself - sequence [V]
                         - allow a markup with a transformer to specify the block length that will be transformed -
-                            (the 'sequence' and 'proportional' parameters are relative to this block):
-                                - a length in the Mark object itself
-                                - a [/transformer]  mark in the text.
+                            (the 'sequence_len' and 'sequence_index' parameters are relative to this block): [V]
+                                - a length in the Mark object itself [V]
+                                - a [/transformer]  mark in the text. [V]
+                                - take care that mixed transformers started by markup and by embeded Marks in the text_plane  keep their counts without interfering one in another [V]
 
-                    - find a way to declare an retrieve meaningful pretransformers from markup: [V]
-                        - Text class includes a ".transformers_map" attribute - a plain dictionary with transfomer-names as keys, and Transformer instances as values - the names can be used from the rich-text markup
+                    - find a way to declare and retrieve meaningful pretransformers from markup: [V]
+                        - Text class includes a ".transformers_map" attribute - a plain dictionary with transfomer-names as keys, and Transformer instances as values - the names can be used from the rich-text markup [V]
 
             - Allow a call to MLToken.parse to be passed a transformers-mapping, and use it as a source for
-                    transformers objects in the  markup [transformer:...] elements [wip]
-            - Enhance transformers with sequence-position parameters, so they can generate animations/gradients/per character attributes
+                    transformers objects in the  markup [transformer:...] elements [V]
+            - Enhance transformers with sequence-position parameters, so they can generate animations/gradients/per character attributes [V]
             - these marks can come embedded in the text, standalone
-                    (and programatically depending on "tick count" or rendering position). or
+                    (and programatically depending on "tick count" or rendering position). or [V]
             - these marks can be placed in the text_plane entity at fixed locations
                 and compose with the styledtext rendering.[V]
             - ensure closing mark attributes defined on plane and on sequence do not clash.[v]
-            - special marks should allow programatic text modification based on ticks and position
+            - special marks should allow programatic text modification based on ticks and position [V]
             - end-of-lines are marked by special "portal" objects poiting the text to the beginning of the next line[WIP]
                  - (teleporters also indicate the direction the remainder of the text will flow)[V]
 
@@ -169,8 +173,8 @@ Resolve "can't output a lot of things to terminal if stdin set to non blocking" 
 
 smaller features:
     - accept context attributes (color, background, effects) as keyword arguments on all .draw methods [WIP]:
-        - create the concept of 'write_transformers': transformations
-            to pixels at writting time in a separate context transformers stack
+        - create the concept of 'pretransformers': transformations
+            to pixels at writting time in a separate context transformers stack [V]
     - Make local contexts default to root context if a value has not been explicitly set
         - more important: make thread-local contexts default to values on the main (interactive) thread
         so that an event loop can be spawned in interactive mode and use proper context values
