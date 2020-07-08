@@ -48,14 +48,40 @@ class LazyBindProperty:
 
 
 class ObservableProperty:
-    def __init__(self, fget, fset=None, fdel=None):
+    """This puts the "R' in Reactive
+    """
+    def __init__(self, fget=None, fset=None, fdel=None):
+        """Change subscrible descriptor - enables Reactive/Observable  pattern
+
+        Can work as the "property" decorator, and enable
+        calls to be made to register callbacks on _instances_
+        of the owner class. Whenever the guarded attribute
+        is either read/written the callback is activated.
+
+        Effective for linking properties eagerly.
+
+        If called with no parameters, create guards to
+        simply store/retrieve an attribute on the host instance's __dict__,
+        """
+        self.registry = WeakKeyDictionary()
+        self.next_handler_id = 0
+        self.callbacks = {}
+        if fget is None:
+            self._simple_storage()
+            return
         self.fget = fget
         self.fset = fset
         self.fdel = fdel
-        self.name = self.fget.__name__
-        self.registry = WeakKeyDictionary()
-        self.callbacks = {}
-        self.next_handler_id = 0
+
+    def __set_name__(self, owner, name):
+        self.owner = owner
+        self.name = name
+
+    def _simple_storage(self):
+
+        self.fget = lambda i: i.__dict__[self.name]
+        self.fset = lambda i, v: i.__dict__.__setitem__(self.name, v)
+        self.fdel = lambda i: i.__dict__.__delitem__(self.name)
 
     def setter(self, func):
         self.fset = func
@@ -113,4 +139,4 @@ class ObservableProperty:
         return False
 
     def __repr__(self):
-        return f"<{self.__class__.__name__} on {self.fget.__qualname__} with {len(self.callbacks)} registered callbacks>"
+        return f"<{self.__class__.__name__} on {self.fget.__qualname__ if self.fget.__name__ != '<lambda>' else self.owner.__qualname__ + '.' + self.name} with {len(self.callbacks)} registered callbacks>"
