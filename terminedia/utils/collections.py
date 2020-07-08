@@ -1,6 +1,6 @@
 import threading
 
-from collections.abc import MutableSequence, MutableMapping, Iterable, Mapping, Set
+from collections.abc import MutableSequence, MutableMapping, Iterable, Mapping
 from copy import copy
 
 
@@ -18,49 +18,6 @@ class FrozenDict(dict):
 
     def __hash__(self):
         return hash(tuple(self.items()))
-
-
-class LazyBindProperty:
-    """Special Internal Use Descriptor
-
-    This creates the associated attribute in an instance only when the attribute is
-    acessed for the first time, in a dynamic way. This allows objcts such as Shapes
-    have specialized associated "draw", "high", "text", "sprites" attributes,
-    and still be able to be created lightweight for short uses that will use just
-    a few, or none, of these attributes.
-    """
-    def __init__(self, initializer=None, type=None):
-        self.type = type
-        if not initializer:
-            return
-        self.initializer = initializer
-
-    def __call__(self, initializer):
-        self.initializer = initializer
-        return self
-
-    def __set_name__(self, owner, name):
-        self.name = name
-
-    def __get__(self, instance, owner):
-        from terminedia.image import ShapeView
-
-        if not instance:
-            return self
-        if isinstance(instance, ShapeView):
-            namespace = getattr(instance, "_" + self.name, None)
-            if not namespace:
-                namespace = self.initializer(instance)
-                setattr(instance, "_" + self.name, namespace)
-            return namespace
-        if self.name not in instance.__dict__:
-            instance.__dict__[self.name] = self.initializer(instance)
-        return instance.__dict__[self.name]
-
-    def __set__(self, instance, value):
-        if self.type and not isinstance(value, self.type):
-            raise AttributeError(f"{self.name!r} must be set to {self.type} instances on {instance.__class__.__name__} objects.")
-        instance.__dict__[self.name] = value
 
 
 class HookList(MutableSequence):
@@ -298,6 +255,7 @@ class Grapheme2DArray:
         self.data[rindex: rindex + self.wordsize] = item.encode(self.encoding)
 
     def __delitem__(self, index):
+        from terminedia.values import EMPTY
         self.__setitem__(index, EMPTY)
 
     def __repr__(self):
