@@ -53,15 +53,17 @@ class ObservableProperty:
         self.fset = fset
         self.fdel = fdel
         self.name = self.fget.__name__
-        self.registry = WeakKeyDictionary
+        self.registry = WeakKeyDictionary()
         self.callbacks = {}
         self.next_handler_id = 0
 
     def setter(self, func):
         self.fset = func
+        return self
 
     def deleter(self, func):
         self.fdel = func
+        return self
 
     def __get__(self, instance, owner):
         if instance is None:
@@ -72,7 +74,7 @@ class ObservableProperty:
         return value
 
     def __set__(self, instance, value):
-        value = self.fset(instance, value)
+        self.fset(instance, value)
         if instance in self.registry:
             self.execute(instance, "set", value)
         return value
@@ -87,18 +89,20 @@ class ObservableProperty:
         for target_event, handler in self.registry.get(instance, ()):
             if target_event == event and handler in self.callbacks:
                 callback, args = self.callbacks[handler]
-                callback(*args)
+                callback(value, *args)
 
     def register(self, instance, event, callback, *args):
         handler = self.next_handler_id
-        self.registry.setdefault(instance, []).append(event, handler)
+        if instance not in self.registry:
+            self.registry[instance] = []
+        self.registry[instance].append((event, handler))
         self.callbacks[handler] = (callback, args)
 
         def eraser(self, id):
             if id in self.callbacks:
                 del self.callbacks[id]
 
-        finalize(instance, eraser, self, self.handler)
+        finalize(instance, eraser, self, handler)
         self.next_handler_id += 1
         return handler
 
