@@ -1,7 +1,7 @@
 from inspect import signature
 
 from terminedia.utils import V2, HookList, get_current_tick
-from terminedia.values import EMPTY, FULL_BLOCK, Directions, Color
+from terminedia.values import EMPTY, FULL_BLOCK, TRANSPARENT, Directions, Color
 
 class Transformer:
 
@@ -126,7 +126,7 @@ class KernelTransformer(Transformer):
                 if source_is_image:
                     value += "#" if source.get_raw(pos) != source.context.background else " "
                     continue
-                value += "#" if data[offset] != EMPTY else " "
+                value += "#" if data[offset] not in (EMPTY, TRANSPARENT) else " "
 
         return self.kernel.get(value, self.kernel.get("default", " "))
 
