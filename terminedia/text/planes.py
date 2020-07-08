@@ -11,73 +11,6 @@ from terminedia.values import Directions, EMPTY, TRANSPARENT
 from .fonts import render
 from ..text import style
 
-from weakref import WeakKeyDictionary, finalize
-
-class ObservableProperty:
-    def __init__(self, fget, fset=None, fdel=None):
-        self.fget = fget
-        self.fset = fset
-        self.fdel = fdel
-        self.name = self.fget.__name__
-        self.registry = WeakKeyDictionary
-        self.callbacks = {}
-        self.next_handler_id = 0
-
-    def setter(self, func):
-        self.fset = func
-
-    def deleter(self, func):
-        self.fdel = func
-
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-        value = self.fget(instance)
-        if instance in self.registry:
-            self.execute(instance, "get", value)
-        return value
-
-    def __set__(self, instance, value):
-        value = self.fset(instance, value)
-        if instance in self.registry:
-            self.execute(instance, "set", value)
-        return value
-
-    def __delete__(self, instance):
-        value = self.fdel(instance)
-        if instance in self.registry:
-            self.execute(instance, "del")
-        return value
-
-    def execute(self, instance, event, value=None):
-        for target_event, handler in self.registry.get(instance, ()):
-            if target_event == event and callback in self.callbacks:
-                callback, args = self.callbacks[handler]
-                callback(*args)
-
-    def register(self, instance, event, callback, *args):
-        handler = self.next_handler_id
-        self.registry.setdefault(instance, []).append(event, handler)
-        self.callbacks[handler] = (callback, args)
-        def eraser(self, id):
-            if id in self.callbacks:
-                del self.callbacks[id]
-        finalize(instance,  eraser, self, self.handler)
-        self.next_handler_id += 1
-        return handler
-
-    def unregister(self, handler):
-        if handler in self.callbacks:
-            del self.callbacks[handler]
-            return True
-        return False
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__} on {self.fget.__qualname__} with {len(self.callbacks)} registered callbacks>"
-
-
-
-
 
 class CharPlaneData(dict):
     """2D Data structure to hold the text contents of a text plane.
@@ -97,26 +30,20 @@ class CharPlaneData(dict):
 
     @property
     def width(self):
-        if self._dirty:
-            self._update_size()
         return self._width
 
     @property
     def height(self):
-        if self._dirty:
-            self._update_size()
         return self._height
 
     @property
     def size(self):
-        if self._dirty:
-            self._update_size()
-        return self_size
+        return self._size
 
-    def _update_size(self):
-        self._size = self._parent.size
-        self._width = self._size[0]
-        self._height = self._size[1]
+    def _update_size(self, _=None):
+        size = self._size = self._parent.size
+        self._width = size[0]
+        self._height = size[1]
 
     def __getitem__(self, pos):
         if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):
@@ -198,6 +125,12 @@ class Text:
         self.padding = 0
         self.pad_left = self.pad_right = self.pad_top = self.pad_bottom = None
 
+    padding = ObservableProperty()
+    pad_left = ObservableProperty()
+    pad_right = ObservableProperty()
+    pad_top = ObservableProperty()
+    pad_bottom = ObservableProperty()
+
     @property
     def size(self):
         base = V2(self.owner.size)
@@ -240,8 +173,12 @@ class Text:
         concretized_text.writtings = []
         concretized_text.writtings_index = set()
         concretized_text._reset_marks()
+        for pad_attr in "padding pad_left pad_right pad_top pad_bottom".split():
+            descriptor = getattr(type(self), pad_attr)
+            descriptor.register(self, "set", lambda v, attr=pad_attr: setattr(concretized_text, attr, v))
+            descriptor.register(concretized_text, "set", data._update_size)
+        data._update_size()
         plane["text"] = concretized_text
-
 
 
     def _reset_marks(self):
@@ -271,7 +208,7 @@ class Text:
         if len(value) > 1 and len(split_graphemes(value)) > 1:
             self._at(index, value)
             return
-        self._char_at(value, pos)
+        self._char_at(value, index)
 
     @contextkwords(context_path="owner.context", text_attrs=True)
     def at(self, pos, text, transformerlib=None):

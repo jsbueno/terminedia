@@ -51,6 +51,10 @@ https://pypi.org/project/colorama/
 (NB: Colorama is usd by terminedia itself on Windows, as has a "low level" api that makes
 the ANSI codes interface seamlessly available on that system)
 
+# python-prompt-toolkit
+Mature project for creating terminal GUI with mouse support and widgets -
+(including, for examle, a Python VIM clone)
+https://github.com/prompt-toolkit/python-prompt-toolkit
 
 Simpler projects dealing with subsets of character/effect mangling
 ===================================================================
