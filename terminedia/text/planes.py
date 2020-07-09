@@ -18,7 +18,7 @@ class CharPlaneData(dict):
     Indices should be a V2 (or 2 sequence) within width and height ranges
     """
 
-    __slots__ = ("_parent", "_width", "_height", "_size", "_dirty")
+    __slots__ = ("_parent", "width", "height", "size", "_dirty")
 
     def __new__(cls, parent):
         instance = super().__new__(cls)

@@ -52,6 +52,7 @@ class Transformer:
         It should return the value to be used downstream of the named channel.
 
         """
+        self.signatures = {}
         for slotname in self.channels:
             value = locals()[slotname]
             if value is not None:
@@ -59,10 +60,13 @@ class Transformer:
                     value = Color(value)
                 setattr(self, slotname, value)
 
-        self.signatures = {
-            channel: frozenset(signature(getattr(self, channel)).parameters.keys()) if callable(getattr(self, channel)) else () for channel in self.channels
-        }
+    def _build_signature(self, channel):
+        self.signatures[channel] = frozenset(signature(getattr(self, channel)).parameters.keys()) if callable(getattr(self, channel)) else ()
 
+    def __setattr__(self, attr, value):
+        super().__setattr__(attr, value)
+        if attr in self.__class__.channels:
+            self._build_signature(attr)
 
     def __repr__(self):
         channel_list = []

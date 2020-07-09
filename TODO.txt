@@ -30,7 +30,8 @@ Targeted for next release (0.4):
             - check extents when padding on CharPlaneData(?)
             - create a method to:
                 - clear host shape
-                - draw frame ,
+                - draw frame :
+                    pick a frame-transformer from transformers.library.box_transformers
                 - "bake" it on the host shape using one of the transformers-library border transformers
                 - change padding
                 - redraw any contents with new padding in consideration
