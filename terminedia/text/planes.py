@@ -28,22 +28,11 @@ class CharPlaneData(dict):
     def __init__(self, size):
         pass
 
-    @property
-    def width(self):
-        return self._width
-
-    @property
-    def height(self):
-        return self._height
-
-    @property
-    def size(self):
-        return self._size
 
     def _update_size(self, _=None):
-        size = self._size = self._parent.size
-        self._width = size[0]
-        self._height = size[1]
+        size = self.size = self._parent.size
+        self.width = size[0]
+        self.height = size[1]
 
     def __getitem__(self, pos):
         if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):

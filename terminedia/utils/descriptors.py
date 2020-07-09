@@ -77,11 +77,24 @@ class ObservableProperty:
         self.owner = owner
         self.name = name
 
+    def _default_getter(self, instance):
+        if self.name not in instance.__dict__:
+            raise AttributeError(f"No attribute {self.name}")
+        return instance.__dict__[self.name]
+
+    def _default_setter(self, instance, value):
+        instance.__dict__[self.name] = value
+
+    def _default_deleter(self, instance):
+        if self.name not in instance.__dict__:
+            raise AttributeError(f"No attribute {self.name}")
+        del instance.__dict__[self.name]
+
     def _simple_storage(self):
 
-        self.fget = lambda i: i.__dict__[self.name]
-        self.fset = lambda i, v: i.__dict__.__setitem__(self.name, v)
-        self.fdel = lambda i: i.__dict__.__delitem__(self.name)
+        self.fget = self._default_getter
+        self.fset = self._default_setter
+        self.fdel = self._default_deleter
 
     def setter(self, func):
         self.fset = func

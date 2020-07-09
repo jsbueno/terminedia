@@ -13,6 +13,7 @@ version 0.4
  - Sprite stack rendering honors TRANSPARENT special value
  - Add 'pretransformers' context value which can hold a TransformersContainer and eagerly transform data when writting to a Shape(__setitem__). The "transformers" context value, on the other hand, works on _reading_ shape data (__getitem__)
  - sextant (1/6 block) (depends on unicode 12 with vintage charset)(V)
+ - ObservableProperty descriptor class enabling reactive programing patterns(V)
 
 New 'transformers library':
     - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters
@@ -49,7 +50,7 @@ New rich-text and text-handling features:
     - create aliased string names for the text[...] text planes [V]
     - Add tests to terminedia-planes [WIP]:
         - Avoid creating a new "Text" instance on each text-plane access![V]
-        - Tests for styling bases classes in progress - testing attribute changing and position
+        - Tests for styling bases classes in progress - testing attribute changing and position[V]
 
 Minor Features:
  - TransformersContainer and SpriteContainer (TM.Utils.Hooklist)s can be shallow-copied with copy.copy()

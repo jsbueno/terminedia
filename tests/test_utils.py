@@ -4,6 +4,8 @@ from inspect import signature
 import pytest
 
 from terminedia.utils import combine_signatures, TaggedDict, HookList
+from terminedia.utils.descriptors import ObservableProperty
+
 
 def test_combine_signatures_works():
     context = {}
@@ -184,6 +186,7 @@ def test_hook_list_shallow_copy_yields_a_copy():
     assert a != b
     assert a != c
 
+
 def test_hook_list_shallow_copy_dont_trigger_side_effects():
 
     class DoubleList(HookList):
@@ -194,3 +197,156 @@ def test_hook_list_shallow_copy_dont_trigger_side_effects():
     c = a.copy()
 
     assert a == c
+
+
+
+def test_observable_property_works_for_write_event():
+
+    class A:
+        b = ObservableProperty()
+
+    flag = False
+    def callback(_):
+        nonlocal flag
+        flag = True
+
+    a = A()
+    A.b.register(a, "set", callback)
+
+    assert not flag
+    a.b = None
+    assert flag
+
+
+def test_observable_property_works_for_get_event():
+
+    class A:
+        b = ObservableProperty()
+
+    flag = False
+    def callback(_):
+        nonlocal flag
+        flag = True
+
+    a = A()
+    a.b = None
+
+    getattr(a, "b", None)
+    assert not flag
+    A.b.register(a, "get", callback)
+    getattr(a, "b", None)
+    assert flag
+
+def test_observable_property_works_for_del_event():
+
+    class A:
+        b = ObservableProperty()
+
+    flag = False
+    def callback(_):
+        nonlocal flag
+        flag = True
+
+    a = A()
+
+    A.b.register(a, "del", callback)
+
+    a.b = None
+    getattr(a, "b", None)
+    assert not flag
+    del a.b
+    assert flag
+    assert not hasattr(a, "b")
+
+
+
+def test_observable_property_unregister_works():
+
+    class A:
+        b = ObservableProperty()
+
+    flag = False
+    def callback(_):
+        nonlocal flag
+        flag = True
+
+    a = A()
+    handler = A.b.register(a, "set", callback)
+    a.b = None
+    assert flag
+    flag = None
+    assert A.b.unregister(handler)
+    a.b = None
+    assert not flag
+    assert not A.b.unregister(handler)
+
+
+def test_observable_property_deleting_instance_clears_handlers():
+
+    class A:
+        b = ObservableProperty()
+
+    flag = False
+    def callback(_):
+        nonlocal flag
+        flag = True
+
+    a = A()
+    handler = A.b.register(a, "set", callback)
+    assert A.b.registry[a]
+    assert A.b.callbacks[handler]
+    del a
+    assert len(A.b.registry) == 0
+    assert handler not in A.b.callbacks
+
+
+def test_observable_property_handlers_change_and_several_callbacks_happen():
+
+    class A:
+        b = ObservableProperty()
+
+    counter = 0
+    def callback(_):
+        nonlocal counter
+        counter += 1
+
+    a = A()
+    handler1 = A.b.register(a, "set", callback)
+    handler2 = A.b.register(a, "set", callback)
+    assert handler1 != handler2
+
+    a.b = None
+    assert counter == 2
+
+
+def test_observable_property_works_for_as_property_decorator():
+
+    class A:
+        @ObservableProperty
+        def b(self):
+            return self._b
+
+        @b.setter
+        def b(self, value):
+            self._b = value
+
+        @b.deleter
+        def b(self):
+            del self._b
+
+    flag = False
+    def callback(_):
+        nonlocal flag
+        flag = True
+
+    a = A()
+    A.b.register(a, "set", callback)
+
+    a.b = None
+
+    assert a.b is None
+    del a.b
+    with pytest.raises(AttributeError):
+        a.b
+
+    assert flag
