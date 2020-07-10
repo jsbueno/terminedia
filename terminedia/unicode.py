@@ -73,9 +73,9 @@ def split_graphemes(text):
 
 @lru_cache()
 def char_width(char):
-    from terminedia.subpixels import BlockChars
+    from terminedia.subpixels import BlockChars, SextantChars
 
-    if char in BlockChars.chars:
+    if char in BlockChars.chars or char in SextantChars.chars:
         return 1
     if len(char) > 1:
         return max(char_width(combining) for combining in char)
