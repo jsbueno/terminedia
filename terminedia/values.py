@@ -1,3 +1,4 @@
+from copy import copy
 from enum import Enum, IntFlag, EnumMeta
 
 from terminedia.utils import mirror_dict, V2, NamedV2, Color, SpecialColor
@@ -150,3 +151,44 @@ TERMINAL_EFFECTS =  Effects((max(Effects) * 2 -1) - UNICODE_EFFECTS)
 # support for it was found at codification time.)
 
 
+class RelativeMarkIndex:
+    '''
+    These are used for creating Marks on terminedia.text.Text objects that
+    are relative to the width and height of the object.
+    Needed for Marks that should automatically be moved when the padding area
+    of those planes is reassigned
+    '''
+    def __init__(self, name):
+        self.name = name
+        self.offset = 0
+
+    def value(self, text_plane):
+        if self.name == "WIDTH":
+            return text_plane.width + self.offset
+        elif self.name == "HEIGHT":
+            return text_plane.height + self.offset
+
+    def __add__(self, other):
+        instance = copy(self)
+        if other is not None:
+            instance.offset += other
+        return instance
+
+    def __sub__(self, other):
+        instance = copy(self)
+        if other is not None:
+            instance.offset -= other
+        return instance
+
+    def __hash__(self):
+        return hash((self.name, self.offset))
+
+    def __eq__(self, other):
+        return self.name == other.name and self.offset == other.offset
+
+    def __repr__(self):
+        return self.name if self.offset == 0 else f"<{{{self.name} {self.offset:+d}}}>"
+
+
+WIDTH_INDEX = RelativeMarkIndex("WIDTH")
+HEIGHT_INDEX = RelativeMarkIndex("HEIGHT")

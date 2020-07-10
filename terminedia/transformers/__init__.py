@@ -38,7 +38,7 @@ class Transformer:
                 - "tick" meaning the "frame number" from app start, and in the future
                     will be used for animations.
 
-            Depending where the transformers are used, more input paramters may be available -
+            Depending where the transformers are used, more input parameters may be available -
             they have to be set as instance attributes in the Transformer instance prior
             to rendering. For rich-text rendering embedded transformers
             (see terminedia.text.planes and terminedia.txt.sprites), for example,
@@ -54,6 +54,8 @@ class Transformer:
         """
         self.signatures = {}
         for slotname in self.channels:
+            # Build signature for channels defined in subclasses:
+            self._build_signature(slotname)
             value = locals()[slotname]
             if value is not None:
                 if slotname in ("foreground", "background") and not callable(value):

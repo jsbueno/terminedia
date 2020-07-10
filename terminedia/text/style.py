@@ -73,6 +73,8 @@ import threading
 
 from terminedia.contexts import Context
 from terminedia.utils import V2, Rect, get_current_tick
+from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX, RelativeMarkIndex
+
 
 RETAIN_POS = object()
 
@@ -179,7 +181,7 @@ class StyledSequence:
             self.mark_sequence,
             self.text_plane.ticks if self.text_plane else get_current_tick(),
             self.text,
-            self.context
+            self.context,
         )
         self._active_transformers = []
 
@@ -305,6 +307,19 @@ def _force_iter(item):
         yield item
 
 
+def _merge_as_lists(val1, val2):
+    if not isinstance(val1, list):
+        val1 = [val1]
+    else:
+        val1 = val1[:]
+    if not isinstance(val2, list):
+        val2 = [val2]
+    val1.extend(val2)
+    if len(val1) == 1:
+        return val1[0]
+    return val1
+
+
 class MarkMap(MutableMapping):
     """Mapping attached to each text plane -
 
@@ -338,12 +353,14 @@ class MarkMap(MutableMapping):
 
 
     """
-    def __init__(self):
+    def __init__(self, parent):
         self.data = {}
+        self.relative_data = {}
         self.tick = 0
         self.seq_data = {}
         self.special = set()
         self._concrete_special = {}
+        self.text_plane = parent
 
     def prepare(self, seq_data, tick=0, parsed_text="", context=None):
         instance = copy(self)
@@ -355,8 +372,9 @@ class MarkMap(MutableMapping):
         if "special" in seq_data:
             instance.special.update(seq_data["special"])
         instance.concretize_special_marks()
+        # instance.concretize_relative_marks()
 
-        # self.data is the same object on purpose -
+        # self.data and self.relative_data are the same object on purpose  -
         return instance
 
     def concretize_special_marks(self):
@@ -366,6 +384,18 @@ class MarkMap(MutableMapping):
             # currently hardcoded to 2 parameters: tick and length of target text
             index = mark.index(self.tick, len(self.parsed_text))
             self._concrete_special.setdefault(index, []).append(mark)
+
+    #def concretize_relative_marks(self):
+        ## Compute numeric index of marks stored relative to width and height of the text_plane
+        #if not self.text_plane:
+            #return
+        #w, h = self.text_plane.size
+        #for index, mark in self.relative_data.items():
+            #new_index = V2(w if index[0] is None else w + index[0], h if index[1] is None else h + index[1])
+            #existing_mark = self.data.setdefault(new_index, [])
+            #if not isinstance(existing_mark, list):
+                #self.data[new_index] = existing_mark = [existing_mark]
+            #existing_mark.append(mark)
 
     def get_full(self, sequence_index, pos):
 
@@ -379,27 +409,88 @@ class MarkMap(MutableMapping):
 
         return mark_seq
 
+    def _convert_to_relative(self, index):
+        is_relative = False
+        if isinstance(index[0], RelativeMarkIndex):
+            is_relative = True
+        elif (index[0] is None or index[0] < 0):
+            index = (WIDTH_INDEX + index[0], index[1])
+            is_relative = True
+        if isinstance(index[1], RelativeMarkIndex):
+            is_relative = True
+        elif (index[1] is None or index[1] < 0):
+            index = (index[0], HEIGHT_INDEX + index[1])
+            is_relative = True
+        if not is_relative and not self.text_plane:
+            return False, index, index, (None, None)
+        if is_relative:
+            relative_index = index
+            absolute_index = (
+                index[0].value(self.text_plane) if isinstance(index[0], RelativeMarkIndex) else index[0], index[1].value(self.text_plane) if isinstance(index[1], RelativeMarkIndex) else index[1]
+            )
+        elif self.text_plane:
+            w, h = self.text_plane.size
+            absolute_index = index
+            relative_index = (
+              WIDTH_INDEX - (w - index[0]), HEIGHT_INDEX - (h - index[1])
+            )
+        else:
+            absolute_index = index
+            relative_index = None, None
+        return is_relative, index, absolute_index, relative_index
+
+
     def __setitem__(self, index, value):
         if isinstance(index, Rect):
-            # TODO: enable lazy virtual Marks instead of these eager ones
             for pos in index.iter_cells():
                 self[pos] = value
             return
-
-        self.data[index] = value
+        is_relative, index, aindex, rindex = self._convert_to_relative(index)
+        if is_relative:
+            self.relative_data[index] = value
+        else:
+            self.data[V2(index)] = value
 
     def __getitem__(self, index):
         # TODO retrieve MagicMarks and virtual marks
-        return self.data[index]
+        is_relative, index, absolute_index, relative_index = self._convert_to_relative(index)
+        if not is_relative and not self.text_plane:
+            return self.data[index]
+        result = _merge_as_lists(
+            self.data.get(absolute_index, []),
+            self.relative_data.get(relative_index, [])
+        )
+
+        if not result:
+            raise KeyError(index)
+        return result
+
 
     def __delitem__(self, index):
-        del self.data[index]
+        is_relative, index, absolute_index, relative_index = self._convert_to_relative(index)
+        if not is_relative and not self.text_plane:
+            del self.data[index]
+        # '|' instead of 'or' because the second part of the expression must not shortcircuit
+        found = self.data.pop(absolute_index, False) | self.data.pop(relative_index, False)
+        if not found:
+            raise KeyError(index)
 
     def __len__(self):
-        return len(self.data)
+        return len(self.data) + len(self.relative_data)
 
     def __iter__(self):
-        return iter(self.data)
+        if self.text_plane:
+            if not self.relative_data:
+                return iter(self.data)
+            def gen():
+                yield from iter(self.data)
+                w, h = self.text_plane.size
+                for index in self.relative_data:
+                    yield V2(WIDTH_INDEX - (w - index[0]), HEIGHT_INDEX - (h - index[1]))
+            return gen
+        else:
+            from itertools import chain
+            return chain(self.data, self.relative_data)
 
     def __repr__(self):
         return "MarkMap < >"
@@ -479,6 +570,8 @@ class SpecialMark(Mark):
 
 
 class Tokenizer:
+    # TODO: when a second tokenizer is created, code that can be refactored currently in
+    # MLTokenizer will be moved here.
     pass
 
 
@@ -628,4 +721,5 @@ class MLTokenizer(Tokenizer):
 
 
 class ANSITokenizer(Tokenizer):
+    # TODO....
     pass

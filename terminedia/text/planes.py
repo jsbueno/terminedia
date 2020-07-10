@@ -7,6 +7,7 @@ from terminedia.image import Shape, PalettedShape
 from terminedia.unicode import split_graphemes
 from terminedia.utils import contextkwords, V2, Rect, ObservableProperty
 from terminedia.values import Directions, EMPTY, TRANSPARENT
+# from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX
 
 from .fonts import render
 from ..text import style
@@ -149,9 +150,9 @@ class Text:
             raise RuntimeError("Concrete instance of text - can't create further planes")
         plane["width"] = width = self.owner.width // char_width
         plane["height"] = height = int(self.owner.height // char_height)
-        plane["marks"] = marks = style.MarkMap()
         concretized_text = copy(self)
         concretized_text.current_plane = index
+        plane["marks"] = marks = style.MarkMap(parent=concretized_text)
         plane["data"] = data = CharPlaneData(concretized_text)
         concretized_text.plane = data
         concretized_text.marks = marks
@@ -173,7 +174,11 @@ class Text:
     def _reset_marks(self):
         self.marks.clear()
         self.marks.special.clear()
-        self.marks[Rect((self.width, 0, self.width + 1, self.height))] = style.Mark(moveto=(0, style.RETAIN_POS), rmoveto=(0,1))
+        mark = style.Mark(moveto=(0, style.RETAIN_POS), rmoveto=(0,1))
+        for y in range(0, self.height):
+            # This is the point where the 'RelativeMarkIndex' was supposed to be needed.
+            self.marks[None, y] = mark
+        # self.marks[Rect((self.width, 0, self.width + 1, self.height))] = style.Mark(moveto=(0, style.RETAIN_POS), rmoveto=(0,1))
 
     def _checkplane(self, index):
         if not isinstance(index, (int, tuple)):
