@@ -172,6 +172,12 @@ class BrailleChars_(SubPixels):
 
 BrailleChars = BrailleChars_()
 
+if int(unicodedata.unidata_version.split(".")[0]) >= 13:
+    sextant_name_picker = unicodedata.name
+else:
+    def sextant_name_picker(char):
+        n = ord(char) - 0x1fb00
+        return f"SEXTANT CHAR {n} (provisional name)"
 
 class SextantChars_(SubPixels):
     """Used internally to emulate pixel setting/resetting/reading inside 1/6 Unicode Legacy Computing characters"""
@@ -184,7 +190,7 @@ class SextantChars_(SubPixels):
 
     for codepoint in range(0x1FB00, 0x1FB3C):
         char = chr(codepoint)
-        locals()[unicodedata.name(char)] = char
+        locals()[sextant_name_picker(char)] = char
         # This Unicode plane do not re-implement these 2 chars,
         # so we insert then manually in the correct order
         if codepoint == 0x1fb13:
