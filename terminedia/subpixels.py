@@ -186,7 +186,7 @@ if int(unicodedata.unidata_version.split(".")[0]) >= 13:
 else:
     def sextant_name_picker(char):
         n = ord(char) - 0x1fb00
-        return f"SEXTANT CHAR {n} (provisional name)"
+        return f"SEXTANT CHAR {n:02d} PROVISIONAL)"
 
 class SextantChars_(SubPixels):
     """Used internally to emulate pixel setting/resetting/reading inside 1/6 Unicode Legacy Computing characters"""
