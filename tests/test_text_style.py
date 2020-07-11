@@ -526,13 +526,10 @@ def test_markmap_prepare_copies_data_instance():
     original = mm = sh.text[1].marks
     mm = mm.prepare("")
     assert original is not mm
-    # assert original.data is not mm.data
-    # assert len(original.relative_data) == len(mm.data)
+    assert original.data is not mm.data
 
 
-@pytest.mark.parametrize(
-    "prepared_for_print", (True, False)
-)
+
 @pytest.mark.parametrize(
     ["input_index","expected_at"], [
         [(9, 0), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
@@ -541,19 +538,33 @@ def test_markmap_prepare_copies_data_instance():
         [(9, -10), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
         [(10, 0), [(10, 0), (None, 0), (None, -10), (WIDTH_INDEX, -10)]],
 ])
-def test_markmap_mark_retrieved_at_all_possible_positions(prepared_for_print, input_index, expected_at):
+def test_markmap_mark_retrieved_at_all_possible_positions(input_index, expected_at):
     sh = TM.shape((10,10))
 
     m = TM.Mark()
     mm = sh.text[1].marks
     mm.relative_data.clear()
-    if prepared_for_print:
-        mm = mm.prepare("")
-    mm.relative_data.clear()
     mm[input_index] = m
 
     for index in expected_at:
         assert mm[index] is m
+
+def test_markmap_mark_retrieved_as_absolute_mark_when_rendering():
+    sh = TM.shape((10,10))
+
+    m = TM.Mark()
+    mm = sh.text[1].marks
+    mm.relative_data.clear()
+    mm[-1, 0] = m
+    prepared = mm.prepare("")
+    assert prepared.is_rendering_copy
+    assert len(mm.data) == 0 and len(prepared.data) == 1
+    assert prepared.data[9, 0] is m
+
+    mm[-1, -10] = m
+    prepared = mm.prepare("")
+    assert prepared.data[9, 0] == [m, m]
+
 
 
 @pytest.mark.parametrize(

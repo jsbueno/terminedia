@@ -397,6 +397,7 @@ class MarkMap(MutableMapping):
         self.special = set()
         self._concrete_special = {}
         self.text_plane = parent
+        self.is_rendering_copy = False
 
     def prepare(self, seq_data, tick=0, parsed_text="", context=None):
         instance = copy(self)
@@ -405,12 +406,14 @@ class MarkMap(MutableMapping):
         instance.context = context
         instance.parsed_text = parsed_text
         instance.special = self.special.copy()
+        instance.data = self.data.copy()
         if "special" in seq_data:
             instance.special.update(seq_data["special"])
         instance.concretize_special_marks()
-        # instance.concretize_relative_marks()
+        instance.concretize_relative_marks()
+        instance.is_rendering_copy = True
 
-        # self.data and self.relative_data are the same object on purpose  -
+        #  self.relative_data are the same object on purpose  -
         return instance
 
     def concretize_special_marks(self):
@@ -421,17 +424,17 @@ class MarkMap(MutableMapping):
             index = mark.index(self.tick, len(self.parsed_text))
             self._concrete_special.setdefault(index, []).append(mark)
 
-    #def concretize_relative_marks(self):
-        ## Compute numeric index of marks stored relative to width and height of the text_plane
-        #if not self.text_plane:
-            #return
-        #w, h = self.text_plane.size
-        #for index, mark in self.relative_data.items():
-            #new_index = V2(w if index[0] is None else w + index[0], h if index[1] is None else h + index[1])
-            #existing_mark = self.data.setdefault(new_index, [])
-            #if not isinstance(existing_mark, list):
-                #self.data[new_index] = existing_mark = [existing_mark]
-            #existing_mark.append(mark)
+    def concretize_relative_marks(self):
+        # Compute numeric index of marks stored relative to width and height of the text_plane
+        if not self.text_plane:
+            return
+        size = self.text_plane.size
+        for index, mark in self.relative_data.items():
+            concrete_index, *_ = get_relative_variants(index, size)
+            new_mark = self.data.get(concrete_index, [])
+            new_mark = _merge_as_lists(new_mark, mark)
+            self.data[concrete_index] = new_mark
+
 
     def get_full(self, sequence_index, pos):
 
@@ -490,7 +493,7 @@ class MarkMap(MutableMapping):
     def __getitem__(self, index):
         # TODO retrieve MagicMarks and virtual marks
         # is_relative, index, absolute_index, relative_index = self._convert_to_relative(index)
-        if not index_is_relative(index) and not self.text_plane:
+        if self.is_rendering_copy or index_is_relative(index) and not self.text_plane:
             return self.data[index]
         all_marks = []
         for i, r_index in enumerate(get_relative_variants(index, self.text_plane.size)):
