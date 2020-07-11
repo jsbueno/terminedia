@@ -577,3 +577,18 @@ def test_markmap_mark_deleted_at_all_possible_positions(input_index, marks_at):
         assert mm.get(input_index) is None
     with pytest.raises(KeyError):
         del mm[input_index]
+
+def test_markmap_several_marks_at_same_position_retrieved_as_list():
+    sh = TM.shape((10,10))
+
+    m = TM.Mark()
+    mm = sh.text[1].marks
+    mm.relative_data.clear()
+
+    mm[9, 0] = m
+    mm[-1, 0] = m
+
+    assert mm[9, 0] == [m, m]
+
+    mm[-1, -10] = m
+    assert mm[9, 0] == [m, m, m]
