@@ -67,7 +67,7 @@ pad_factors = {
 }
 
 # Shift caused in text-content size by each unit of padding:
-pad_factors_for_text = {
+relative_char_size = {
     1: (1, 1),
     2: (0.25, 0.5),
     3: (0.25, 1/3),
@@ -123,17 +123,25 @@ class Text:
 
     @property
     def size(self):
+        current_plane = getattr(self, "current_plane", 1)
         base = V2(self.owner.size)
-        fx, fy = pad_factors_for_text[self.current_plane]
+        fx, fy = relative_char_size[current_plane]
         size = base - (
             ((self.padding if self.pad_left is None else self.pad_left) +
             (self.padding if self.pad_right is None else self.pad_right)),
             ((self.padding if self.pad_top is None else self.pad_top) +
             (self.padding if self.pad_bottom is None else self.pad_bottom))
         )
-
-        size = V2(size.x * fx, size.y * fy)
+        size = size * (fx, fy)
         return size
+
+    @property
+    def width(self):
+        return self.size[0]
+
+    @property
+    def height(self):
+        return self.size[1]
 
     def _build_plane(self, index, char_width=None):
         char_height = index
@@ -157,8 +165,6 @@ class Text:
         concretized_text.plane = data
         concretized_text.marks = marks
         concretized_text.font = ""
-        concretized_text.width = width
-        concretized_text.height = height
         concretized_text.ticks = 0
         concretized_text.writtings = []
         concretized_text.writtings_index = set()
@@ -170,12 +176,11 @@ class Text:
         data._update_size()
         plane["text"] = concretized_text
 
-
     def _reset_marks(self):
         self.marks.clear()
         self.marks.special.clear()
         mark = style.Mark(moveto=(0, style.RETAIN_POS), rmoveto=(0,1))
-        for y in range(0, self.height):
+        for y in range(0, int(self.height)):
             # This is the point where the 'RelativeMarkIndex' was supposed to be needed.
             self.marks[None, y] = mark
         # self.marks[Rect((self.width, 0, self.width + 1, self.height))] = style.Mark(moveto=(0, style.RETAIN_POS), rmoveto=(0,1))
@@ -251,7 +256,7 @@ class Text:
         tokens = style.MLTokenizer(text)
         styled = tokens(text_plane=self, starting_point=pos)
         self.render_styled_sequence(styled)
-        last_pos = self.planes[self.current_plane]["last_pos"]
+        last_pos = self.planes[self.current_plane].get("last_pos", (0,0))
         return last_pos
 
     def _char_at(self, char, pos):

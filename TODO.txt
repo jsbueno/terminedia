@@ -36,9 +36,17 @@ Targeted for next release (0.4):
                 - change padding
                 - redraw any contents with new padding in consideration:
                     - Text.update will do
-                    - move special next-line portal "markers" to the recalculatd last-column of the text-area
-                        - maybe a good moment to make then "lazy" instead of physically created [wip]
-
+                    - move special next-line portal "markers" to the recalculatd last-column of the text-area[WIP]:
+                        - Caused a breaktrhough in the code with the "ObservableProperty": the start of an event system [p]:
+                            - Padding changes trigger changes to computed with and height of textplanes through ObservableProperty suscriptions [P]
+                        - create the concept of marker being rallowed to be rlative to the left margin or bottom[p]:
+                            - RelativeMarkIndex class in TM.values created, resembling SymPy stuff[P]
+                            - MarkMap separates normally indexed marks and relativemarks[p]
+                            - markmap __getitem__ working for all relativemarks [p]
+                            - markmap __setitem__ working for all normal and relativemarks [p]
+                            - markmap __delitem__ working for all normal and relativemarks [WIP]
+                            - Markmap __getitem__ should be optimized when rendering text by baking in all relativemarks when .prepare is called (tests in place for this) (checking the existence of a mark at an index triggers a lot of code)
+                        - Bugs: text at one position not re-flowing on shappe padding change
             - clear frame:
                 - same steps as create frame
         - Think of a way to "stream" text inside these containers [V]:
@@ -143,6 +151,9 @@ Targeted for next release (0.4):
         - Avoid creating a new "Text" instance on each text-plane access![V]
 
     - pickle terminedia.unicode.CHAR_BASE as part of setup.py install (?)
+    - enable re-shapping of TextPlane or Shape triggering re-flowing of txtual content.
+    - Implement "trans-dimensional-mark" - mechanism to allow text-flow to continue
+            in another TextPlane object, entirely.
 
 
 [WIP]

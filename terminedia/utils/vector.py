@@ -57,7 +57,9 @@ class V2(tuple):
         return self.__class__(other[0] - self[0], other[1] - self[1])
 
     def __mul__(self, other):
-        """multiplies a V2 by an scalar"""
+        """multiplies a V2 by an scalar or by another Seq[2] (item by item)"""
+        if hasattr(other, "__len__") and len(other) == 2:
+            return self.__class__(self[0] * other[0], self[1] * other[1])
         return self.__class__(self[0] * other, self[1] * other)
 
     __rmul__ = __mul__
