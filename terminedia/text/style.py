@@ -506,11 +506,11 @@ class MarkMap(MutableMapping):
 
 
     def __delitem__(self, index):
-        is_relative, index, absolute_index, relative_index = self._convert_to_relative(index)
-        if not is_relative and not self.text_plane:
-            del self.data[index]
-        # '|' instead of 'or' because the second part of the expression must not shortcircuit
-        found = self.data.pop(absolute_index, False) | self.data.pop(relative_index, False)
+        found = False
+        for i, r_index in enumerate(get_relative_variants(index, self.text_plane.size)):
+            if i == 0:
+                found |= bool(self.data.pop(r_index, False))
+            found |= bool(self.relative_data.pop(r_index, False))
         if not found:
             raise KeyError(index)
 

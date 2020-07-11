@@ -46,6 +46,7 @@ Targeted for next release (0.4):
                             - markmap __setitem__ working for all normal and relativemarks [p]
                             - markmap __delitem__ working for all normal and relativemarks [WIP]
                             - Markmap __getitem__ should be optimized when rendering text by baking in all relativemarks when .prepare is called (tests in place for this) (checking the existence of a mark at an index triggers a lot of code)
+                            - Cache TextPlane size data - it is a property called several times per cell position when rendering
                         - Bugs: text at one position not re-flowing on shappe padding change
             - clear frame:
                 - same steps as create frame

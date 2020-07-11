@@ -529,6 +529,7 @@ def test_markmap_prepare_copies_data_instance():
     # assert original.data is not mm.data
     # assert len(original.relative_data) == len(mm.data)
 
+
 @pytest.mark.parametrize(
     "prepared_for_print", (True, False)
 )
@@ -540,11 +541,12 @@ def test_markmap_prepare_copies_data_instance():
         [(9, -10), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
         [(10, 0), [(10, 0), (None, 0), (None, -10), (WIDTH_INDEX, -10)]],
 ])
-def test_markmap_mark_retrievd_at_all_possible_positions(prepared_for_print, input_index, expected_at):
+def test_markmap_mark_retrieved_at_all_possible_positions(prepared_for_print, input_index, expected_at):
     sh = TM.shape((10,10))
 
     m = TM.Mark()
     mm = sh.text[1].marks
+    mm.relative_data.clear()
     if prepared_for_print:
         mm = mm.prepare("")
     mm.relative_data.clear()
@@ -554,3 +556,24 @@ def test_markmap_mark_retrievd_at_all_possible_positions(prepared_for_print, inp
         assert mm[index] is m
 
 
+@pytest.mark.parametrize(
+    ["input_index","marks_at"], [
+        [(9, 0), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
+        [(-1, 0), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
+        [(-1, -10), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
+        [(9, -10), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
+        [(10, 0), [(10, 0), (None, 0), (None, -10), (WIDTH_INDEX, -10)]],
+])
+def test_markmap_mark_deleted_at_all_possible_positions(input_index, marks_at):
+    sh = TM.shape((10,10))
+    mm = sh.text[1].marks
+    mm.relative_data.clear()
+
+    m = TM.Mark()
+    for index in marks_at:
+        mm[index] = m
+        assert mm[input_index] is m
+        del mm[input_index]
+        assert mm.get(input_index) is None
+    with pytest.raises(KeyError):
+        del mm[input_index]
