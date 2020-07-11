@@ -2,6 +2,7 @@ import random
 from collections.abc import Sequence
 import terminedia as TM
 from terminedia.text.style import StyledSequence, SpecialMark, Mark, MLTokenizer
+from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX, RelativeMarkIndex
 
 import pytest
 
@@ -475,4 +476,81 @@ def test_styled_text_push_context_sequence_attribute():
     assert seq.context.pretransformers[-1].foreground == tr1.foreground
     seq._context_push({}, {"pretransformer": None}, "sequence", 0)
     assert seq.context.pretransformers == original
+
+
+
+###
+#
+# Markmap and RelativeMarkIndex tests
+#
+##
+
+first = lambda x: next(iter(x))
+
+def test_markmap_works():
+    sh = TM.shape((10,10))
+
+    m = TM.Mark()
+    sh.text[1].marks[5,5] = m
+    assert sh.text[1].marks[5,5] is m
+
+
+def test_markmap_indepent_in_different_resolutions():
+    sh = TM.shape((10,10))
+    assert sh.text[1].marks is not sh.text[4].marks
+    assert sh.text[1].marks is sh.text[1].marks
+    # Line-break marks inserted with text_plane[1] creation
+    assert len(sh.text[1].marks) == 10
+    assert len(sh.text[1].marks.relative_data) == 10
+
+
+def test_markmap_works_with_negative_index():
+    sh = TM.shape((10,10))
+
+    m = TM.Mark()
+    mm = sh.text[1].marks
+    mm.relative_data.clear()
+    mm[-1, 0] = m
+    assert mm[-1, 0] is m
+
+    assert not mm.data
+    assert len(mm.relative_data) == 1
+    assert isinstance(first(mm.relative_data.keys())[0], RelativeMarkIndex)
+    assert isinstance(first(mm.relative_data.keys())[1], int)
+
+
+def test_markmap_prepare_copies_data_instance():
+    sh = TM.shape((10,10))
+
+    m = TM.Mark()
+    original = mm = sh.text[1].marks
+    mm = mm.prepare("")
+    assert original is not mm
+    # assert original.data is not mm.data
+    # assert len(original.relative_data) == len(mm.data)
+
+@pytest.mark.parametrize(
+    "prepared_for_print", (True, False)
+)
+@pytest.mark.parametrize(
+    ["input_index","expected_at"], [
+        [(9, 0), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
+        [(-1, 0), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
+        [(-1, -10), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
+        [(9, -10), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
+        [(10, 0), [(10, 0), (None, 0), (None, -10), (WIDTH_INDEX, -10)]],
+])
+def test_markmap_mark_retrievd_at_all_possible_positions(prepared_for_print, input_index, expected_at):
+    sh = TM.shape((10,10))
+
+    m = TM.Mark()
+    mm = sh.text[1].marks
+    if prepared_for_print:
+        mm = mm.prepare("")
+    mm.relative_data.clear()
+    mm[input_index] = m
+
+    for index in expected_at:
+        assert mm[index] is m
+
 

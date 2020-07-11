@@ -307,29 +307,65 @@ def _force_iter(item):
         yield item
 
 
-def _merge_as_lists(val1, val2):
-    if not isinstance(val1, list):
-        val1 = [val1]
-    else:
-        val1 = val1[:]
-    if not isinstance(val2, list):
-        val2 = [val2]
-    val1.extend(val2)
-    if len(val1) == 1:
-        return val1[0]
-    return val1
+def _merge_as_lists(*args):
+    result = []
+    for item in args:
+        if item is None: continue
+        if not isinstance(item, list):
+            result.append(item)
+        else:
+            result.extend(item)
+    if len(result) == 1:
+        return result[0]
+    return result
+
+
+def index_is_relative(index):
+     return index[0] is None or index[1] is None or isinstance(index[0], RelativeMarkIndex) or index[0] < 0 or isinstance(index[1], RelativeMarkIndex) or index[1] < 0
+
+
+
+def get_relative_variants(pos, size=None):
+    """Given a position and  a size, yields all possible ways
+    of 'spelling' the given position expresing  Vector with relative-to-the-end indexes
+    """
+    pos = list(pos)
+    if pos[0] is None:
+        pos[0] = WIDTH_INDEX
+    if isinstance(pos[0], RelativeMarkIndex):
+        pos[0] = pos[0].value(size)
+    elif pos[0] < 0:
+        pos[0] = size[0] + pos[0]
+    if pos[1] is None:
+        pos[1] = WIDTH_INDEX
+    if isinstance(pos[1], RelativeMarkIndex):
+        pos[1] = pos[1].value(size)
+    elif pos[1] < 0:
+        pos[1] = size[1] + pos[1]
+    pos = tuple(pos)
+
+    px = WIDTH_INDEX - (size[0] - pos[0])
+    py = HEIGHT_INDEX - (size[1] - pos[1])
+
+    yield pos
+    yield px, pos[1]
+    yield pos[0], py
+    yield px, py
 
 
 class MarkMap(MutableMapping):
     """Mapping attached to each text plane -
 
-    TL;DR: this is an internal mapping used to control
+    TL;DR: this is a mapping used to control
     rich text rendering and flow. An instance is attached
-    to each text plane and can be reachd at shape.text[size].marks
+    to each text plane and can be reached at shape.text[size].marks
+    This instance can be directly used by Text object users
+    to place marks that will change the behavior of printed
+    text at that point and beyond.
 
 
     It contains Mark objects that
-    are "virtually" hidden in the plane and can chang the attributes or
+    are "virtually" hidden in the plane and can change the attributes or
     position of any rich text that would be printed were they are located.
 
     The positional Marks can also be "virtual" in a sense one can set
@@ -347,13 +383,13 @@ class MarkMap(MutableMapping):
     of a MarkMap instance). The StyledSequence then consumes marks when iterating
     itself for rendering, retrieving both marks in the text stream (1D positional
     marking), Marks fixed on the text plane, and special marks with time-variant
-    position. When retrieving the Marks at a given position, the location on th
+    position. When retrieving the Marks at a given position, the location on the
     2D plane, and tick number are available to be consumed by callables on
     special Mark objects
 
 
     """
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         self.data = {}
         self.relative_data = {}
         self.tick = 0
@@ -426,7 +462,7 @@ class MarkMap(MutableMapping):
         if is_relative:
             relative_index = index
             absolute_index = (
-                index[0].value(self.text_plane) if isinstance(index[0], RelativeMarkIndex) else index[0], index[1].value(self.text_plane) if isinstance(index[1], RelativeMarkIndex) else index[1]
+                index[0].value(self.text_plane.size) if isinstance(index[0], RelativeMarkIndex) else index[0], index[1].value(self.text_plane.size) if isinstance(index[1], RelativeMarkIndex) else index[1]
             )
         elif self.text_plane:
             w, h = self.text_plane.size
@@ -453,13 +489,16 @@ class MarkMap(MutableMapping):
 
     def __getitem__(self, index):
         # TODO retrieve MagicMarks and virtual marks
-        is_relative, index, absolute_index, relative_index = self._convert_to_relative(index)
-        if not is_relative and not self.text_plane:
+        # is_relative, index, absolute_index, relative_index = self._convert_to_relative(index)
+        if not index_is_relative(index) and not self.text_plane:
             return self.data[index]
-        result = _merge_as_lists(
-            self.data.get(absolute_index, []),
-            self.relative_data.get(relative_index, [])
-        )
+        all_marks = []
+        for i, r_index in enumerate(get_relative_variants(index, self.text_plane.size)):
+            if i == 0:
+                # first index is normalizes with positive integer coordinates
+                all_marks.append(self.data.get(r_index))
+            all_marks.append(self.relative_data.get(r_index))
+        result = _merge_as_lists(*all_marks)
 
         if not result:
             raise KeyError(index)

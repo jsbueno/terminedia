@@ -162,21 +162,23 @@ class RelativeMarkIndex:
         self.name = name
         self.offset = 0
 
-    def value(self, text_plane):
+    def value(self, size):
         if self.name == "WIDTH":
-            return text_plane.width + self.offset
+            return size[0] + self.offset
         elif self.name == "HEIGHT":
-            return text_plane.height + self.offset
+            return size[1] + self.offset
 
     def __add__(self, other):
-        instance = copy(self)
-        if other is not None:
+        instance = self
+        if other: # not in(0, None):
+            instance = copy(self)
             instance.offset += other
         return instance
 
     def __sub__(self, other):
-        instance = copy(self)
-        if other is not None:
+        instance = self
+        if other:
+            instance = copy(self)
             instance.offset -= other
         return instance
 
