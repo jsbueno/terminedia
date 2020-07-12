@@ -1,3 +1,4 @@
+from copy import copy
 from enum import Enum, IntFlag, EnumMeta
 
 from terminedia.utils import mirror_dict, V2, NamedV2, Color, SpecialColor
@@ -150,3 +151,58 @@ TERMINAL_EFFECTS =  Effects((max(Effects) * 2 -1) - UNICODE_EFFECTS)
 # support for it was found at codification time.)
 
 
+class RelativeMarkIndex:
+    '''
+    These are used for creating Marks on terminedia.text.Text objects that
+    are relative to the width and height of the object.
+    Needed for Marks that should automatically be moved when the padding area
+    of those planes is reassigned
+    '''
+    def __init__(self, name):
+        self.name = name
+        self.offset = 0
+
+    def evaluate(self, size):
+        # NB: this can't be named "value" because the attribute name "value"
+        # is treated specially when adding a component to a V2 class
+        # (V2, in turn, does that to fetch values from Enums)
+        if self.name == "WIDTH":
+            return size[0] + self.offset
+        elif self.name == "HEIGHT":
+            return size[1] + self.offset
+
+    def __add__(self, other):
+        instance = self
+        if other: # not in(0, None):
+            instance = copy(self)
+            instance.offset += other
+        return instance
+
+    def __sub__(self, other):
+        instance = self
+        if other:
+            instance = copy(self)
+            instance.offset -= other
+        return instance
+
+    def __rsub__(self, other):
+        instance = copy(self)
+        instance.offset = - instance.offset
+        instance.offset += other
+        return instance
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __hash__(self):
+        return hash((self.name, self.offset))
+
+    def __eq__(self, other):
+        return self.name == other.name and self.offset == other.offset
+
+    def __repr__(self):
+        return self.name if self.offset == 0 else f"<{{{self.name} {self.offset:+d}}}>"
+
+
+WIDTH_INDEX = RelativeMarkIndex("WIDTH")
+HEIGHT_INDEX = RelativeMarkIndex("HEIGHT")

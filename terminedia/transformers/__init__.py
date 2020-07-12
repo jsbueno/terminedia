@@ -1,7 +1,7 @@
 from inspect import signature
 
 from terminedia.utils import V2, HookList, get_current_tick
-from terminedia.values import EMPTY, FULL_BLOCK, Directions, Color
+from terminedia.values import EMPTY, FULL_BLOCK, TRANSPARENT, Directions, Color
 
 class Transformer:
 
@@ -36,22 +36,39 @@ class Transformer:
                     (an evolution of this may give a 'transformed down to here' view
                     of the shape, or a 3x3 and 5x5 kernel options)
                 - "tick" meaning the "frame number" from app start, and in the future
-                    will be used for animations. It is currently injected as "0".
+                    will be used for animations.
+
+            Depending where the transformers are used, more input parameters may be available -
+            they have to be set as instance attributes in the Transformer instance prior
+            to rendering. For rich-text rendering embedded transformers
+            (see terminedia.text.planes and terminedia.txt.sprites), for example,
+            the following attribute are available:
+                - "sequence_index": index of the current character inside the string
+                    affected by the Transformer
+                - "sequence_len": length of the string affected by the Transformer
+                - "sequence": actual text spam affected by the Transformer
+                - "sequence_absolute_start": index in  the text being rendered the transformer was made active
 
         It should return the value to be used downstream of the named channel.
 
         """
+        self.signatures = {}
         for slotname in self.channels:
+            # Build signature for channels defined in subclasses:
+            self._build_signature(slotname)
             value = locals()[slotname]
             if value is not None:
                 if slotname in ("foreground", "background") and not callable(value):
                     value = Color(value)
                 setattr(self, slotname, value)
 
-        self.signatures = {
-            channel: frozenset(signature(getattr(self, channel)).parameters.keys()) if callable(getattr(self, channel)) else () for channel in self.channels
-        }
+    def _build_signature(self, channel):
+        self.signatures[channel] = frozenset(signature(getattr(self, channel)).parameters.keys()) if callable(getattr(self, channel)) else ()
 
+    def __setattr__(self, attr, value):
+        super().__setattr__(attr, value)
+        if attr in self.__class__.channels:
+            self._build_signature(attr)
 
     def __repr__(self):
         channel_list = []
@@ -115,7 +132,7 @@ class KernelTransformer(Transformer):
                 if source_is_image:
                     value += "#" if source.get_raw(pos) != source.context.background else " "
                     continue
-                value += "#" if data[offset] != EMPTY else " "
+                value += "#" if data[offset] not in (EMPTY, TRANSPARENT) else " "
 
         return self.kernel.get(value, self.kernel.get("default", " "))
 
@@ -163,7 +180,9 @@ class GradientTransformer(Transformer):
 class TransformersContainer(HookList):
     def __init__(self, *args):
         super().__init__(*args)
-        self.stack = self.data
+
+    stack = property(lambda s: s.data)
+
 
     def insert_hook(self, item):
         item = super().insert_hook(item)
@@ -200,6 +219,11 @@ class TransformersContainer(HookList):
                     args["tick"] = get_current_tick()
                 elif parameter == "context":
                     args["context"] = source.context
+                elif hasattr(transformer, parameter):
+                    # Allows for custom parameters that can be made available
+                    # for specific uses of transformers.
+                    # (ex.: 'sequence_index' for transformers inlined in rich-text rendering)
+                    args[parameter] = getattr(transformer, parameter)
             return args
 
         values = list(pixel)
@@ -252,3 +276,8 @@ class TransformersContainer(HookList):
         for pos, pixel in source:
             target[pos + offset] = self.process(source, pos, pixel)
         return target
+
+    def remove(self, tr):
+        # override default remove for a safe "pass if not exist" (and faster)
+        if tr in self.data:
+            self.data.remove(tr)

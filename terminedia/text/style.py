@@ -65,12 +65,16 @@ Markup description:
 """
 from __future__ import annotations
 
+from collections.abc import Sequence, MutableMapping
+from copy import copy
 import re
 import typing as T
 import threading
 
 from terminedia.contexts import Context
-from terminedia.utils import V2
+from terminedia.utils import V2, Rect, get_current_tick
+from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX, RelativeMarkIndex
+
 
 RETAIN_POS = object()
 
@@ -135,26 +139,13 @@ class StyledSequence:
             self._last_index_processed is None
             or index != self._last_index_processed + 1
         ):
-            self._sanity_counter += 1
-            if self._sanity_counter > 1:
-                raise RuntimeError(
-                    "Something resetting marked text internal state in infinite loop"
-                )
-            self.context._clear()
-            self._last_index_processed = None
-            for i in range(0, index + 1):
-                self._process_to(i)
+            return self._reprocess_from_start(index)
 
-            self._sanity_counter -= 1
-            return self.context
-
-        mark_seq = self.mark_sequence.get(index, ())
-        mark_seq = [mark_seq] if isinstance(mark_seq, Mark) else mark_seq
-        for mark_here in mark_seq:
+        for mark_here, mark_origin in self.marks.get_full(index, self.current_position):
             mark_here.context = self.context
             mark_here.pos = self.current_position
             if mark_here.attributes or mark_here.pop_attributes:
-                self._context_push(mark_here.attributes, mark_here.pop_attributes)
+                self._context_push(mark_here.attributes, mark_here.pop_attributes, mark_origin, index)
             if mark_here.moveto:
                 mtx = mark_here.moveto[0]
                 mty = mark_here.moveto[1]
@@ -166,31 +157,91 @@ class StyledSequence:
         self._last_index_processed = index
         return self.context
 
+    def _reprocess_from_start(self, index):
+        self._sanity_counter += 1
+        if self._sanity_counter > 1:
+            raise RuntimeError(
+                "Something resetting marked text internal state in infinite loop"
+            )
+        self._reset_context()
+        self._last_index_processed = None
+        for i in range(0, index + 1):
+            self._process_to(i)
+
+        self._sanity_counter -= 1
+        return self.context
+
+
     def _enter_iteration(self):
         cm = self.locals.context_map = {}
         for key, value in self.context:
-            cm[key] = [value]
+            cm[key] = [(value, "original")]
+        marks = self.text_plane.marks if self.text_plane else MarkMap()
+        self.marks = marks.prepare(
+            self.mark_sequence,
+            self.text_plane.ticks if self.text_plane else get_current_tick(),
+            self.text,
+            self.context,
+        )
+        self._active_transformers = []
 
-    def _context_push(self, attributes, pop_attributes):
+
+    def _context_push(self, attributes, pop_attributes, mark_origin, index):
+        seq_attrs = {"transformer": "transformers", "pretransformer": "pretransformers"}
         cm = self.locals.context_map
         changed = set()
         attributes = attributes or {}
         pop_attributes = pop_attributes or {}
         for key in pop_attributes:
+            key = seq_attrs.get(key, key)
             stack = cm.setdefault(key, [])
-            if stack:
-                changed.add(key)
-                stack.pop()
+            if not stack:
+                continue
+            changed.add(key)
+            for i, (snapshot_attribute, snapshot_origin) in enumerate(reversed(stack)):
+                if snapshot_origin == mark_origin:
+                    stack.pop(-(i + 1))
+                    break
+
         for key, value in attributes.items():
+            if key in seq_attrs:
+                key = seq_attrs[key]
+                new_value = copy(getattr(self.context, key))
+                spam = len(self.text) - index
+                if isinstance(value, str):
+                    if " " in value:
+                        value, spam = value.split()
+                        spam = int(spam)
+                    value = self.text_plane.transformers_map.get(value)
+                else:
+                    spam = getattr(value, "sequence_len", spam)
+                value = copy(value)
+                # Inject values to be available for transformer methods:
+                value.sequence_len = spam
+                value.sequence = self.text[index: index + spam]
+                value.sequence_absolute_start = index
+                self._active_transformers.append(value)
+                new_value.append(value)
+                value = new_value
             stack = cm.setdefault(key, [])
-            stack.append(value)
+            stack.append((value, mark_origin))
+
             changed.add(key)
 
         for attr in changed:
             if cm[attr]:
-                setattr(self.context, attr, cm[attr][-1])
-            else:
-                pass
+                setattr(self.context, attr, cm[attr][-1][0])
+
+    def _remove_transformers(self, tr):
+        # Remove active transformers from the 3 places they are present:
+        # self._active_transformers, self.context and self.locals.context_map
+
+        # (TransformersContainer class feature a "safe_remove")
+        self._active_transformers.remove(tr)
+        for key in ("transformers", "pretransformers"):
+            getattr(self.context, key).remove(tr)
+            for container, origin in self.locals.context_map.get(key):
+                container.remove(tr)
 
     def _get_position_at(self, char, index):
         if self._last_index_processed != index:
@@ -204,17 +255,43 @@ class StyledSequence:
         self._enter_iteration()
         with self.context():
             for index, char in enumerate(self.text):
-                yield self.text[index], self._process_to(index), self._get_position_at(
+                values = char, self._process_to(index), self._get_position_at(
                     char, index
                 )
+                if self._active_transformers:
+                    # transformers have to be updated after made active...
+                    to_remove = set()
+                    for tr in self._active_transformers:
+                        tr.sequence_index = index - tr.sequence_absolute_start
+                        if tr.sequence_index >= tr.sequence_len:
+                            to_remove.add(tr)
+                    for tr in to_remove:
+                        self._remove_transformers(tr)
+
+                yield values
+        if hasattr(self, "marks"):
+            del self.marks
         # self._unwind()
+
+    def _reset_context(self):
+        for key, value in self._parent_context_data.items():
+            if key in ("transformers", "pretransformers"):
+                value = copy(value)
+            setattr(self.context, key, value)
+
+    def _prepare_context(self):
+        self.context = Context()
+        source = self.text_plane.owner.context
+        self._parent_context_data = {key:value for key, value in source}
+        self._reset_context()
 
     def render(self):
         if not self.text_plane:
             return
         # FIXME: if self.parent_context is not self.text_plane.owner.context, combine parent and current context
         # otherwise combination is already in place at the render_lock
-        render_lock = self.text_plane._render_styled(self.context)
+        self._prepare_context()
+        render_lock = self.text_plane._render_styled_lock(self.context)
         try:
             char_fn = next(render_lock)
 
@@ -222,6 +299,256 @@ class StyledSequence:
                 char_fn(char, position)
         finally:
             next(render_lock, None)
+
+### Helper functions used exclusively by MarkMap
+# (Up to class MarkMap iself)
+
+
+def _force_iter(item):
+    if isinstance(item, Sequence):
+        yield from item
+    else:
+        yield item
+
+
+def _merge_as_lists(*args):
+    result = []
+    for item in args:
+        if item is None: continue
+        if not isinstance(item, list):
+            result.append(item)
+        else:
+            result.extend(item)
+    if len(result) == 1:
+        return result[0]
+    return result
+
+
+def index_is_relative(index):
+     return index[0] is None or index[1] is None or isinstance(index[0], RelativeMarkIndex) or index[0] < 0 or isinstance(index[1], RelativeMarkIndex) or index[1] < 0
+
+def _normalize_component(comp, name):
+    if isinstance(comp, RelativeMarkIndex):
+        return True, comp
+    elif comp is None or comp < 0:
+        return True, (RelativeMarkIndex(name) + comp)
+    return False, comp
+
+def normalize_relative_index(index):
+    r1, x = _normalize_component(index[0], "WIDTH")
+    r2, y = _normalize_component(index[1], "HEIGHT")
+    return (r1 | r2), V2(x, y)
+
+def get_relative_variants(pos, size=None):
+    """Given a position and  a size, yields all possible ways
+    of 'spelling' the given position expresing  Vector with relative-to-the-end indexes
+    """
+    pos = list(pos)
+    if pos[0] is None:
+        pos[0] = WIDTH_INDEX
+    if isinstance(pos[0], RelativeMarkIndex):
+        pos[0] = pos[0].evaluate(size)
+    elif pos[0] < 0:
+        pos[0] = size[0] + pos[0]
+    if pos[1] is None:
+        pos[1] = WIDTH_INDEX
+    if isinstance(pos[1], RelativeMarkIndex):
+        pos[1] = pos[1].evaluate(size)
+    elif pos[1] < 0:
+        pos[1] = size[1] + pos[1]
+    pos = tuple(pos)
+
+    px = WIDTH_INDEX - (size[0] - pos[0])
+    py = HEIGHT_INDEX - (size[1] - pos[1])
+
+    yield pos
+    yield px, pos[1]
+    yield pos[0], py
+    yield px, py
+
+
+class MarkMap(MutableMapping):
+    """Mapping attached to each text plane -
+
+    TL;DR: this is a mapping used to control
+    rich text rendering and flow. An instance is attached
+    to each text plane and can be reached at shape.text[size].marks
+    This instance can be directly used by Text object users
+    to place marks that will change the behavior of printed
+    text at that point and beyond.
+
+
+    It contains Mark objects that
+    are "virtually" hidden in the plane and can change the attributes or
+    position of a text sequence in the point one character will (or would)
+    be printed were they are located. The attribute change takes effect
+    for the rich-text stream been rendered from that point on.
+
+    In plain code, that means doing:
+    ```
+    myshape.text[1].marks[3,0] = TM.Mark(attributes{"color": "red"})
+    myshape.text[1] = "123456"
+    ```
+    will render '123' in the current context color, and '456' in red.
+
+    The positional Marks can also be "virtual" in a sense one can set
+    a rectangle of special marks in a single call: this is used
+    to setup the "teleporter" marks at text-plane boundaries
+    that enable text to continue on the next line, when printing
+    left-to-right.
+
+    A third Mark category can be added, consisting of Marks which index
+    will change overtime: the "special" index can receive "SpecialMark" instances:
+    those are Mark objects that have an "index" method - this method
+    receives two parameters  a "tick" number and the length of the sequence being rendered,
+    and returns a 1D index - which is used to place the mark
+    inside the sequence of text being rendered, or a 2D index, that is
+    used as a location on the grid.
+
+    The instances of MarkMap are consumed by StyledSequence objects when rendering,
+    and those will set a 1D positional-mark mapping (this creates a shallow copy
+    of a MarkMap instance). The StyledSequence then consumes marks when iterating
+    itself for rendering, retrieving both marks in the text stream (1D positional
+    marking), Marks fixed on the text plane, and special marks with time-variant
+    position. When retrieving the Marks at a given position, the location on the
+    2D plane, and tick number are available to be consumed by callables on
+    special Mark objects
+
+    A caracteristic of the contents of MarkMap cells is that
+    a cell may conten eiter a Mark objct, or a list of MarkObjects
+     - Lists can be created freely and marks can be created
+     freely in instances of MarkMap. Marks that are placed
+     in absolute cell addresses are merged with ones stored
+     in relative cell address upon reading (addressing from the left or from the
+     bottom of a text plane). The mechanism for that is too complicated
+     to be something to be proud off - but seems to work when a text-area changes
+     size in a nice way.
+
+
+    """
+    def __init__(self, parent=None):
+        self.data = {}
+        self.relative_data = {}
+        self.tick = 0
+        self.seq_data = {}
+        self.special = set()
+        self._concrete_special = {}
+        self.text_plane = parent
+        self.is_rendering_copy = False
+
+    def prepare(self, seq_data, tick=0, parsed_text="", context=None):
+        instance = copy(self)
+        instance.tick = tick
+        instance.seq_data = seq_data
+        instance.context = context
+        instance.parsed_text = parsed_text
+        instance.special = self.special.copy()
+        instance.data = self.data.copy()
+        if "special" in seq_data:
+            instance.special.update(seq_data["special"])
+        instance.concretize_special_marks()
+        instance.concretize_relative_marks()
+        instance.is_rendering_copy = True
+
+        #  self.relative_data are the same object on purpose  -
+        return instance
+
+    def concretize_special_marks(self):
+        self._concrete_special = {}
+        for mark in self.special:
+            # TODO: inject parameters to compute index according to its signature
+            # currently hardcoded to 2 parameters: tick and length of target text
+            index = mark.index(self.tick, len(self.parsed_text))
+            self._concrete_special.setdefault(index, []).append(mark)
+
+    def concretize_relative_marks(self):
+        # Compute numeric index of marks stored relative to width and height of the text_plane
+        if not self.text_plane:
+            return
+        size = self.text_plane.size
+        for index, mark in self.relative_data.items():
+            concrete_index, *_ = get_relative_variants(index, size)
+            new_mark = self.data.get(concrete_index, [])
+            new_mark = _merge_as_lists(new_mark, mark)
+            self.data[concrete_index] = new_mark
+
+
+    def get_full(self, sequence_index, pos):
+
+        self.sequence_index = sequence_index
+        self.pos = pos
+
+        mark_seq = [(item, "plane") for item in self._concrete_special.get(pos, [])]
+        mark_seq += [(item, "sequence") for item in self._concrete_special.get(sequence_index, [])]
+        mark_seq += [(item, "plane") for item in _force_iter(self.get(pos, []))]
+        mark_seq += [(item, "sequence") for item in _force_iter(self.seq_data.get(sequence_index, []))]
+
+        return mark_seq
+
+    def __setitem__(self, index, value):
+        if index == "special":
+            self.special.add(value)
+            return
+        if isinstance(index, Rect):
+            for pos in index.iter_cells():
+                self[pos] = value
+            return
+        is_relative, index = normalize_relative_index(index)
+        if is_relative:
+            self.relative_data[index] = value
+        else:
+            self.data[index] = value
+
+    def __getitem__(self, index):
+        # TODO retrieve MagicMarks and virtual marks
+        # is_relative, index, absolute_index, relative_index = self._convert_to_relative(index)
+        is_relative = index_is_relative(index)
+        if self.is_rendering_copy and is_relative:
+            index, *_ = get_relative_variants(index, self.text_plane.size)
+
+        if self.is_rendering_copy or is_relative and not self.text_plane:
+            return self.data[index]
+        all_marks = []
+        for i, r_index in enumerate(get_relative_variants(index, self.text_plane.size)):
+            if i == 0:
+                # first index is normalizes with positive integer coordinates
+                all_marks.append(self.data.get(r_index))
+            all_marks.append(self.relative_data.get(r_index))
+        result = _merge_as_lists(*all_marks)
+
+        if not result:
+            raise KeyError(index)
+        return result
+
+
+    def __delitem__(self, index):
+        found = False
+        for i, r_index in enumerate(get_relative_variants(index, self.text_plane.size)):
+            if i == 0:
+                found |= bool(self.data.pop(r_index, False))
+            found |= bool(self.relative_data.pop(r_index, False))
+        if not found:
+            raise KeyError(index)
+
+    def __len__(self):
+        return len(self.data) + len(self.relative_data)
+
+    def __iter__(self):
+        if self.text_plane:
+            if not self.relative_data:
+                return iter(self.data)
+            def gen():
+                yield from iter(self.data)
+                yield from iter(self.relative_data)
+            return gen()
+        else:
+            from itertools import chain
+            return chain(self.data, self.relative_data)
+    def clear(self):
+        self.__init__(parent=self.text_plane)
+
+    def __repr__(self):
+        return "MarkMap < >"
 
 
 class Mark:
@@ -284,18 +611,27 @@ class Mark:
         #)
 
     def __repr__(self):
-        return f"Mark({('attributes=%r, ' % self.attributes) if self.attributes else ''}{('pop_attributes=%r, ' % self.attributes) if self.pop_attributes else ''}{('moveto=%r, ' % self.moveto) if self.moveto else ''}{('rmoveto=%r' % self.rmoveto) if self.rmoveto else ''})"
+        return f"{self.__class__.__name__}({('attributes=%r, ' % self.attributes) if self.attributes else ''}{('pop_attributes=%r, ' % self.pop_attributes) if self.pop_attributes else ''}{('moveto={!r}, '.format(self.moveto)) if self.moveto else ''}{('rmoveto={!r}'.format(self.rmoveto)) if self.rmoveto else ''})"
 
 
 EmptyMark = Mark()
 
+class SpecialMark(Mark):
+    __slots__=["index"]
+    def __init__(self, index, *args, **kwargs):
+        self.index = index
+        super().__init__(*args, **kwargs)
+
+
 
 class Tokenizer:
+    # TODO: when a second tokenizer is created, code that can be refactored currently in
+    # MLTokenizer will be moved here.
     pass
 
 
 class MLTokenizer(Tokenizer):
-    _parser = re.compile(r"\[[^\[].*?\]")
+    _parser = re.compile(r"(?<!\[)\[[^\[].*?\]")
 
     def __init__(self, initial=""):
         """Parses a string with special Markup and prepare for rendering
@@ -334,23 +670,39 @@ class MLTokenizer(Tokenizer):
         from terminedia import Effects, Color, Directions, DEFAULT_BG, DEFAULT_FG, TRANSPARENT
 
         self.mark_sequence = {}
+        # Separate stack to anottate the length of the affected string inside each Transformer
+        transformer_stack = []
+        last_offset = -1
+        offset_repeat_counter = -1
         for offset, token in raw_tokens:
+            if offset == last_offset:
+                offset_repeat_counter += 1
+            else:
+                offset_repeat_counter = 0
+            last_offset = offset
             attributes = None
             pop_attributes = None
             rmoveto = None
             moveto = None
 
-            token = token.lower()
             if ":" in token:
                 action, value = [v.strip() for v in token.split(":")]
+                action = action.lower()
                 if action == "effect":
                     action = "effects"
+                if action not in ("transformer", "font", "char"):
+                    value = value.lower()
             else:
                 action = token.strip()
                 value = None
                 if action in {"left", "right", "up", "down"}:
                     value = action
                     action = "direction"
+            if action.startswith("/"):
+                starting_tag= False
+                action = action[1:]
+            else:
+                starting_tag = True
 
             # Allow for special color values:
             if action in ("color", "foreground") and value == "default":
@@ -361,21 +713,36 @@ class MLTokenizer(Tokenizer):
                 value = TRANSPARENT
             if value and value.startswith("(") and action in {"color", "foreground", "background"}:
                 value = ast.literal_eval(value)
+            if action == "transformer":
+                action = "pretransformer"
+                if starting_tag:
+                    transformer_stack.append((value, offset, offset_repeat_counter))
+                else:
+                    closing_transformer, oppening_offset, oppening_repeat = transformer_stack.pop()
+                    if not " " in closing_transformer:
+                        # if there is a space, assume the spam of the transformer is given
+                        # on the opening tag and do nothing.
+                        spam = offset - oppening_offset
+                        closing_mark = self.mark_sequence[oppening_offset]
+                        if isinstance(closing_mark, list):
+                            closing_mark = closing_mark[oppening_repeat]
+                        closing_mark.attributes["pretransformer"] += f" {spam}"
 
-            attribute_names = {"effects", "color", "foreground", "background", "direction", "transformer", "char", "font", }
+            attribute_names = {"effects", "color", "foreground", "background", "direction", "pretransformer", "char", "font", }
             if action in attribute_names:
-                attributes = {
-                    action: (
-                        Color(value) if action in ("color", "foreground", "background") else
-                        sum(Effects.__members__.get(v.strip(), 0) for v in value.split("|"))
-                            if action == "effects" else
-                        getattr(Directions, value.upper()) if action == "direction" else
-                        getattr(transformers_library, value) if action == "transformer" else
-                        value
-                    )
-                }
-            if action[0] == "/" and action[1:] in attribute_names:
-                pop_attributes = {action.lstrip("/"): None}
+                if starting_tag:
+                    attributes = {
+                        action: (
+                            Color(value) if action in ("color", "foreground", "background") else
+                            sum(Effects.__members__.get(v.strip(), 0) for v in value.split("|"))
+                                if action == "effects" else
+                            getattr(Directions, value.upper()) if action == "direction" else
+                            # getattr(transformers_library, value) if action == "pretransformer" else
+                            value
+                        )
+                    }
+                else:
+                    pop_attributes = {action: None}
 
             if "," in action and attributes is None and pop_attributes is None:
                 nx, ny = [v.strip() for v in action.split(",")]
@@ -409,4 +776,5 @@ class MLTokenizer(Tokenizer):
 
 
 class ANSITokenizer(Tokenizer):
+    # TODO....
     pass

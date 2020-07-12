@@ -11,7 +11,9 @@ version 0.4
  - create a "TransformerContainer.bake" method to eagerly apply a stack of transformers to a shape.
  - Sprites promote shapes whitespace and default colors to transparency when created by default (pass alpha=False to prevent)
  - Sprite stack rendering honors TRANSPARENT special value
+ - Add 'pretransformers' context value which can hold a TransformersContainer and eagerly transform data when writting to a Shape(__setitem__). The "transformers" context value, on the other hand, works on _reading_ shape data (__getitem__)
  - sextant (1/6 block) (depends on unicode 12 with vintage charset)(V)
+ - ObservableProperty descriptor class enabling reactive programing patterns(V)
 
 New 'transformers library':
     - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters
@@ -30,6 +32,7 @@ New rich-text and text-handling features:
             - Refactor code to have a core to be used by  backend.print, screen.print, text.at, shape.print [V]
     - Make assignment of string to shape or text area cell spread the text across as many cells as needed:[V]
         - correctly detect combining characters so that combined characters live on the same cell (V)
+
     - create markup language for embedding context changing directives inside a single string:[V]
         - make it usable by assignment, `text[x].print` and `at` methods
         - BUG: when rendering spaces from text-planes, attributes (like background) are not updated (V):
@@ -41,15 +44,26 @@ New rich-text and text-handling features:
                 - Accept absolute/relative movement with "[+x,+y]" tokens embedded in the string (and work as "portals")[V]
                 - allow for 'pop last parameter of this type' tokens ([/color], [/effects])[V]
                 - allow for default colors with [color:default] (V) (but check default-color bug)
-            - Allow a call to MLToken.parse to be passed a transformers-mapping, and us it as a source for
-                    transformers objects in the  markup [transformer:...] elements [wip]
+            - Allow a call to MLToken.parse to be passed a transformers-mapping, and use it as a source for
+                    transformers objects in the  markup [transformer:...] elements [V]
+
+        - Markup is super-rich allowing marks indicating attribute changes to be set either
+            in the text sequence, or in locations on the Text object
+    - Multi-line text-flowing, by using "portal" Mark objects created automatically to the
+        right of the last  column of the TextPlane object - each of these "teleport" the
+        text-flow to the column 0 on the next line.
+    -  Method .add_border to the TextPlane class - allowing fancy unicode frames (by using ready_made tranformers available on the transformers.library)
 
     - create aliased string names for the text[...] text planes [V]
     - Add tests to terminedia-planes [WIP]:
         - Avoid creating a new "Text" instance on each text-plane access![V]
-        - Tests for styling bases classes in progress - testing attribute changing and position
+        - Tests for styling bases classes in progress - testing attribute changing and position[V]
 
 
+
+Minor Features:
+ - TransformersContainer and SpriteContainer (TM.Utils.Hooklist)s can be shallow-copied with copy.copy()
+ - Context.foreground is an alias for context.color
 
 version 0.3
 ============

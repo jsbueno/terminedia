@@ -7,11 +7,11 @@ from collections.abc import Mapping
 from .collections import (
     mirror_dict,
     FrozenDict,
-    LazyBindProperty,
     HookList,
     TaggedDict,
     LazyDict,
 )
+from .descriptors import LazyBindProperty, ObservableProperty
 from .vector import V2, NamedV2
 from .rect import Rect
 from .colors import css_colors, Color, SpecialColor

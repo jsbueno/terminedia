@@ -1114,6 +1114,13 @@ class FullShape(Shape):
                 self.context.effects,
             ][len(value) - 1 :]
 
+        #####################
+        # Apply pre-transformers: backed in transformations specified in context.
+        #####################
+
+        if self.context.pretransformers:
+            value = self.context.pretransformers.process(self, pos, self.PixelCls(*value))
+
         ############
         # Check final width (have to apply transformation effect)
         ###########

@@ -89,7 +89,7 @@ def test_valueshape_concat(
             sc.print_at(
                 (0, 11), f"quantity={quantity}, width={c.width}, heigth={c.height}"
             )
-            sc.print_at((0, 10), f"{compare_data!r}")
+            sc.print_at((0, 10), f"[{compare_data!r}]")
             TM.pause(DELAY)
 
     assert c.width == exp_width

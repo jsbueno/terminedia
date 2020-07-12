@@ -27,7 +27,8 @@ class ContextVar:
         if not isinstance(value, self.type):
             # May generate ValueError TypeError: expected behavior
             type_ = self.type[0] if isinstance(self.type, tuple) else self.type
-            value = type_(value)
+            if value != self.default:  # Allow setting typed values back to None
+                value = type_(value)
         setattr(instance._locals, self.name, value)
 
     def __get__(self, instance, owner):
@@ -87,9 +88,12 @@ class Context:
     background = ContextVar(Color, DEFAULT_BG)
     effects = ContextVar((Effects, SpecialColor), Effects.none)
     direction = ContextVar(V2, Directions.RIGHT)
-    transformers = ContextVar(TransformersContainer, None)
+    transformers = ContextVar(TransformersContainer, TransformersContainer)
     fill = ContextVar(bool, False)
     font = ContextVar((str, type(None)), "")
+    pretransformers = ContextVar(TransformersContainer, TransformersContainer)
+
+    foreground = property((lambda s: s.color), (lambda s, v: setattr(s, "color", v)))
 
     def __init__(self, **kw):
         self._locals = threading.local()
@@ -107,10 +111,11 @@ class Context:
 
     def _clear(self):
         if getattr(self._locals, "_context_stack", None):
-            return self._locals._context_stack[-1].clear()
+            return self._locals._context_stack[-1]._clear()
         for name, attr in self.__class__.__dict__.items():
             if isinstance(attr, ContextVar):
-                setattr(self, name, attr.default)
+                if hasattr(self._locals, name):
+                    delattr(self._locals, name)
         for name, attr in list(self.__dict__.items()):
             if name and not name.startswith("_"):
                 del self.__dict__[name]
@@ -131,7 +136,11 @@ class Context:
 
     def __getattr__(self, name):
         if getattr(self._locals, "_context_stack", None):
-            return getattr(self._locals._context_stack[-1], name)
+            for stacked_ctx in reversed(self._locals._context_stack):
+                # FIXME: Use walrus on 3.8+ cut
+                val = getattr(stacked_ctx._locals, name, _sentinel)
+                if val is not _sentinel:
+                    return val
         return getattr(self._locals, name)
 
     def __call__(self, **kw):
@@ -148,6 +157,9 @@ class Context:
             self._locals.__dict__.setdefault("_context_stack", []).append(new_parameters.pop("context"))
             # Use this to signal that the stacked context should be popped on exit:
             self._locals._stack.append(_EmptySentinel)
+        for sequence_attr in "transformers", "pretransformers":
+            if not sequence_attr in new_parameters:
+                new_parameters[sequence_attr] = copy(data[sequence_attr])
         self._update(new_parameters)
         return self
 
@@ -159,9 +171,9 @@ class Context:
 
         to_remove = set(self._locals.__dict__.keys()) - data.pop("_previously_existing", set())
         for extra_key in to_remove:
-            # .text shape namespaces have to persist data in the parent's context,
-            # which may be in a context-manager (with) block due to
-            # 'mundane' attribute settings.
+            # Keys with this prefix are preserved across context-exit.
+            # (this feature were previously used by text_planes -
+            #  kept here because some other place might need it)
             if extra_key.startswith("local_storage"):
                 continue
             delattr(self._locals, extra_key)
@@ -194,6 +206,7 @@ class Context:
             if name in ("default_bg", "default_fg", "transformers"):
                 continue
             setattr(self, name, attr)
+
 
     def __dir__(self):
         if getattr(self._locals, "_context_stack", None):
