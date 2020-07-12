@@ -162,7 +162,10 @@ class RelativeMarkIndex:
         self.name = name
         self.offset = 0
 
-    def value(self, size):
+    def evaluate(self, size):
+        # NB: this can't be named "value" because the attribute name "value"
+        # is treated specially when adding a component to a V2 class
+        # (V2, in turn, does that to fetch values from Enums)
         if self.name == "WIDTH":
             return size[0] + self.offset
         elif self.name == "HEIGHT":
@@ -181,6 +184,15 @@ class RelativeMarkIndex:
             instance = copy(self)
             instance.offset -= other
         return instance
+
+    def __rsub__(self, other):
+        instance = copy(self)
+        instance.offset = - instance.offset
+        instance.offset += other
+        return instance
+
+    def __radd__(self, other):
+        return self.__add__(other)
 
     def __hash__(self):
         return hash((self.name, self.offset))

@@ -323,7 +323,17 @@ def _merge_as_lists(*args):
 def index_is_relative(index):
      return index[0] is None or index[1] is None or isinstance(index[0], RelativeMarkIndex) or index[0] < 0 or isinstance(index[1], RelativeMarkIndex) or index[1] < 0
 
+def _normalize_component(comp, name):
+    if isinstance(comp, RelativeMarkIndex):
+        return True, comp
+    elif comp is None or comp < 0:
+        return True, (RelativeMarkIndex(name) + comp)
+    return False, comp
 
+def normalize_relative_index(index):
+    r1, x = _normalize_component(index[0], "WIDTH")
+    r2, y = _normalize_component(index[1], "HEIGHT")
+    return (r1 | r2), V2(x, y)
 
 def get_relative_variants(pos, size=None):
     """Given a position and  a size, yields all possible ways
@@ -333,13 +343,13 @@ def get_relative_variants(pos, size=None):
     if pos[0] is None:
         pos[0] = WIDTH_INDEX
     if isinstance(pos[0], RelativeMarkIndex):
-        pos[0] = pos[0].value(size)
+        pos[0] = pos[0].evaluate(size)
     elif pos[0] < 0:
         pos[0] = size[0] + pos[0]
     if pos[1] is None:
         pos[1] = WIDTH_INDEX
     if isinstance(pos[1], RelativeMarkIndex):
-        pos[1] = pos[1].value(size)
+        pos[1] = pos[1].evaluate(size)
     elif pos[1] < 0:
         pos[1] = size[1] + pos[1]
     pos = tuple(pos)
@@ -448,52 +458,25 @@ class MarkMap(MutableMapping):
 
         return mark_seq
 
-    def _convert_to_relative(self, index):
-        is_relative = False
-        if isinstance(index[0], RelativeMarkIndex):
-            is_relative = True
-        elif (index[0] is None or index[0] < 0):
-            index = (WIDTH_INDEX + index[0], index[1])
-            is_relative = True
-        if isinstance(index[1], RelativeMarkIndex):
-            is_relative = True
-        elif (index[1] is None or index[1] < 0):
-            index = (index[0], HEIGHT_INDEX + index[1])
-            is_relative = True
-        if not is_relative and not self.text_plane:
-            return False, index, index, (None, None)
-        if is_relative:
-            relative_index = index
-            absolute_index = (
-                index[0].value(self.text_plane.size) if isinstance(index[0], RelativeMarkIndex) else index[0], index[1].value(self.text_plane.size) if isinstance(index[1], RelativeMarkIndex) else index[1]
-            )
-        elif self.text_plane:
-            w, h = self.text_plane.size
-            absolute_index = index
-            relative_index = (
-              WIDTH_INDEX - (w - index[0]), HEIGHT_INDEX - (h - index[1])
-            )
-        else:
-            absolute_index = index
-            relative_index = None, None
-        return is_relative, index, absolute_index, relative_index
-
-
     def __setitem__(self, index, value):
         if isinstance(index, Rect):
             for pos in index.iter_cells():
                 self[pos] = value
             return
-        is_relative, index, aindex, rindex = self._convert_to_relative(index)
+        is_relative, index = normalize_relative_index(index)
         if is_relative:
             self.relative_data[index] = value
         else:
-            self.data[V2(index)] = value
+            self.data[index] = value
 
     def __getitem__(self, index):
         # TODO retrieve MagicMarks and virtual marks
         # is_relative, index, absolute_index, relative_index = self._convert_to_relative(index)
-        if self.is_rendering_copy or index_is_relative(index) and not self.text_plane:
+        is_relative = index_is_relative(index)
+        if self.is_rendering_copy and is_relative:
+            index, *_ = get_relative_variants(index, self.text_plane.size)
+
+        if self.is_rendering_copy or is_relative and not self.text_plane:
             return self.data[index]
         all_marks = []
         for i, r_index in enumerate(get_relative_variants(index, self.text_plane.size)):
@@ -526,13 +509,13 @@ class MarkMap(MutableMapping):
                 return iter(self.data)
             def gen():
                 yield from iter(self.data)
-                w, h = self.text_plane.size
-                for index in self.relative_data:
-                    yield V2(WIDTH_INDEX - (w - index[0]), HEIGHT_INDEX - (h - index[1]))
-            return gen
+                yield from iter(self.relative_data)
+            return gen()
         else:
             from itertools import chain
             return chain(self.data, self.relative_data)
+    def clear(self):
+        self.__init__(parent=self.text_plane)
 
     def __repr__(self):
         return "MarkMap < >"
