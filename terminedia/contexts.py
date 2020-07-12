@@ -157,6 +157,9 @@ class Context:
             self._locals.__dict__.setdefault("_context_stack", []).append(new_parameters.pop("context"))
             # Use this to signal that the stacked context should be popped on exit:
             self._locals._stack.append(_EmptySentinel)
+        for sequence_attr in "transformers", "pretransformers":
+            if not sequence_attr in new_parameters:
+                new_parameters[sequence_attr] = copy(data[sequence_attr])
         self._update(new_parameters)
         return self
 
