@@ -44,13 +44,22 @@ New rich-text and text-handling features:
                 - Accept absolute/relative movement with "[+x,+y]" tokens embedded in the string (and work as "portals")[V]
                 - allow for 'pop last parameter of this type' tokens ([/color], [/effects])[V]
                 - allow for default colors with [color:default] (V) (but check default-color bug)
-            - Allow a call to MLToken.parse to be passed a transformers-mapping, and us it as a source for
-                    transformers objects in the  markup [transformer:...] elements [wip]
+            - Allow a call to MLToken.parse to be passed a transformers-mapping, and use it as a source for
+                    transformers objects in the  markup [transformer:...] elements [V]
+
+        - Markup is super-rich allowing marks indicating attribute changes to be set either
+            in the text sequence, or in locations on the Text object
+    - Multi-line text-flowing, by using "portal" Mark objects created automatically to the
+        right of the last  column of the TextPlane object - each of these "teleport" the
+        text-flow to the column 0 on the next line.
+    -  Method .add_border to the TextPlane class - allowing fancy unicode frames (by using ready_made tranformers available on the transformers.library)
 
     - create aliased string names for the text[...] text planes [V]
     - Add tests to terminedia-planes [WIP]:
         - Avoid creating a new "Text" instance on each text-plane access![V]
         - Tests for styling bases classes in progress - testing attribute changing and position[V]
+
+
 
 Minor Features:
  - TransformersContainer and SpriteContainer (TM.Utils.Hooklist)s can be shallow-copied with copy.copy()

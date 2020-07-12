@@ -3,7 +3,7 @@ from copy import copy
 from pathlib import Path
 import threading
 
-from terminedia.image import Shape, PalettedShape
+from terminedia.image import Shape, PalettedShape, shape
 from terminedia.unicode import split_graphemes
 from terminedia.utils import contextkwords, V2, Rect, ObservableProperty
 from terminedia.values import Directions, EMPTY, TRANSPARENT
@@ -107,7 +107,7 @@ class Text:
           - owner (Union[Screen, Shape]): owner instance, target of rendering methods
       """
         self.owner = owner
-        self.planes = {}
+        self.planes = {"root": {"text": self}}
         self.transformers_map = {}
         self.reset_padding()
 
@@ -116,10 +116,14 @@ class Text:
         self.pad_left = self.pad_right = self.pad_top = self.pad_bottom = None
 
     padding = ObservableProperty()
-    pad_left = ObservableProperty()
-    pad_right = ObservableProperty()
-    pad_top = ObservableProperty()
-    pad_bottom = ObservableProperty()
+    for pad_name in "pad_left pad_right pad_top pad_bottom".split():
+        locals()[pad_name] = ObservableProperty(
+            lambda s, pad_name=pad_name: s.__dict__.get(name) if s.__dict__.get(pad_name) is not None else s.padding,
+            lambda s, v, pad_name=pad_name: s.__dict__.__setitem__(pad_name, v)
+        )
+    #pad_right = ObservableProperty()
+    #pad_top = ObservableProperty()
+    #pad_bottom = ObservableProperty()
 
     @property
     def size(self):
@@ -127,11 +131,15 @@ class Text:
         base = V2(self.owner.size)
         fx, fy = relative_char_size[current_plane]
         size = base - (
-            ((self.padding if self.pad_left is None else self.pad_left) +
-            (self.padding if self.pad_right is None else self.pad_right)),
-            ((self.padding if self.pad_top is None else self.pad_top) +
-            (self.padding if self.pad_bottom is None else self.pad_bottom))
+            self.pad_left + self.pad_right,
+            self.pad_top + self.pad_bottom
         )
+
+            #((self.padding if self.pad_left is None else self.pad_left) +
+            #(self.padding if self.pad_right is None else self.pad_right)),
+            #((self.padding if self.pad_top is None else self.pad_top) +
+            #(self.padding if self.pad_bottom is None else self.pad_bottom))
+        #)
         size = size * (fx, fy)
         return size
 
@@ -374,6 +382,58 @@ class Text:
             self.writtings_index.add(styled)
             self.writtings.append(styled)
         styled.render()
+
+    def add_border(self, transform=None, context=None):
+        """Adds a text-frame. Increases padding and updates the content.
+
+        The parameter passed should be a transformer - and is primarily
+        thought to be one of terminedia.transformers.library.box_transforms.*
+        one, that will use nice unicode line characters for the borders.
+
+        Any transformer can be used, though - the frame is them rendered
+        as a solid block-outline
+
+        if `context` is given: uses given context to render the border, otherwise
+        the context for the owner shape is used.
+        """
+        size = self.size
+
+        border_shape = shape(size)
+
+        corner1 = V2(self.pad_left, self.pad_top)
+        corner2 = corner1 + size
+
+        self.owner[corner1.x: corner2.x, corner1.y: corner2.y].draw.fill(char=" ")
+        for plane_name, plane_dict in self.planes.items():
+            if plane_name == "root":
+                continue
+            plane_dict["text"].plane.clear()
+
+        if context:
+            border_shape.context = context
+        else:
+            border_shape.context = self.owner.context
+
+        with border_shape.context as context:
+            border_shape.draw.rect((0, 0), (size))
+            if transform:
+                context.transformers.append(transform)
+            self.owner.draw.blit((self.pad_left, self.pad_top), border_shape)
+
+        if all(self.padding == other_pad for other_pad in (self.pad_left, self.pad_right, self.pad_top, self.pad_bottom)):
+            self.padding += 1
+        else:
+            self.pad_left += 1
+            self.pad_right += 1
+            self.pad_top += 1
+            self.pad_bottom += 1
+
+        # Redraw all text content;
+        for plane_name, plane_dict in self.planes.items():
+            if plane_name == "root":
+                continue
+            plane_dict["text"].update()
+
 
     @contextkwords(context_path="owner.context")
     def print(self, text):

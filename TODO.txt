@@ -24,18 +24,12 @@ Targeted for next release (0.4):
         - BUG: when rendering spaces, attributes (like background) are not updated (V) - fixed by sprite transparency handling implementation.
         - BUG: on rendering rich text, text_plane's context is not being taken in account. (i.e. if color is "red", DEFAULT_FG is being used instead) [V]
         - This can be current "text_planes" themselves [v]
-        - these should be decorateable with frames using unicode frame drawing characters:
-            - Allow text_planes to feature CSS-like "padding" attributes, so that when there is a frame, padding offset contents  to the inner part.[WIP]
-            - on changing padding or padding_right, update text-wrapper Marks.
-            - check extents when padding on CharPlaneData(?)
-            - create a method to:
-                - clear host shape
-                - draw frame :
-                    pick a frame-transformer from transformers.library.box_transformers
-                - "bake" it on the host shape using one of the transformers-library border transformers
-                - change padding
-                - redraw any contents with new padding in consideration:
-                    - Text.update will do
+        - these should be decorateable with frames using unicode frame drawing characters:[V]
+            - Allow text_planes to feature CSS-like "padding" attributes, so that when there is a frame, padding offset contents  to the inner part.[V]
+            - on changing padding or padding_right, update text-wrapper Marks.[V]
+
+            - create text[x].add_frame method [V]:
+                - Text.update for adding frames does: [v]
                     - move special next-line portal "markers" to the recalculatd last-column of the text-area[WIP]:
                         - Caused a breaktrhough in the code with the "ObservableProperty": the start of an event system [v]:
                             - Padding changes trigger changes to computed with and height of textplanes through ObservableProperty suscriptions [P]
@@ -47,8 +41,6 @@ Targeted for next release (0.4):
                             - markmap __delitem__ working for all normal and relativemarks [v]
                             - Markmap __getitem__ should be optimized when rendering text by baking in all relativemarks when .prepare is called (tests in place for this) (checking the existence of a mark at an index triggers a lot of code) [V]
                             - Cache TextPlane size data - it is a property called several times per cell position when rendering
-            - clear frame:
-                - same steps as create frame
         - Think of a way to "stream" text inside these containers [V]:
         - Implement a way to "stream" text rich text inside these containers [WIP]:
             - TM.text.StyledSequence is the class[v]
