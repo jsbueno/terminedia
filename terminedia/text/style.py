@@ -300,6 +300,10 @@ class StyledSequence:
         finally:
             next(render_lock, None)
 
+### Helper functions used exclusively by MarkMap
+# (Up to class MarkMap iself)
+
+
 def _force_iter(item):
     if isinstance(item, Sequence):
         yield from item
@@ -376,7 +380,16 @@ class MarkMap(MutableMapping):
 
     It contains Mark objects that
     are "virtually" hidden in the plane and can change the attributes or
-    position of any rich text that would be printed were they are located.
+    position of a text sequence in the point one character will (or would)
+    be printed were they are located. The attribute change takes effect
+    for the rich-text stream been rendered from that point on.
+
+    In plain code, that means doing:
+    ```
+    myshape.text[1].marks[3,0] = TM.Mark(attributes{"color": "red"})
+    myshape.text[1] = "123456"
+    ```
+    will render '123' in the current context color, and '456' in red.
 
     The positional Marks can also be "virtual" in a sense one can set
     a rectangle of special marks in a single call: this is used
@@ -385,8 +398,12 @@ class MarkMap(MutableMapping):
     left-to-right.
 
     A third Mark category can be added, consisting of Marks which index
-    wll change overtime (a callable gets the "tick" number and that yields
-    a 1D or 2D index for that Mark)
+    will change overtime: the "special" index can receive "SpecialMark" instances:
+    those are Mark objects that have an "index" method - this method
+    receives two parameters  a "tick" number and the length of the sequence being rendered,
+    and returns a 1D index - which is used to place the mark
+    inside the sequence of text being rendered, or a 2D index, that is
+    used as a location on the grid.
 
     The instances of MarkMap are consumed by StyledSequence objects when rendering,
     and those will set a 1D positional-mark mapping (this creates a shallow copy
@@ -396,6 +413,16 @@ class MarkMap(MutableMapping):
     position. When retrieving the Marks at a given position, the location on the
     2D plane, and tick number are available to be consumed by callables on
     special Mark objects
+
+    A caracteristic of the contents of MarkMap cells is that
+    a cell may conten eiter a Mark objct, or a list of MarkObjects
+     - Lists can be created freely and marks can be created
+     freely in instances of MarkMap. Marks that are placed
+     in absolute cell addresses are merged with ones stored
+     in relative cell address upon reading (addressing from the left or from the
+     bottom of a text plane). The mechanism for that is too complicated
+     to be something to be proud off - but seems to work when a text-area changes
+     size in a nice way.
 
 
     """
@@ -459,6 +486,9 @@ class MarkMap(MutableMapping):
         return mark_seq
 
     def __setitem__(self, index, value):
+        if index == "special":
+            self.special.add(value)
+            return
         if isinstance(index, Rect):
             for pos in index.iter_cells():
                 self[pos] = value
