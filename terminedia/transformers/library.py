@@ -86,7 +86,7 @@ for variant in (
     "LIGHT ARC TRIPLE DASH",
     "LIGHT ARC QUADRUPLE DASH",
 ):
-    box_transformers[variant] = lambda variant=variant: _kernel_table_factory(
+    box_transformers[variant.replace(" ", "_")] = lambda variant=variant: _kernel_table_factory(
         pre_kernel_table_unicode_square, ("LIGHT", variant)
     )
 

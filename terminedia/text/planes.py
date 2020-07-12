@@ -204,10 +204,7 @@ class Text:
     def __setitem__(self, index, value):
         if isinstance(index[0], slice) or isinstance(index[1], slice):
             raise NotImplementedError()
-        if len(value) > 1 and len(split_graphemes(value)) > 1:
-            self._at(index, value)
-            return
-        self._char_at(value, index)
+        self._at(index, value)
 
     @contextkwords(context_path="owner.context", text_attrs=True)
     def at(self, pos, text, transformerlib=None):

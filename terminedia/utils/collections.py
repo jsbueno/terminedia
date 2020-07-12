@@ -205,7 +205,14 @@ class TaggedDict(MutableMapping):
 
 
 class LazyDict(MutableMapping):
-    """Dictionary whose items can be set to a callable that works as a factory of the actual value"""
+    """Dictionary whose items can be set to a callable that works as a factory of the actual value
+
+    This exists so that some objects which values can be expensive to create are not instantiated
+    at load time.
+
+    As a convenience, values can be retrieved as attributes as well as by item-getting,
+    so these Dicts can work somewhat like a namespace.
+    """
 
     def __init__(self, *args, **kw):
         self.data = dict(*args, **kw)
@@ -221,6 +228,14 @@ class LazyDict(MutableMapping):
     __delitem__ = lambda self, key: self.data.__setitem__(key)
     __len__ = lambda self: len(self.data)
     __iter__ = lambda self: iter(self.data)
+
+    def __getattr__(self, attr):
+        if attr in self.data:
+            return self[attr]
+        raise AttributeError(attr)
+
+    def __dir__(self):
+        return sorted(super().__dir__() + list(self.keys()))
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.data!r})"
