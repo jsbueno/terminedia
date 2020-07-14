@@ -78,7 +78,7 @@ relative_char_size = {
 
 
 
-class Text:
+class TextPlane:
     """Text handling API
 
     An instance of this class is attached to :any:`Screen` and :any:`Shape`
@@ -89,7 +89,8 @@ class Text:
     Planes refer to the number of text blocks used for plotting each character
     on the final rendering target (Shape or Screen). Thus, the values
     1 - for normal text, 2 for text rendered with Braille unicode chars,
-    4 for characters rendered with 1/4 block
+    4 for characters rendered with 1/4 block, 3 for values rendered with the Unicode 13.0 sextant chars,
+
     characters and 8 for characters rendered by block characters
     as pixels, are implemented with the default fonts.
     (as in `screen.text[4].at((3,4), "hello")` )

@@ -91,7 +91,7 @@ class StyledSequence:
             that are to have their indexes processed according to other enviroment circunstances
             (like the current "tick" - and possibly 'current position')
             The value at each item can contain a single Mark or a of Markers.
-          text_plane (terminedia.text.planes.Text): area where the output is to be rendered
+          text_plane (terminedia.text.planes.TextPlane): area where the output is to be rendered
             on iterating. The Text object will be searched for aditional "Mark" objects that
             will compose the syle and position when encountered (they are less
             prioritary than the Marks passed in mark_sequence)
@@ -372,7 +372,7 @@ class MarkMap(MutableMapping):
 
     TL;DR: this is a mapping used to control
     rich text rendering and flow. An instance is attached
-    to each text plane and can be reached at shape.text[size].marks
+    to each text_plane and can be reached at shape.text[size].marks
     This instance can be directly used by Text object users
     to place marks that will change the behavior of printed
     text at that point and beyond.
@@ -415,7 +415,7 @@ class MarkMap(MutableMapping):
     special Mark objects
 
     A caracteristic of the contents of MarkMap cells is that
-    a cell may conten eiter a Mark objct, or a list of MarkObjects
+    a cell may conten eiter a Mark object, or a list of MarkObjects
      - Lists can be created freely and marks can be created
      freely in instances of MarkMap. Marks that are placed
      in absolute cell addresses are merged with ones stored

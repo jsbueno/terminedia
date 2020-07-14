@@ -235,9 +235,9 @@ class ShapeApiMixin:
         return HighRes(self, **kw)
 
     def _get_text(self):
-        from terminedia.text import Text
+        from terminedia.text import TextPlane
 
-        return Text(self)
+        return TextPlane(self)
 
     def clear(self, transparent=False):
         """Clear the shape with empty spaces.

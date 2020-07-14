@@ -113,7 +113,7 @@ class Screen:
             self, block_class=SextantChars, block_width=2, block_height=3
         )
 
-        self.text = terminedia.text.Text(self)
+        self.text = terminedia.text.TextPlane(self)
 
         self.backend = backend = backend.upper()
         if backend == "ANSI":
