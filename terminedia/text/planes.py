@@ -397,6 +397,15 @@ class TextPlane:
             self.writtings.append(styled)
         styled.render()
 
+    def _clear_owner(self):
+        # clear the inner contents of the owner when reflowing text
+        size = self.size
+
+        corner1 = V2(self.pad_left, self.pad_top)
+        corner2 = corner1 + size
+
+        self.owner[corner1.x: corner2.x, corner1.y: corner2.y].draw.fill(char=" ")
+
     def add_border(self, transform=None, context=None):
         """Adds a text-frame. Increases padding and updates the content.
 
@@ -410,18 +419,37 @@ class TextPlane:
         if `context` is given: uses given context to render the border, otherwise
         the context for the owner shape is used.
         """
-        size = self.size
 
-        border_shape = shape(size)
-
-        corner1 = V2(self.pad_left, self.pad_top)
-        corner2 = corner1 + size
-
-        self.owner[corner1.x: corner2.x, corner1.y: corner2.y].draw.fill(char=" ")
-        for plane_name, plane_dict in self.planes.items():
+        for plane_name, text_plane in self.planes.items():
             if plane_name == "root":
                 continue
-            plane_dict["text"].plane.clear()
+            text_plane.plane.clear()
+        self._clear_owner()
+
+        if all(self.padding == other_pad for other_pad in (self.pad_left, self.pad_right, self.pad_top, self.pad_bottom)):
+            self.padding += 1
+        else:
+            self.pad_left += 1
+            self.pad_right += 1
+            self.pad_top += 1
+            self.pad_bottom += 1
+
+        self.draw_border(transform, context)
+
+        # Redfresh all text content;
+        for plane_name, concrete_plane in self.planes.items():
+            if plane_name == "root":
+                continue
+            concrete_plane.update()
+
+    def draw_border(self, transform=None, context=None, pad_level=1):
+        """Actually draws an existing border:
+        call this just to redraw the border; A new border should be created by
+        calling "add_border"
+        """
+        size = self.size + (1, 1) * pad_level * 2 + (1, 1)
+
+        border_shape = shape(size)
 
         if context:
             border_shape.context = context
@@ -432,21 +460,7 @@ class TextPlane:
             border_shape.draw.rect((0, 0), (size))
             if transform:
                 context.transformers.append(transform)
-            self.owner.draw.blit((self.pad_left, self.pad_top), border_shape)
-
-        if all(self.padding == other_pad for other_pad in (self.pad_left, self.pad_right, self.pad_top, self.pad_bottom)):
-            self.padding += 1
-        else:
-            self.pad_left += 1
-            self.pad_right += 1
-            self.pad_top += 1
-            self.pad_bottom += 1
-
-        # Redraw all text content;
-        for plane_name, concrete_plane in self.planes.items():
-            if plane_name == "root":
-                continue
-            concrete_plane.update()
+            self.owner.draw.blit(V2(self.pad_left, self.pad_top) - (pad_level, pad_level), border_shape)
 
 
     @contextkwords(context_path="owner.context")
