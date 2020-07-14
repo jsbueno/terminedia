@@ -147,8 +147,8 @@ Targeted for next release (0.4):
     - Implement "trans-dimensional-mark" - mechanism to allow text-flow to continue
             in another TextPlane object, entirely.
 
-    - Rename "Text" class to "TextPlane" [WIP]
-    - Remove dictionary attribute with concrete TextPlane information: use TextPlane instances themselves
+    - Rename "Text" class to "TextPlane" [v]
+    - Remove dictionary attribute with concrete TextPlane information: use TextPlane instances themselves [v]
 
 [WIP]
 Implement "big square" 2 block resolution:

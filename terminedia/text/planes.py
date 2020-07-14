@@ -108,7 +108,7 @@ class TextPlane:
           - owner (Union[Screen, Shape]): owner instance, target of rendering methods
       """
         self.owner = owner
-        self.planes = {"root": {"text": self}}
+        self.planes = {"root": self}
         self.transformers_map = {}
         self.reset_padding()
 
@@ -153,6 +153,16 @@ class TextPlane:
         return self.size[1]
 
     def _build_plane(self, index, char_width=None):
+        """Internally called to build concrete views, with different resolutions, of a text_plane by the same owner.
+
+        Each shape (or screen) object that features a ".text" attribute pointing to an
+        instance o TextPlane, points to an "AbstractRoot" that can't actually render text.
+        (Padding and frames can be defined on this root). When an index of
+        the text plane like .text[1] or .text[4] is called, another instance of TextPlane,
+        sharing some attributes from the parent, is created and added to
+        the ".planes" dictionary. These concrete views distinguish thmselves
+        due to having the ".current_plane" attribute set.
+        """
         char_height = index
         if index == (8, 4):
             char_width = 8
@@ -162,15 +172,18 @@ class TextPlane:
             char_height = 2.5
         if not char_width:
             char_width = char_height
-        self.planes[index] = plane = dict()
+        concretized_text = copy(self)
+        self.planes[index] = concretized_text
+        plane = dict()
         if getattr(self, "current_plane", False):
             raise RuntimeError("Concrete instance of text - can't create further planes")
-        plane["width"] = width = self.owner.width // char_width
-        plane["height"] = height = int(self.owner.height // char_height)
-        concretized_text = copy(self)
+        # plane["width"] = width = self.owner.width // char_width
+        # plane["height"] = height = int(self.owner.height // char_height)
         concretized_text.current_plane = index
-        plane["marks"] = marks = style.MarkMap(parent=concretized_text)
-        plane["data"] = data = CharPlaneData(concretized_text)
+        marks = style.MarkMap(parent=concretized_text)
+        # plane["marks"] = marks = style.MarkMap(parent=concretized_text)
+        data = CharPlaneData(concretized_text)
+        # plane["data"] = data
         concretized_text.plane = data
         concretized_text.marks = marks
         concretized_text.font = ""
@@ -183,7 +196,7 @@ class TextPlane:
             descriptor.register(self, "set", lambda v, attr=pad_attr: setattr(concretized_text, attr, v))
             descriptor.register(concretized_text, "set", data._update_size)
         data._update_size()
-        plane["text"] = concretized_text
+        # plane["text"] = concretized_text
 
     def _reset_marks(self):
         self.marks.clear()
@@ -207,7 +220,7 @@ class TextPlane:
         index = plane_alias.get(index, index)
         if "current_plane" not in self.__dict__:
             self._checkplane(index)
-            return self.planes[index]["text"]
+            return self.planes[index]
         return self.plane[index]
 
     def __setitem__(self, index, value):
@@ -243,7 +256,7 @@ class TextPlane:
             transformers={"upper": Transformer(char=lambda char: char.upper())}
         )`
 
-        Note that "transformers" set in a call in this call will
+        Note that "transformers" set in a call to this will
         update the internal dictionary for the "text" instance
         associated with a Shape in all resolutions, and remain available
         after the call.
@@ -262,7 +275,7 @@ class TextPlane:
         tokens = style.MLTokenizer(text)
         styled = tokens(text_plane=self, starting_point=pos)
         self.render_styled_sequence(styled)
-        last_pos = self.planes[self.current_plane].get("last_pos", (0,0))
+        last_pos = getattr(self.planes[self.current_plane], "last_pos", (0,0))
         return last_pos
 
     def _char_at(self, char, pos):
@@ -272,7 +285,7 @@ class TextPlane:
             # Think on storing "lost characters" - but where to put them?
             return
         self.owner.context.last_pos = pos
-        self.planes[self.current_plane]["last_pos"] = pos
+        self.planes[self.current_plane].last_pos = pos
         self.blit(pos)
 
     def blit(self, index, target=None, clear=True):
@@ -430,18 +443,29 @@ class TextPlane:
             self.pad_bottom += 1
 
         # Redraw all text content;
-        for plane_name, plane_dict in self.planes.items():
+        for plane_name, concrete_plane in self.planes.items():
             if plane_name == "root":
                 continue
-            plane_dict["text"].update()
+            concrete_plane.update()
 
 
     @contextkwords(context_path="owner.context")
     def print(self, text):
-        last_pos = self.planes[self.current_plane]["last_pos"]
+        last_pos = self.planes[self.current_plane].last_pos
         self.at(last_pos + self.owner.context.direction, text)
 
     def __repr__(self):
-        return "".join(
-            ["Text [\n", f"owner = {self.owner}\n", f"planes = {self.planes}\n", "]"]
-        )
+        if not getattr(self, "current_plane", False):
+            return "\n".join(
+                ["TextPlane [", f"owner = {self.owner}", f"planes = {self.planes}", "]"]
+            )
+        return "\n".join(
+            [
+                f"TextPlane[{self.current_plane}] [",
+                f"size = {self.size}",
+                f"writtings = {len(self.writtings)}",
+                f"padding = {self.padding}",
+                f"last_pos = {getattr(self, 'last_pos', '(0, 0)')}",
+                f"marks = {self.marks}",
+                "]"
+            ])
