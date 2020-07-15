@@ -76,6 +76,8 @@ relative_char_size = {
     8: (0.125, 0.125)
 }
 
+_bordersentinel = object()
+
 
 
 class TextPlane:
@@ -436,17 +438,22 @@ class TextPlane:
 
         self.draw_border(transform, context)
 
-        # Redfresh all text content;
+        # Refresh all text content;
         for plane_name, concrete_plane in self.planes.items():
             if plane_name == "root":
                 continue
             concrete_plane.update()
 
-    def draw_border(self, transform=None, context=None, pad_level=1):
-        """Actually draws an existing border:
+    def draw_border(self, transform=_bordersentinel, context=None, pad_level=1):
+        """Draws an existing border, without changing the shape pattern
         call this just to redraw the border; A new border should be created by
         calling "add_border"
         """
+        if transform is _bordersentinel:
+            transform = getattr(self, "_last_border_transform", None)
+        elif transform != None:
+            self._last_border_transform = transform
+
         size = self.size + (1, 1) * pad_level * 2 + (1, 1)
 
         border_shape = shape(size)
