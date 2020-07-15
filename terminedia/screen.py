@@ -238,16 +238,24 @@ class Screen:
             pos += direction
 
     @contextkwords(text_attrs=True)
-    def print_at(self, pos, text):
+    def print_at(self, pos, text, size=1):
         """Positions the cursor and prints a text sequence
 
         Args:
           - pos (2-sequence): screen coordinates, (0, 0) being the top-left corner.
           - text: Text to render at position
+          - size: Text-size to print:
+                1 or "normal": plain text
+                2 or "braille": 8x8 font rendered using 2x4 Braille characters for subpixels
+                3 or "sextant": 8x8 font rendered using 2x3  Vintage Charset characters for subpixels
+                4 or "high": 8x8 font rendered using 2x2  Block characters for subpixels
+                (4,8) or "square": 8x8 font rendered using 1x2  Half-Block characters for subpixels
+                8 or "block": 8x8 font rendered using 1 Block characters as pixels
+
 
         Context's attributes are respected when printing
         """
-        self.text[1].at(pos, text)
+        self.text[size].at(pos, text)
 
     @contextkwords
     def print(self, text, **kwargs):

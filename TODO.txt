@@ -149,6 +149,8 @@ Targeted for next release (0.4):
 
     - Rename "Text" class to "TextPlane" [v]
     - Remove dictionary attribute with concrete TextPlane information: use TextPlane instances themselves [v]
+    - Allow a "size" attribute accepting the text-resolution to use on Screen.print_at method [V]
+
 
 [WIP]
 Implement "big square" 2 block resolution:
