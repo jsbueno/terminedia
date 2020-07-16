@@ -30,36 +30,103 @@ New rich-text and text-handling features:
         - file with text utilities for parsing/rendering text:
             - split string into units containing a single grapheme, by grouping "combining characters" together (V)
             - Refactor code to have a core to be used by  backend.print, screen.print, text.at, shape.print [V]
+    - create aliased string names for the text[...] text planes [V]
+    - Add tests to terminedia-planes [ongoing]
+    - Avoid creating a new "Text" instance on each text-plane access![V]
+    - Tests for styling bases classes in progress - testing attribute changing and position[V]
+    - Rename "Text" class to "TextPlane" [v]
+    - Remove dictionary attribute with concrete TextPlane information: use TextPlane instances themselves [v]
     - Make assignment of string to shape or text area cell spread the text across as many cells as needed:[V]
         - correctly detect combining characters so that combined characters live on the same cell (V)
+
+        - create markup language for embedding context changing directives inside a single string:[WIP]
+        - make it usable by assignment, `print` and `at` methods on shapes, scren and text [V]
+
+    - changed text rendering to silently "swallow" out of range characters, instead of raising[V]
+    - Text entity, akim to "shape" or "sprite" which allows for flowing text [V]:
+        - BUG: when rendering spaces, attributes (like background) are not updated (V) - fixed by sprite transparency handling implementation.
+        - BUG: on rendering rich text, text_plane's context is not being taken in account. (i.e. if color is "red", DEFAULT_FG is being used instead) [V]
+        - The "Text entity" endded up implemented as the pre-existint "text_planes" themselves [v]
 
     - create markup language for embedding context changing directives inside a single string:[V]
         - make it usable by assignment, `text[x].print` and `at` methods
         - BUG: when rendering spaces from text-planes, attributes (like background) are not updated (V):
                 - fixed by sprite transparency handling implementation.[V]
-        - Implement a way to "stream" rich text inside these text-plane containers [WIP]:
+        - Implement a way to "stream" rich text inside these text-plane containers [V]:
             - TM.text.style.StyledSequence is the class used for that [v]
             - Streamed text should allow marks for changing style (color, bg, effects, direction, position)[v]
                 - accept tokens in embedded square-brackets in the string ex.: "abc[color:red]def[V]
                 - Accept absolute/relative movement with "[+x,+y]" tokens embedded in the string (and work as "portals")[V]
                 - allow for 'pop last parameter of this type' tokens ([/color], [/effects])[V]
                 - allow for default colors with [color:default] (V) (but check default-color bug)
-            - Allow a call to MLToken.parse to be passed a transformers-mapping, and use it as a source for
-                    transformers objects in the  markup [transformer:...] elements [V]
+            - Allow a call to MLToken.parse to be passed a transformers-mapping, and use it as a source for transformers objects in the  markup [transformer:...] elements [V]
+            - Apply transformers eagerly on a  per-character base [V]
+                    - Added "pretransformers"  ( regular context-transformers are currently lazy, applied at rendering time only, and are "flat" for the whole shape) [V]
+                    - Change MLTokenizer to create 'pre-tranformer" context attribute on "transformer" token [V]
+                    - Manage list of pretransformers in context during StyledText rendering [V]
+                    - Add new features to transformers that will make sense for text-streams as opposed to 2D shape data:[V]
+                        - character linear position in text - sequence_index [V]
+                        - transformation starting point inside main sequence - sequence_absolute_start [V]
+                        - transformed sequence_len - sequence_len [V]
+                        - transformed sequence itself - sequence [V]
+                        - allow a markup with a transformer to specify the block length that will be transformed -
+                            (the 'sequence_len' and 'sequence_index' parameters are relative to this block): [V]
+                                - a length in the Mark object itself [V]
+                                - a [/transformer]  mark in the text. [V]
+                                - take care that mixed transformers started by markup and by embeded Marks in the text_plane  keep their counts without interfering one in another [V]
+                    - find a way to declare and retrieve meaningful pretransformers from markup: [V]
+                        - Text class includes a ".transformers_map" attribute - a plain dictionary with transfomer-names as keys, and Transformer instances as values - the names can be used from the rich-text markup [V]
+
+
+        - Any rich writting on a text-plane is recorded in a non destructive way, so it can be retrieved and re-rendered in a follow-up frame (with possibly differing attributes)[V]:
+                - base suport [V]
+                - Refactor to specialized data object instead of parallel list and set (to preserve order) (implemented as a dict with None values) [V]
+
+        - create special markup for possible but hard to create patterns: apply gradients, modify color by tick and position:[V]:
+            - these can be achived by adding "transformers" to "attributes" in the Mark objects.[V]
+            - Allow Transformers inlined in Marks to have "sequence_index" and "sequence_len"  allowed dependency injections:[V]
+                - Transformers is changed so that arbitrary dependency injection names can work: their values have to be  set as attributes on the transformer instanc prior to rendering [V]
+                - StyledSequence rendering machinnery have to setup these parameters in the transformers.[V]
+                - StyledSequence rendering machinnery have to pop a transformer once its spam is due.[V]
+                - sequence_index should count from the place the Mark containing the transformer is active, not the absolute value[V]
+                - sequence_len, likewise, should reflect the length of the string that is modified by that Mark.[V]
+                - allow  closing Marks, popping a transformer to specify the affected length [v]
+                - also allow "lenght" field on markups and Mark to specify the affected length of text [v]
 
         - Markup is super-rich allowing marks indicating attribute changes to be set either
             in the text sequence, or in locations on the Text object
     - Multi-line text-flowing, by using "portal" Mark objects created automatically to the
         right of the last  column of the TextPlane object - each of these "teleport" the
         text-flow to the column 0 on the next line.
-    -  Method .add_border to the TextPlane class - allowing fancy unicode frames (by using ready_made tranformers available on the transformers.library)
+    - To enable the automatic portals and some other features, a specialized container
+        for Marks assigned to a textplane is created (MarkMap) [V]:
+            - it is tightly coupled with Mark, StyledSequence and TextPlanes (sorry purists)[V]
+            - It can draw "rectangles" of markers in order to create the portals at
+                text-plane boundaries[V]
+            - it can handle special Marks which position varies with the current tick [V]
 
+    -  Method .add_border to the TextPlane class - allowing fancy unicode frames (by using ready_made tranformers available on the transformers.library) [V]:
+        - create text[x].add_border method [V]:
+        - Text.update for adding frames does: [v]
+            - move special next-line portal "markers" to the recalculatd last-column of the text-area[V]:
+                - Caused a breaktrhough in the code with the "ObservableProperty": the start of an event system [V]:
+                    - Padding changes trigger changes to computed with and height of textplanes through ObservableProperty suscriptions [P]
+                - create the concept of marker being rallowed to be rlative to the left margin or bottom[v]:
+                    - RelativeMarkIndex class in TM.values created, resembling SymPy stuff[v]
+                    - MarkMap separates normally indexed marks and relativemarks[v]
+                    - markmap __getitem__ working for all relativemarks [v]
+                    - markmap __setitem__ working for all normal and relativemarks [v]
+                    - markmap __delitem__ working for all normal and relativemarks [v]
+                    - Markmap __getitem__ should be optimized when rendering text by baking in all relativemarks when .prepare is called (tests in place for this) (checking the existence of a mark at an index triggers a lot of code) [V]
+
+
+
+    - modify text_plane.at method to use styled sequence (Screen.print_at calls this as well) [V]
+    - fix and modify "=" in text_plane to use styled_sequence[V
+    - Allow a "size" attribute accepting the text-resolution to use on Screen.print_at method [V]
     - create aliased string names for the text[...] text planes [V]
-    - Add tests to terminedia-planes [WIP]:
-        - Avoid creating a new "Text" instance on each text-plane access![V]
-        - Tests for styling bases classes in progress - testing attribute changing and position[V]
-
-
+    - allow programatic attributes on Mark objects (computed Color, etc...)[V]:
+        - implemented as Transformers.[V]
 
 Minor Features:
  - TransformersContainer and SpriteContainer (TM.Utils.Hooklist)s can be shallow-copied with copy.copy()
