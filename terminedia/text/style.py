@@ -63,8 +63,6 @@ Markup description:
 
 
 """
-from __future__ import annotations
-
 from collections.abc import Sequence, MutableMapping
 from copy import copy
 import re
