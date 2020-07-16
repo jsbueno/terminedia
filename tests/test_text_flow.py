@@ -25,5 +25,20 @@ def test_double_width_char_in_shape_uses_2_cells():
     sh[5,5] = SMILEY
     sc.update()
     yield None
-    assert sh[6, 5].value is CONTINUATION
-    assert sh[7, 5].value is TRANSPARENT
+    assert sh[5,5].value == SMILEY
+    assert sh[6, 5].value == CONTINUATION
+    assert sh[7, 5].value == TRANSPARENT
+
+
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_double_width_char_in_text_1_uses_2_cells():
+    sc, sh, text_plane = styled_text()
+    sh.text[1][5,5] = SMILEY + "*"
+    sc.update()
+    yield None
+    assert sh[5,5].value == SMILEY
+    assert sh[6, 5].value == CONTINUATION
+    assert sh[7, 5].value == "*"
+    assert len(next(iter(sh.text[1].writtings)).text) == 2
+

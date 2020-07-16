@@ -73,7 +73,7 @@ import threading
 
 from terminedia.contexts import Context
 from terminedia.utils import V2, Rect, get_current_tick
-from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX, RelativeMarkIndex
+from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX, RelativeMarkIndex, Directions
 
 
 RETAIN_POS = object()
@@ -248,7 +248,6 @@ class StyledSequence:
             self._process_to(index)
         position = self.current_position
         self.current_position += self.context.direction
-        # TODO: handle double-width characters
         return position
 
     def __iter__(self):
@@ -297,6 +296,10 @@ class StyledSequence:
 
             for char, context, position in self:
                 char_fn(char, position)
+                # handle double-width characters
+                if getattr(self.context, "shape_lastchar_was_double", False):
+                    if self.context.direction == Directions.RIGHT:
+                        self.current_position += self.context.direction
         finally:
             next(render_lock, None)
 
