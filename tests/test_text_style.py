@@ -310,8 +310,7 @@ def test_styled_text_anotates_writtings():
     # text_plane[0, 5] = msg
 
     assert text_plane.writtings
-    assert text_plane.writtings_index
-    assert text_plane.writtings[0] is aa
+    assert next(iter(text_plane.writtings)) is aa
 
 
 @pytest.mark.parametrize(*fast_render_mark)

@@ -190,8 +190,7 @@ class TextPlane:
         concretized_text.marks = marks
         concretized_text.font = ""
         concretized_text.ticks = 0
-        concretized_text.writtings = []
-        concretized_text.writtings_index = set()
+        concretized_text.writtings = {}
         concretized_text._reset_marks()
         for pad_attr in "padding pad_left pad_right pad_top pad_bottom".split():
             descriptor = getattr(type(self), pad_attr)
@@ -376,8 +375,7 @@ class TextPlane:
 
     def clear(self):
         self.ticks = 0
-        self.writtings[:] = []
-        self.writtings_index.clear()
+        self.writtings.clear()
         self.plane.clear()
         self._reset_marks()
 
@@ -394,9 +392,8 @@ class TextPlane:
 
         Also, called internally to update SyledSequences that contain animations.
         """
-        if not styled in self.writtings_index:
-            self.writtings_index.add(styled)
-            self.writtings.append(styled)
+        if not styled in self.writtings:
+            self.writtings[styled] = None
         styled.render()
 
     def _clear_owner(self):
