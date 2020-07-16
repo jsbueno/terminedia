@@ -3,153 +3,52 @@ Targeted for next release (0.4):
 
 [text-branch]
 
-    - Refactor 'text.py' into directory:[V]
-        - separate 'font' code into text/fonts.py [V]
-        - text_planes/big text into text/planes.py (V)
-        - file with text utilities for parsing/rendering text:
-            - split string into units containing a single grapheme, by grouping "combining characters" together (V)
-            - Refactor code to have a core to be used by  backend.print, screen.print, text.at, shape.print
-    - Make assignment of string to shape or text area cell spread the text across as many cells as needed:[WIP]
-        - correctly detect combining characters so that combined characters live on the same cell (V)
-        - correctly detect if final transformed character takes more than 1 cell width after applying effects, and correctly use 2 cells for character:
-            - retrieve character width from Shape.__setitem__
-    - create markup language for embedding context changing directives inside a single string:[WIP]
-        - make it usable by assignment, `print` and `at` methods on shapes, scren and text [V]
-        - make it usable by standalone "terminedia.print" (terminedia.print should work without an underlying shape):
+    - correctly detect if final transformed character takes more than 1 cell width after applying effects, and correctly use 2 cells for character [WIP]
+        - retrieve last-character width after calling Shape.__setitem__
+        - check that last-character width works with multiple-character grapheme
+        - allow Shape.__setitem__ to set character to the _left_ of given position if a special attribute is set in the context (and maybe if direction==Right)
+
+        - implement a dry-run extents call
+
+
+    - make Rich Text markup  usable by standalone "terminedia.print" (terminedia.print should work without an underlying shape) [future]:
             - parse text, and create a transient shape if markup is used
             - test negative Y offsets on transient shape
             - render transient shape at cursor position, clipped to generated content extents.
-    - changed text rendering to silently "swallow" out of range characters, instead of raising[V]
-    - Text entity, akim to "shape" or "sprite" which allows for flowing text [WIP]:
-        - BUG: when rendering spaces, attributes (like background) are not updated (V) - fixed by sprite transparency handling implementation.
-        - BUG: on rendering rich text, text_plane's context is not being taken in account. (i.e. if color is "red", DEFAULT_FG is being used instead) [V]
-        - This can be current "text_planes" themselves [v]
-        - these should be decorateable with frames using unicode frame drawing characters:[V]
-            - Allow text_planes to feature CSS-like "padding" attributes, so that when there is a frame, padding offset contents  to the inner part.[V]
-            - on changing padding or padding_right, update text-wrapper Marks.[V]
-
-            - create text[x].add_frame method [V]:
-                - Text.update for adding frames does: [v]
-                    - move special next-line portal "markers" to the recalculatd last-column of the text-area[WIP]:
-                        - Caused a breaktrhough in the code with the "ObservableProperty": the start of an event system [v]:
-                            - Padding changes trigger changes to computed with and height of textplanes through ObservableProperty suscriptions [P]
-                        - create the concept of marker being rallowed to be rlative to the left margin or bottom[v]:
-                            - RelativeMarkIndex class in TM.values created, resembling SymPy stuff[v]
-                            - MarkMap separates normally indexed marks and relativemarks[v]
-                            - markmap __getitem__ working for all relativemarks [v]
-                            - markmap __setitem__ working for all normal and relativemarks [v]
-                            - markmap __delitem__ working for all normal and relativemarks [v]
-                            - Markmap __getitem__ should be optimized when rendering text by baking in all relativemarks when .prepare is called (tests in place for this) (checking the existence of a mark at an index triggers a lot of code) [V]
-                            - Cache TextPlane size data - it is a property called several times per cell position when rendering
-        - Think of a way to "stream" text inside these containers [V]:
-        - Implement a way to "stream" text rich text inside these containers [WIP]:
-            - TM.text.StyledSequence is the class[v]
-            - Streamed text should allow marks for changing style (color, bg, effects, direction, position)[v]
-                - accept tokens in embedded square-brackets in the string ex.: "abc[color:red]def[V]
-                - Accept absolute/relative movement with "[+x,+y]" tokens embedd in the string (and work as "portals")[V]
-                - allow for 'pop last parameter of this type' tokens ([/color], [/effects])[V]
-                - allow for default colors with [color:default] (V) (but check default-color bug bellow)
-            - Apply transformers eagerly on a  per-character base [wip]
-                    - Added "pretransformers"  ( regular context-transformers are currently lazy, applied at rendering time only, and are "flat" for the whole shape) [V]
-                    - Change MLTokenizer to create 'pre-tranformer" context attribute on "transformer" token [V]
-
-                    - Manage list of pretransformers in context during StyledText rendering [V]
-                    - Add new features to transformers that will make sense for text-streams as opposed to 2D shape data:[V]
-                        - character linear position in text - sequence_index [V]
-                        - transformation starting point inside main sequence - sequence_absolute_start [V]
-                        - transformed sequence_len - sequence_len [V]
-                        - transformed sequence itself - sequence [V]
-                        - allow a markup with a transformer to specify the block length that will be transformed -
-                            (the 'sequence_len' and 'sequence_index' parameters are relative to this block): [V]
-                                - a length in the Mark object itself [V]
-                                - a [/transformer]  mark in the text. [V]
-                                - take care that mixed transformers started by markup and by embeded Marks in the text_plane  keep their counts without interfering one in another [V]
-
-                    - find a way to declare and retrieve meaningful pretransformers from markup: [V]
-                        - Text class includes a ".transformers_map" attribute - a plain dictionary with transfomer-names as keys, and Transformer instances as values - the names can be used from the rich-text markup [V]
-
-            - Allow a call to MLToken.parse to be passed a transformers-mapping, and use it as a source for
-                    transformers objects in the  markup [transformer:...] elements [V]
-            - Enhance transformers with sequence-position parameters, so they can generate animations/gradients/per character attributes [V]
-            - these marks can come embedded in the text, standalone
-                    (and programatically depending on "tick count" or rendering position). or [V]
-            - these marks can be placed in the text_plane entity at fixed locations
-                and compose with the styledtext rendering.[V]
-            - ensure closing mark attributes defined on plane and on sequence do not clash.[v]
-            - special marks should allow programatic text modification based on ticks and position [V]
-            - end-of-lines are marked by special "portal" objects poiting the text to the beginning of the next line[v]
-                 - (teleporters also indicate the direction the remainder of the text will flow)[V]
-
-                - These "portal" are created automatically for
-                        left-to-right,  and can be customized for greater good and funny layouts[V]
-                        - have virtual portals crated lazily?
-
-                - To enable the automatic portals and some other features, a specialized container
-                    for Marks assigned to a textplane is created (MarkMap) [WIP]:
-                        - it is tightly coupled with Mark, StyledSequence and TextPlanes (sorry purists)[V]
-                        - It can draw "rectangles" of markers in order to create the portals at
-                            text-plane boundaries[V]
-                        - These rectangle could be "virtual" (they are eager)
-                        - it can handle special Marks which position varies with the current tick [V]
-                        - Connect screen.update to text_planes.update (maybe via sprite re-rendering)
-        - Any rich writting on a text-plane is recorded in a non destructive way, so it can be retrieved and
-            re-rendered in a follow-up frame (with possibly differing attributes)[WIP]:
-                - base suport [V]
-                - Refactor to specialized data object instead of parallel list and set (to preserve order) (maybe a dict would suffice?)
                 - Consider if the character data in each plane (text_plane.plane dictionary) is worth keeping. consider that:
                     - static characters are stored there without any attributes
                     - they are reflected on the owner shape data anyway (keeping the attributes)
                     - rendering rich text automatically rewrites the shape-data
                     - written text is stored at the "writtings" object anyway
-        - create special markup for possible but hard to create patterns: apply gradients, modify color by tick and position:[V]:
-            - these can be achived by adding "transformers" to "attributes" in the Mark objects.[V]
-            - Allow Transformers inlined in Marks to have "sequence_index" and "sequence_len"  allowed dependency injections:
-                - Transformers is changed so that arbitrary dependency injection names can work: their values have to be  set as attributes on the transformer instanc prior to rendering [V]
-                - StyledSequence rendering machinnery have to setup these parameters in the transformers.[V]
-                - StyledSequence rendering machinnery have to pop a transformer once its spam is due.[V]
-                - sequence_index should count from the place the Mark containing the trnasformer is active, not the absolte value[V]
-                - sequence_len, likewise, should reflect the length of the string that is modified by that Mark.[V]
-                - allow  closing Marks, popping a transformer to specify the affected length [v]
-                - also allow "lenght" field on markups and Mark to specify the affected length of text [v]
 
             - create a few ready-to-use transformers using these features to apply gradients, and time (tick) changing visibility, or color offset.
 
-        - allow programatic attributes on Mark objects (computed Color, etc...)[V]:
-            - implemented as Transformers.[V]
-
         - Add transformers "offset" (or "translate") channel: modify the placement of the given character (without changing "last_pos" on  the the caller machinery)
         - Allow "offset" parameters to styled text, so that text can move according to tick:
-            - probably these should be specifid as "SpecilMark" objects.
+            - probably these should be specified as "SpecialMark" objects.
             - pad right with"nop" characters
             - select a renderable window of text
             - allow negative offset;
 
-
         - Consider merging "SpecialMark" and "Mark" classes. (They are distinguishable by the presence of
                                                               an ".index" attribute)
 
-
         - Think of a nice API to make use of TM.text.StyledSequence that is shorter than instantiating one, passing the screen.data.text[1] as text_plane kwarg, and calling "render" on it followed by "screen.update()" :-) (probably changing "print", "at" and "__setitem__" on .text to use it :-) ):[WIP]
-            - modify text_plane.at method to use styled sequence[V]
-            - fix and modify "=" in text_plane to use styled_sequence[V]
-            - modify "print" and "print_at" functions across the board to accept MLed text
+]
         - create an ANSI Sequence parser based on the MLTkenizer parser.
         - Allow parsing mixed markup-and-ansi text and create a unique rich text object that can be rendered.
 
-
-    - create aliased string names for the text[...] text planes [V]
     - Make shape.text alone behave like shape.text[1], with no need for indexing.
-    - Add tests to terminedia-planes [WIP]:
-        - Avoid creating a new "Text" instance on each text-plane access![V]
+    - Cache TextPlane size data - it is a property called several times per cell position when rendering, and does a big mess going back to self.root.size
 
     - pickle terminedia.unicode.CHAR_BASE as part of setup.py install (?)
-    - enable re-shapping of TextPlane or Shape triggering re-flowing of txtual content.
+    - enable re-shapping of TextPlane or Shape triggering re-flowing of textual content.
     - Implement "trans-dimensional-mark" - mechanism to allow text-flow to continue
             in another TextPlane object, entirely.
-
-    - Rename "Text" class to "TextPlane" [v]
-    - Remove dictionary attribute with concrete TextPlane information: use TextPlane instances themselves [v]
-    - Allow a "size" attribute accepting the text-resolution to use on Screen.print_at method [V]
+    - Connect screen.update to text_planes.update (maybe via sprite re-rendering)
+    - Allow markup parser to recognize ":emoji_name:" style emojis, using the names and aliases as used by Pyton-emojis (from Ruby gen emojis):
+        - include emoji nick/alias information on TM.Unicode.Character information
+        - Allow character search by emoji nick/alias
 
 
 [WIP]
