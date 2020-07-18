@@ -1141,11 +1141,29 @@ class FullShape(Shape):
                 final_char = translate_chars(value[0], transform_effects)
             double_width = char_width(final_char) == 2
             if double_width:
-                if pos[0] == self.width - 1:  # Right shape edge
-                    width = 1
-                    double_width = False
+                if not getattr(self.context, "text_rendering_styled", None) == 1:
+                    if pos[0] == self.width - 1:  # Right shape edge
+                        width = 1
+                        double_width = False
+                    else:
+                        offset2 = offset + 1
                 else:
-                    offset2 = offset + 1
+                    # a character sequence of styled-text is being rendered.
+                    if pos[0] == 0:
+                        # FIXME: if a double-width char hits the edge in RTL
+                        # printing, this have to be handled in higher level
+                        pass
+                    if self.context.direction == Directions.LEFT:
+                        # EXPERIMENTAL: change actual target in this
+                        # situation (rendering_text and going left)
+                        # and leave a CONTINUATION marker on the target position.
+                        offset2 = offset
+                        offset = offset - 1
+                    else:
+                        if pos[0] == self.width - 1:  # Right shape edge
+                            width = 1
+                            double_width = False
+                        offset2 = offset + 1
         else:
             double_width = False
         # /check width

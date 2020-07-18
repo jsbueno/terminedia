@@ -324,7 +324,7 @@ class TextPlane:
 
         # FIXME: take in account double-width chars when rendering
         # big-text
-        context.text_last_char_was_double = False
+        target.context.text_last_char_was_double = False
         rendered_char = render(
             self.plane[index], font=target.context.font or self.font
         )
@@ -396,17 +396,23 @@ class TextPlane:
         """Render an instance of terminedia.text.style.StyledSequence directly
 
         Usually, will be called automatically by assignments to a position in the text
-        plane, but a styled_sequence can be crafted with SpecialMarks in a way
-        automatic assignment would not work.
+        plane or by the ".at()" method, but a styled_sequence can be crafted with
+        SpecialMarks in a way automatic assignment would not work.
 
-        Also, called internally to update SyledSequences that contain animations.
+        Also, called internally to update StyledSequences that contain animations.
         """
         if not styled in self.writtings:
+            # We need just the keys and the order
+            # (a dict gives this for free - otherwise we need a set + a sequence)
             self.writtings[styled] = None
-        styled.render()
+        try:
+            self.owner.context.text_rendering_styled = self.current_plane
+            styled.render()
+        finally:
+            self.owner.context.text_rendering_styled
 
     def _clear_owner(self):
-        # clear the inner contents of the owner when reflowing text
+        # clear the inner contents of the owner when reflowing text, respecting padding
         size = self.size
 
         corner1 = V2(self.pad_left, self.pad_top)
@@ -419,7 +425,8 @@ class TextPlane:
 
         The parameter passed should be a transformer - and is primarily
         thought to be one of terminedia.transformers.library.box_transforms.*
-        one, that will use nice unicode line characters for the borders.
+        or another one that will use nice unicode line characters for the borders.
+        Without a Transformer, a block-char is used for the borders.
 
         Any transformer can be used, though - the frame is them rendered
         as a solid block-outline
