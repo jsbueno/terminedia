@@ -295,7 +295,7 @@ class StyledSequence:
             for char, context, position in self:
                 char_fn(char, position)
                 # handle double-width characters
-                if getattr(self.context, "shape_lastchar_was_double", False):
+                if getattr(self.context, "text_lastchar_was_double", False):
                     if self.context.direction == Directions.RIGHT:
                         self.current_position += self.context.direction
         finally:

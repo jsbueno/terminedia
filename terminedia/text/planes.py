@@ -101,7 +101,6 @@ class TextPlane:
     for the text[1] plane.
     """
 
-    _render_lock = threading.Lock()
 
     def __init__(self, owner):
         """Not intented to be instanced directly - instantiated as a Shape property.
@@ -109,6 +108,7 @@ class TextPlane:
         Args:
           - owner (Union[Screen, Shape]): owner instance, target of rendering methods
       """
+        self._render_lock = threading.Lock()
         self.owner = owner
         self.planes = {"root": self}
         self.transformers_map = {}
@@ -290,6 +290,11 @@ class TextPlane:
         self.blit(pos)
 
     def blit(self, index, target=None, clear=True):
+        """Actual function that renders given character to
+        the selected backend. Reserved for internal use,
+        but could be called by lower level code, explicitly
+        rendering a character at another target.
+        """
         if target is None:
             target = self.owner
 
@@ -314,8 +319,12 @@ class TextPlane:
         if self.current_plane == 1:
             # self.context.shape_lastchar_was_double is set in this operation.
             target[index + index_offset] = char
+            target.context.text_lastchar_was_double = target.context.shape_lastchar_was_double
             return
 
+        # FIXME: take in account double-width chars when rendering
+        # big-text
+        context.text_last_char_was_double = False
         rendered_char = render(
             self.plane[index], font=target.context.font or self.font
         )
