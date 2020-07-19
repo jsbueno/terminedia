@@ -62,14 +62,14 @@ def test_double_width_char_in_text_1_uses_2_cells_when_going_left():
 
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
-def test_double_width_char_in_text__other_than_1_uses_single_cell():
+def test_double_width_char_in_text_other_than_1_uses_single_cell():
     """FIXME: this might change
-    Undocumented behavior possibly not mentioned : context 'char' transforms
+    Undocumented behavior possibly not mentioned elsewhere: context 'char' transforms
     will affect the backend "char" in a single cell, not
     the big-char rendered through multiple cells.
 
-    Context and transformers paramters affecting the big
-    chars themselves is currently not implmentd.
+    Context and transformers parameters affecting the big
+    chars themselves is currently not implementd.
 
     """
     sc, sh, text_plane = styled_text()
