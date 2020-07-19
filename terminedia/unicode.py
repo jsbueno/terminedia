@@ -55,7 +55,7 @@ def lookup(name_part, chars_only=False):
 CGJ = "\u034f" # character used to _separate_ graphemes that would otherwise be joined - combining grapheme joiner (CGJ) U+034F
 
 
-def GraphemeIter(text):
+class GraphemeIter:
     """Separates a string in a list of strings, each containing a single grapheme:
     the contiguous set of a character and combining characters to be applied to it.
     """
@@ -73,12 +73,12 @@ def GraphemeIter(text):
 
     @lru_cache()
     def __len__(self):
-        return len(list(self))
+        return sum(1 for _ in self)
 
     def __iter__(self):
         category = unicodedata.category
 
-        lastchar = ""
+        last_char = ""
         for char in self.text:
             if not category(char)[0] == 'M' and last_char:
                 yield last_char
@@ -87,21 +87,7 @@ def GraphemeIter(text):
         if last_char:
             yield last_char
 
-
-def split_graphemes(text):
-    """Separates a string in a list of strings, each containing a single grapheme:
-    the contiguous set of a character and combining characters to be applied to it.
-    """
-
-    category = unicodedata.category
-
-    result = []
-    for char in text:
-        if not category(char)[0] == 'M' or not result:
-            result.append(char)
-        else:
-            result[-1] += char
-    return result
+split_graphemes = lambda text: list(GraphemeIter(text))
 
 
 @lru_cache()
