@@ -62,14 +62,13 @@ def test_double_width_char_in_text_1_uses_2_cells_when_going_left():
 
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
-def test_double_width_char_in_text_other_than_1_uses_single_cell():
-    """FIXME: this might change
-    Undocumented behavior possibly not mentioned elsewhere: context 'char' transforms
+def test_double_width_char_in_text__other_than_1_uses_single_cell():
+    """Behavior possibly not mentioned elsewhere: context 'char' transforms
     will affect the backend "char" in a single cell, not
     the big-char rendered through multiple cells.
 
     Context and transformers parameters affecting the big
-    chars themselves is currently not implementd.
+    chars themselves is currently not implemented.
 
     """
     sc, sh, text_plane = styled_text()
@@ -84,3 +83,25 @@ def test_double_width_char_in_text_other_than_1_uses_single_cell():
     assert sh.text[8][1, 0] == "*"
 
     assert len(next(iter(sh.text[8].writtings)).text) == 2
+
+
+
+#@pytest.mark.parametrize(*fast_render_mark)
+#@rendering_test
+def test_composite_grapheme_ends_in_same_cell():
+    # Warning: test likely to break when changing
+    # data backend on shapes from list-of-strings to whatever.
+    # FIX the new implementation until this pass!!!
+    sc, sh, text_plane = styled_text()
+
+    tilde = chr(0x303)
+    cedilla = chr(0x327)
+    grapheme = "a" + tilde + cedilla
+    msg = grapheme + "b" + grapheme
+    breakpoint()
+    sh.text[1][0, 0] = msg
+    sc.update()
+#    yield None
+    assert sh[0,0].value == grapheme
+    assert sh[1,0].value == "b"
+    assert sh[2,0].value == grapheme
