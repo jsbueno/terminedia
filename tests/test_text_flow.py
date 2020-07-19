@@ -98,7 +98,6 @@ def test_composite_grapheme_ends_in_same_cell():
     cedilla = chr(0x327)
     grapheme = "a" + tilde + cedilla
     msg = grapheme + "b" + grapheme
-    breakpoint()
     sh.text[1][0, 0] = msg
     sc.update()
 #    yield None

@@ -3,8 +3,8 @@
 
 import re
 import unicodedata
-
 from collections import namedtuple
+from copy import copy
 from functools import lru_cache
 
 
@@ -55,6 +55,9 @@ def lookup(name_part, chars_only=False):
 CGJ = "\u034f" # character used to _separate_ graphemes that would otherwise be joined - combining grapheme joiner (CGJ) U+034F
 
 
+_sentinel = object()
+
+
 class GraphemeIter:
     """Separates a string in a list of strings, each containing a single grapheme:
     the contiguous set of a character and combining characters to be applied to it.
@@ -79,13 +82,43 @@ class GraphemeIter:
         category = unicodedata.category
 
         last_char = ""
-        for char in self.text:
+        self._current_grapheme = -1
+
+        for i, char in enumerate(self.text):
+            self._current_char = i
             if not category(char)[0] == 'M' and last_char:
+                self._current_grapheme += 1
                 yield last_char
                 last_char = ""
             last_char += char
         if last_char:
+            self._current_grapheme += 1
             yield last_char
+
+    def iter_cooked_indexes(self, indexes):
+        """Translate indexes on the underlying raw string to positions in the iterator
+
+        passed indexes must be sorted in ascending order
+        """
+        instance = copy(self)
+        instance._current_char = -1
+        x = iter(instance)
+        results = []
+        last_index = -1
+        v = None
+        for index in indexes:
+            if index < last_index:
+                raise ValueError("This iterable must be called with indexes in ascending order")
+
+            if index < instance._current_char:
+                yield instance._current_grapheme
+                continue
+
+            while index >= instance._current_char and v is not _sentinel:
+                v = next(x, _sentinel)
+
+            yield instance._current_grapheme
+
 
 split_graphemes = lambda text: list(GraphemeIter(text))
 
