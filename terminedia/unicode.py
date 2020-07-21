@@ -120,7 +120,15 @@ class GraphemeIter:
             yield instance._current_grapheme
 
 
+
 split_graphemes = lambda text: list(GraphemeIter(text))
+
+
+def is_single_grapheme(text):
+    category = unicodedata.category
+    if len(text) <= 1:
+        return True
+    return all(category(char)[0] == "M" for char in text[1:])
 
 
 @lru_cache()
