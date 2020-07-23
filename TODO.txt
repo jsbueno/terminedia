@@ -50,8 +50,9 @@ Targeted for next release (0.4):
         - include emoji nick/alias information on TM.Unicode.Character information
         - Allow character search by emoji nick/alias
     - BUG: effects not being suspended upon a [/effect] tag
-    - BUG: encircled characters not taking two horizontal cells when being rendered.
-
+    - BUG: encircled characters not taking two horizontal cells when being rendered.(V):
+            - ambiguous character (as in unicodedata.east_asian_width(char) == 'A') changed to be of width 2) (v)
+    - BUG: Transfomer "effect" channel on Sprite not working: suppressing effects altogether.
 
 
 [WIP]
