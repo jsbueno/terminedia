@@ -107,6 +107,8 @@ class GraphemeIter:
         last_index = -1
         v = None
         for index in indexes:
+            if index >= len(instance.text) or instance._current_char >= len(instance.text):
+                return
             if index < last_index:
                 raise ValueError("This iterable must be called with indexes in ascending order")
 
@@ -116,8 +118,9 @@ class GraphemeIter:
 
             while index >= instance._current_char and v is not _sentinel:
                 v = next(x, _sentinel)
-
-            yield instance._current_grapheme
+            if v is not _sentinel:
+                yield instance._current_grapheme
+            last_index = index
 
 
 
