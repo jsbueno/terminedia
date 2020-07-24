@@ -37,7 +37,7 @@ def test_double_width_char_in_text_1_uses_2_cells():
     sh.text[1][5,5] = SMILEY + "*"
     sc.update()
     yield None
-    assert sh[5,5].value == SMILEY
+    assert sh[5, 5].value == SMILEY
     assert sh[6, 5].value == CONTINUATION
     assert sh[7, 5].value == "*"
     assert len(next(iter(sh.text[1].writtings)).text) == 2
@@ -53,7 +53,7 @@ def test_double_width_char_in_text_1_uses_2_cells_when_going_left():
     sh.text[1][5,5] = SMILEY + "*"
     sc.update()
     yield None
-    assert sh[5,5].value == CONTINUATION
+    assert sh[5, 5].value == CONTINUATION
     assert sh[4, 5].value == SMILEY
     assert sh[3, 5].value == "*"
     assert len(next(iter(sh.text[1].writtings)).text) == 2
@@ -62,7 +62,7 @@ def test_double_width_char_in_text_1_uses_2_cells_when_going_left():
 
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
-def test_double_width_char_in_text__other_than_1_uses_single_cell():
+def test_double_width_char_in_textsize_other_than_1_uses_single_cell():
     """Behavior possibly not mentioned elsewhere: context 'char' transforms
     will affect the backend "char" in a single cell, not
     the big-char rendered through multiple cells.
@@ -86,8 +86,8 @@ def test_double_width_char_in_text__other_than_1_uses_single_cell():
 
 
 
-#@pytest.mark.parametrize(*fast_render_mark)
-#@rendering_test
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
 def test_composite_grapheme_ends_in_same_cell():
     # Warning: test likely to break when changing
     # data backend on shapes from list-of-strings to whatever.
@@ -100,7 +100,7 @@ def test_composite_grapheme_ends_in_same_cell():
     msg = grapheme + "b" + grapheme
     sh.text[1][0, 0] = msg
     sc.update()
-#    yield None
+    yield None
     assert sh[0,0].value == grapheme
     assert sh[1,0].value == "b"
     assert sh[2,0].value == grapheme

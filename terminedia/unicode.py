@@ -135,7 +135,7 @@ def is_single_grapheme(text):
 
 
 @lru_cache()
-def char_width(char, effects=0):
+def char_width(char, grapheme=False):
     """Return a character width as being 1 or 2 -
     since terminedia is all about monospaced cells, other values
     are of no interest
@@ -150,6 +150,8 @@ def char_width(char, effects=0):
     if char in BlockChars.chars or char in SextantChars.chars:
         return 1
     if len(char) > 1:
-        return max(char_width(combining) for combining in char)
+        return max(char_width(combining, grapheme=True) for combining in char)
     v = unicodedata.east_asian_width(char)
+    if grapheme and v == "A" and unicodedata.category(char)[0] == "M":
+        return 1
     return 1 if v in ("N", "Na") else 2  # (?) include "A" as single width?
