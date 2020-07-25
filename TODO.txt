@@ -10,7 +10,13 @@ Targeted for next release (0.4):
 
         - implement a dry-run extents call
 
+    - when printing double-width characters, check if the skiped cell contained
+        any positional Mark before rendering the next character.
+        (for example: text rendered with an effect that causes characters to be
+         double-width will miss the end-of-line marks while this is not implemented)
 
+    - Accept friendlier parameter names when constructiong a TM.Mark object.
+        - (currently all context-attributes hav to be inside an "attributes" dictionary passed as parameter - it should accept keyword parameters for each context attribute)
     - make Rich Text markup  usable by standalone "terminedia.print" (terminedia.print should work without an underlying shape) [future]:
             - parse text, and create a transient shape if markup is used
             - test negative Y offsets on transient shape

@@ -113,6 +113,7 @@ class TextPlane:
         self.planes = {"root": self}
         self.transformers_map = {}
         self.reset_padding()
+        self.lock = threading.RLock()  # This is shared across all text-planes for the same owner
 
     def reset_padding(self):
         self.padding = 0
@@ -273,24 +274,49 @@ class TextPlane:
         return self._at(pos, text)
 
     @contextkwords(context_path="owner.context", text_attrs=True)
-    def extents(self, pos, text, transformerlib=None):
+    def extents(self, pos, text):
         """Return the last position where text would be printed -
 
-        This is a "dry-run" call, equivalent to ".at" but doesn't render anything in owner.
+        This is a "dry-run" call, equivalent to ".at" but doesn't
+        render anything in owner. It won't take a 'transformerslib'
+        parameter - if the text that needs to be measured will
+        need special transformers set in this TextPlane, they
+        should be created beforehand, either with an emptu call
+        to `.at` or by updating the `.transformers_lib` dictionary
+        directly.
 
+
+        Args:
+          - pos (2-sequence): Coordinates at which to start the text
+          - text (str): Text to render. May include special markup
+          - "context-args" (color, background, effects, font, direction):
+                context values to be used to render passed text.
+        Returns:
+            V2: with the last printed position.
 
         """
-        # WIP
-        pass
-
+        with self.lock:
+            try:
+                original_last_pos = getattr(self.planes[self.current_plane], "last_pos", (0,0))
+                self.owner._raw_setitem = lambda self, *args, **kw: None
+                original_writtings = self.writtings
+                self.writtings = {}
+                last_pos = self.at(pos, text)
+            finally:
+                # restore method defined in the shape class:
+                self.writtings = original_writtings
+                self.planes[self.current_plane].last_pos = original_last_pos
+                del self.owner._raw_setitem
+        return last_pos
 
 
     def _at(self, pos, text):
-        tokens = style.MLTokenizer(text)
-        styled = tokens(text_plane=self, starting_point=pos)
-        self.render_styled_sequence(styled)
-        last_pos = getattr(self.planes[self.current_plane], "last_pos", (0,0))
-        return last_pos
+        with self.lock:
+            tokens = style.MLTokenizer(text)
+            styled = tokens(text_plane=self, starting_point=pos)
+            self.render_styled_sequence(styled)
+            last_pos = getattr(self.planes[self.current_plane], "last_pos", (0,0))
+            return last_pos
 
     def _char_at(self, char, pos):
         try:
@@ -499,7 +525,8 @@ class TextPlane:
     @contextkwords(context_path="owner.context")
     def print(self, text):
         last_pos = self.planes[self.current_plane].last_pos
-        self.at(last_pos + self.owner.context.direction, text)
+        next_pos = (last_pos + self.owner.context.direction) if last_pos is not None else last_pos
+        self.at(next_pos, text)
 
     def __repr__(self):
         if not getattr(self, "current_plane", False):

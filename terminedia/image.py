@@ -1171,6 +1171,7 @@ class FullShape(Shape):
                         offset2 = offset + 1
         else:
             double_width = False
+        self.context.shape_lastchar_was_double = double_width
         # /check width
         self._raw_setitem(value, offset, force_transparent_ink, double_width, offset2)
 
@@ -1185,7 +1186,6 @@ class FullShape(Shape):
                     component if plane is not self.value_data else CONTINUATION
                 )
         # set information so higher level users can partake char width (text, blit)
-        self.context.shape_lastchar_was_double = double_width
 
     @classmethod
     def promote(cls, other_shape, resolution=None):
