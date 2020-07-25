@@ -1022,6 +1022,9 @@ class PalettedShape(Shape):
         pos = V2(pos)
         self.dirty_mark_pixel(pos)
         type_ = self.PixelCls.capabilities.value_type
+        self.raw_setitem(pos, type_(value))
+
+    def _raw_setitem(self, pos, value):
         self.data[pos[1] * self.width + pos[0]] = type_(value)
 
 
@@ -1124,6 +1127,8 @@ class FullShape(Shape):
         ############
         # Check final width (have to apply transformation effect)
         ###########
+        offset2 = None
+
         effects = value[3] if (value[3] != TRANSPARENT or force_transparent_ink) else self.eff_data[offset]
         transform_effects = (effects & UNICODE_EFFECTS) if effects != TRANSPARENT else Effects.none
         final_char = value[0]
@@ -1167,6 +1172,9 @@ class FullShape(Shape):
         else:
             double_width = False
         # /check width
+        self._raw_setitem(value, offset, force_transparent_ink, double_width, offset2)
+
+    def _raw_setitem(self, value, offset, force_transparent_ink, double_width=False, offset2=None):
         for component, plane in zip(
             value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)
         ):

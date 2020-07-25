@@ -272,6 +272,19 @@ class TextPlane:
 
         return self._at(pos, text)
 
+    @contextkwords(context_path="owner.context", text_attrs=True)
+    def extents(self, pos, text, transformerlib=None):
+        """Return the last position where text would be printed -
+
+        This is a "dry-run" call, equivalent to ".at" but doesn't render anything in owner.
+
+
+        """
+        # WIP
+        pass
+
+
+
     def _at(self, pos, text):
         tokens = style.MLTokenizer(text)
         styled = tokens(text_plane=self, starting_point=pos)
