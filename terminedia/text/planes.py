@@ -324,9 +324,12 @@ class TextPlane:
         except IndexError:
             # Think on storing "lost characters" - but where to put them?
             return
+        ctx = self.owner.context
+        direction = ctx.direction
+        self.blit(pos)
+        pos += (int(getattr(ctx, "text_lastchar_was_double", 0)) * direction[0], 0)
         self.owner.context.last_pos = pos
         self.last_pos = pos
-        self.blit(pos)
 
     def blit(self, index, target=None, clear=True):
         """Actual function that renders given character to

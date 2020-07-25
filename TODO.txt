@@ -3,16 +3,6 @@ Targeted for next release (0.4):
 
 [text-branch]
 
-    - correctly detect if final transformed character takes more than 1 cell width after applying effects, and correctly use 2 cells for character [V]
-        - retrieve last-character width after calling Shape.__setitem__ [V]
-        - check that last-character width works with multiple-character grapheme [V]
-        - allow Shape.__setitem__ to set character to the _left_ of given position if a special attribute is set in the context (and maybe if direction==Right) [V]
-
-        - implement a dry-run TextPlane.extents call [V]
-        - implement TextPlane[num].last_pos as a simple instance attribute [V]
-        - make text-rendering on plane thread-safe [V]
-        - Write tests for .extents()
-
     - when printing double-width characters, check if the skiped cell contained
         any positional Mark before rendering the next character.
         (for example: text rendered with an effect that causes characters to be
