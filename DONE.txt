@@ -128,6 +128,17 @@ New rich-text and text-handling features:
     - allow programatic attributes on Mark objects (computed Color, etc...)[V]:
         - implemented as Transformers.[V]
 
+
+    - correctly detect if final transformed character takes more than 1 cell width after applying effects, and correctly use 2 cells for character [V]
+        - retrieve last-character width after calling Shape.__setitem__ [V]
+        - check that last-character width works with multiple-character grapheme [V]
+        - allow Shape.__setitem__ to set character to the _left_ of given position if a special attribute is set in the context (and maybe if direction==Right) [V]
+
+        - implement a dry-run TextPlane.extents call [V]
+        - implement TextPlane[num].last_pos as a simple instance attribute [V]
+        - make text-rendering on plane thread-safe [V]
+        - Write tests for .extents[V]
+
 Minor Features:
  - TransformersContainer and SpriteContainer (TM.Utils.Hooklist)s can be shallow-copied with copy.copy()
  - Context.foreground is an alias for context.color

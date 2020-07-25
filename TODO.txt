@@ -3,14 +3,13 @@ Targeted for next release (0.4):
 
 [text-branch]
 
-    - correctly detect if final transformed character takes more than 1 cell width after applying effects, and correctly use 2 cells for character [WIP]
-        - retrieve last-character width after calling Shape.__setitem__
-        - check that last-character width works with multiple-character grapheme
-        - allow Shape.__setitem__ to set character to the _left_ of given position if a special attribute is set in the context (and maybe if direction==Right)
+    - when printing double-width characters, check if the skiped cell contained
+        any positional Mark before rendering the next character.
+        (for example: text rendered with an effect that causes characters to be
+         double-width will miss the end-of-line marks while this is not implemented)
 
-        - implement a dry-run extents call
-
-
+    - Accept friendlier parameter names when constructiong a TM.Mark object.
+        - (currently all context-attributes hav to be inside an "attributes" dictionary passed as parameter - it should accept keyword parameters for each context attribute)
     - make Rich Text markup  usable by standalone "terminedia.print" (terminedia.print should work without an underlying shape) [future]:
             - parse text, and create a transient shape if markup is used
             - test negative Y offsets on transient shape
@@ -43,12 +42,22 @@ Targeted for next release (0.4):
 
     - pickle terminedia.unicode.CHAR_BASE as part of setup.py install (?)
     - enable re-shapping of TextPlane or Shape triggering re-flowing of textual content.
+
     - Implement "trans-dimensional-mark" - mechanism to allow text-flow to continue
             in another TextPlane object, entirely.
     - Connect screen.update to text_planes.update (maybe via sprite re-rendering)
+
+    - add support for scrolling and buffer of text areas.
+        -Do it after "trans-dimensional-marks to ensure text can scroll across  several areas (e.g. columns) before falling off the screen
+        - record the initial position and tick - possibly as the value in TextPlane.writtings
+
     - Allow markup parser to recognize ":emoji_name:" style emojis, using the names and aliases as used by Pyton-emojis (from Ruby gen emojis):
         - include emoji nick/alias information on TM.Unicode.Character information
         - Allow character search by emoji nick/alias
+    - BUG: effects not being suspended upon a [/effect] tag
+    - BUG: encircled characters not taking two horizontal cells when being rendered.(V):
+            - ambiguous character (as in unicodedata.east_asian_width(char) == 'A') changed to be of width
+    - BUG: Transfomer "effect" channel on Sprite not working: suppressing effects altogether.
 
 
 [WIP]
