@@ -193,6 +193,7 @@ class TextPlane:
         concretized_text.ticks = 0
         concretized_text.writtings = {}
         concretized_text._reset_marks()
+        concretized_text.last_pos = None
         for pad_attr in "padding pad_left pad_right pad_top pad_bottom".split():
             descriptor = getattr(type(self), pad_attr)
             descriptor.register(self, "set", lambda v, attr=pad_attr: setattr(concretized_text, attr, v))
@@ -297,7 +298,7 @@ class TextPlane:
         """
         with self.lock:
             try:
-                original_last_pos = getattr(self.planes[self.current_plane], "last_pos", (0,0))
+                original_last_pos = self.last_pos
                 self.owner._raw_setitem = lambda self, *args, **kw: None
                 original_writtings = self.writtings
                 self.writtings = {}
@@ -305,7 +306,7 @@ class TextPlane:
             finally:
                 # restore method defined in the shape class:
                 self.writtings = original_writtings
-                self.planes[self.current_plane].last_pos = original_last_pos
+                self.last_pos = original_last_pos
                 del self.owner._raw_setitem
         return last_pos
 
@@ -315,8 +316,7 @@ class TextPlane:
             tokens = style.MLTokenizer(text)
             styled = tokens(text_plane=self, starting_point=pos)
             self.render_styled_sequence(styled)
-            last_pos = getattr(self.planes[self.current_plane], "last_pos", (0,0))
-            return last_pos
+            return self.last_pos
 
     def _char_at(self, char, pos):
         try:
@@ -325,7 +325,7 @@ class TextPlane:
             # Think on storing "lost characters" - but where to put them?
             return
         self.owner.context.last_pos = pos
-        self.planes[self.current_plane].last_pos = pos
+        self.last_pos = pos
         self.blit(pos)
 
     def blit(self, index, target=None, clear=True):
@@ -524,7 +524,7 @@ class TextPlane:
 
     @contextkwords(context_path="owner.context")
     def print(self, text):
-        last_pos = self.planes[self.current_plane].last_pos
+        last_pos = self.last_pos
         next_pos = (last_pos + self.owner.context.direction) if last_pos is not None else last_pos
         self.at(next_pos, text)
 
