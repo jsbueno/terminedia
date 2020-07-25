@@ -1022,6 +1022,9 @@ class PalettedShape(Shape):
         pos = V2(pos)
         self.dirty_mark_pixel(pos)
         type_ = self.PixelCls.capabilities.value_type
+        self.raw_setitem(pos, type_(value))
+
+    def _raw_setitem(self, pos, value):
         self.data[pos[1] * self.width + pos[0]] = type_(value)
 
 
@@ -1124,6 +1127,8 @@ class FullShape(Shape):
         ############
         # Check final width (have to apply transformation effect)
         ###########
+        offset2 = None
+
         effects = value[3] if (value[3] != TRANSPARENT or force_transparent_ink) else self.eff_data[offset]
         transform_effects = (effects & UNICODE_EFFECTS) if effects != TRANSPARENT else Effects.none
         final_char = value[0]
@@ -1141,14 +1146,36 @@ class FullShape(Shape):
                 final_char = translate_chars(value[0], transform_effects)
             double_width = char_width(final_char) == 2
             if double_width:
-                if pos[0] == self.width - 1:  # Right shape edge
-                    width = 1
-                    double_width = False
+                if not getattr(self.context, "text_rendering_styled", None) == 1:
+                    if pos[0] == self.width - 1:  # Right shape edge
+                        width = 1
+                        double_width = False
+                    else:
+                        offset2 = offset + 1
                 else:
-                    offset2 = offset + 1
+                    # a character sequence of styled-text is being rendered.
+                    if pos[0] == 0:
+                        # FIXME: if a double-width char hits the edge in RTL
+                        # printing, this have to be handled in higher level
+                        pass
+                    if self.context.direction == Directions.LEFT:
+                        # EXPERIMENTAL: change actual target in this
+                        # situation (rendering_text and going left)
+                        # and leave a CONTINUATION marker on the target position.
+                        offset2 = offset
+                        offset = offset - 1
+                    else:
+                        if pos[0] == self.width - 1:  # Right shape edge
+                            width = 1
+                            double_width = False
+                        offset2 = offset + 1
         else:
             double_width = False
+        self.context.shape_lastchar_was_double = double_width
         # /check width
+        self._raw_setitem(value, offset, force_transparent_ink, double_width, offset2)
+
+    def _raw_setitem(self, value, offset, force_transparent_ink, double_width=False, offset2=None):
         for component, plane in zip(
             value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)
         ):
@@ -1159,7 +1186,6 @@ class FullShape(Shape):
                     component if plane is not self.value_data else CONTINUATION
                 )
         # set information so higher level users can partake char width (text, blit)
-        self.context.shape_lastchar_was_double = double_width
 
     @classmethod
     def promote(cls, other_shape, resolution=None):

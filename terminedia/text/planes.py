@@ -101,7 +101,6 @@ class TextPlane:
     for the text[1] plane.
     """
 
-    _render_lock = threading.Lock()
 
     def __init__(self, owner):
         """Not intented to be instanced directly - instantiated as a Shape property.
@@ -109,10 +108,12 @@ class TextPlane:
         Args:
           - owner (Union[Screen, Shape]): owner instance, target of rendering methods
       """
+        self._render_lock = threading.Lock()
         self.owner = owner
         self.planes = {"root": self}
         self.transformers_map = {}
         self.reset_padding()
+        self.lock = threading.RLock()  # This is shared across all text-planes for the same owner
 
     def reset_padding(self):
         self.padding = 0
@@ -192,6 +193,7 @@ class TextPlane:
         concretized_text.ticks = 0
         concretized_text.writtings = {}
         concretized_text._reset_marks()
+        concretized_text.last_pos = None
         for pad_attr in "padding pad_left pad_right pad_top pad_bottom".split():
             descriptor = getattr(type(self), pad_attr)
             descriptor.register(self, "set", lambda v, attr=pad_attr: setattr(concretized_text, attr, v))
@@ -272,12 +274,49 @@ class TextPlane:
 
         return self._at(pos, text)
 
-    def _at(self, pos, text):
-        tokens = style.MLTokenizer(text)
-        styled = tokens(text_plane=self, starting_point=pos)
-        self.render_styled_sequence(styled)
-        last_pos = getattr(self.planes[self.current_plane], "last_pos", (0,0))
+    @contextkwords(context_path="owner.context", text_attrs=True)
+    def extents(self, pos, text):
+        """Return the last position where text would be printed -
+
+        This is a "dry-run" call, equivalent to ".at" but doesn't
+        render anything in owner. It won't take a 'transformerslib'
+        parameter - if the text that needs to be measured will
+        need special transformers set in this TextPlane, they
+        should be created beforehand, either with an emptu call
+        to `.at` or by updating the `.transformers_lib` dictionary
+        directly.
+
+
+        Args:
+          - pos (2-sequence): Coordinates at which to start the text
+          - text (str): Text to render. May include special markup
+          - "context-args" (color, background, effects, font, direction):
+                context values to be used to render passed text.
+        Returns:
+            V2: with the last printed position.
+
+        """
+        with self.lock:
+            try:
+                original_last_pos = self.last_pos
+                self.owner._raw_setitem = lambda self, *args, **kw: None
+                original_writtings = self.writtings
+                self.writtings = {}
+                last_pos = self.at(pos, text)
+            finally:
+                # restore method defined in the shape class:
+                self.writtings = original_writtings
+                self.last_pos = original_last_pos
+                del self.owner._raw_setitem
         return last_pos
+
+
+    def _at(self, pos, text):
+        with self.lock:
+            tokens = style.MLTokenizer(text)
+            styled = tokens(text_plane=self, starting_point=pos)
+            self.render_styled_sequence(styled)
+            return self.last_pos
 
     def _char_at(self, char, pos):
         try:
@@ -285,11 +324,19 @@ class TextPlane:
         except IndexError:
             # Think on storing "lost characters" - but where to put them?
             return
-        self.owner.context.last_pos = pos
-        self.planes[self.current_plane].last_pos = pos
+        ctx = self.owner.context
+        direction = ctx.direction
         self.blit(pos)
+        pos += (int(getattr(ctx, "text_lastchar_was_double", 0)) * direction[0], 0)
+        self.owner.context.last_pos = pos
+        self.last_pos = pos
 
     def blit(self, index, target=None, clear=True):
+        """Actual function that renders given character to
+        the selected backend. Reserved for internal use,
+        but could be called by lower level code, explicitly
+        rendering a character at another target.
+        """
         if target is None:
             target = self.owner
 
@@ -314,8 +361,12 @@ class TextPlane:
         if self.current_plane == 1:
             # self.context.shape_lastchar_was_double is set in this operation.
             target[index + index_offset] = char
+            target.context.text_lastchar_was_double = target.context.shape_lastchar_was_double
             return
 
+        # FIXME: take in account double-width chars when rendering
+        # big-text
+        target.context.text_last_char_was_double = False
         rendered_char = render(
             self.plane[index], font=target.context.font or self.font
         )
@@ -387,17 +438,23 @@ class TextPlane:
         """Render an instance of terminedia.text.style.StyledSequence directly
 
         Usually, will be called automatically by assignments to a position in the text
-        plane, but a styled_sequence can be crafted with SpecialMarks in a way
-        automatic assignment would not work.
+        plane or by the ".at()" method, but a styled_sequence can be crafted with
+        SpecialMarks in a way automatic assignment would not work.
 
-        Also, called internally to update SyledSequences that contain animations.
+        Also, called internally to update StyledSequences that contain animations.
         """
         if not styled in self.writtings:
+            # We need just the keys and the order
+            # (a dict gives this for free - otherwise we need a set + a sequence)
             self.writtings[styled] = None
-        styled.render()
+        try:
+            self.owner.context.text_rendering_styled = self.current_plane
+            styled.render()
+        finally:
+            self.owner.context.text_rendering_styled
 
     def _clear_owner(self):
-        # clear the inner contents of the owner when reflowing text
+        # clear the inner contents of the owner when reflowing text, respecting padding
         size = self.size
 
         corner1 = V2(self.pad_left, self.pad_top)
@@ -410,7 +467,8 @@ class TextPlane:
 
         The parameter passed should be a transformer - and is primarily
         thought to be one of terminedia.transformers.library.box_transforms.*
-        one, that will use nice unicode line characters for the borders.
+        or another one that will use nice unicode line characters for the borders.
+        Without a Transformer, a block-char is used for the borders.
 
         Any transformer can be used, though - the frame is them rendered
         as a solid block-outline
@@ -469,8 +527,9 @@ class TextPlane:
 
     @contextkwords(context_path="owner.context")
     def print(self, text):
-        last_pos = self.planes[self.current_plane].last_pos
-        self.at(last_pos + self.owner.context.direction, text)
+        last_pos = self.last_pos
+        next_pos = (last_pos + self.owner.context.direction) if last_pos is not None else last_pos
+        self.at(next_pos, text)
 
     def __repr__(self):
         if not getattr(self, "current_plane", False):

@@ -70,8 +70,9 @@ import typing as T
 import threading
 
 from terminedia.contexts import Context
+from terminedia.unicode import GraphemeIter
 from terminedia.utils import V2, Rect, get_current_tick
-from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX, RelativeMarkIndex
+from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX, RelativeMarkIndex, Directions
 
 
 RETAIN_POS = object()
@@ -128,6 +129,16 @@ class StyledSequence:
         self.current_position = self.starting_point
         self._sanity_counter = 0
         self.locals = threading.local()
+        if isinstance(text, GraphemeIter):
+            self.cooked_text = text
+        else:
+            new_text = self.cooked_text = GraphemeIter(text)
+            # adjust mark items to match graphemes instead of characters:
+            sorted_old_keys = sorted(key for key in mark_sequence.keys() if isinstance(key, int))
+            new_keys = {old_key: new_key for old_key, new_key in zip(
+                sorted_old_keys, new_text.iter_cooked_indexes(sorted_old_keys)
+            )}
+            self.mark_sequence = {new_keys.get(old_key, old_key): value for old_key, value in mark_sequence.items()}
 
     def _process_to(self, index):
 
@@ -178,7 +189,7 @@ class StyledSequence:
         self.marks = marks.prepare(
             self.mark_sequence,
             self.text_plane.ticks if self.text_plane else get_current_tick(),
-            self.text,
+            self.cooked_text,
             self.context,
         )
         self._active_transformers = []
@@ -246,13 +257,12 @@ class StyledSequence:
             self._process_to(index)
         position = self.current_position
         self.current_position += self.context.direction
-        # TODO: handle double-width characters
         return position
 
     def __iter__(self):
         self._enter_iteration()
         with self.context():
-            for index, char in enumerate(self.text):
+            for index, char in enumerate(self.cooked_text):
                 values = char, self._process_to(index), self._get_position_at(
                     char, index
                 )
@@ -295,6 +305,10 @@ class StyledSequence:
 
             for char, context, position in self:
                 char_fn(char, position)
+                # handle double-width characters
+                if getattr(self.context, "text_lastchar_was_double", False):
+                    if self.context.direction in (Directions.RIGHT, Directions.LEFT):
+                        self.current_position += self.context.direction
         finally:
             next(render_lock, None)
 
@@ -434,7 +448,7 @@ class MarkMap(MutableMapping):
         self.text_plane = parent
         self.is_rendering_copy = False
 
-    def prepare(self, seq_data, tick=0, parsed_text="", context=None):
+    def prepare(self, seq_data, tick=0, parsed_text: T.Union[str, GraphemeIter]="", context=None):
         instance = copy(self)
         instance.tick = tick
         instance.seq_data = seq_data
