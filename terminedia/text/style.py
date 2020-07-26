@@ -150,7 +150,12 @@ class StyledSequence:
         ):
             return self._reprocess_from_start(index)
 
-        for mark_here, mark_origin in self.marks.get_full(index, self.current_position):
+        if self.locals.on_rendering_skipped_positions:
+            skipped = self.locals.on_rendering_skipped_positions[:]
+            self.locals.on_rendering_skipped_positions.clear()
+        else:
+            skipped = ()
+        for mark_here, mark_origin in self.marks.get_full(index, self.current_position, skipped=skipped):
             mark_here.context = self.context
             mark_here.pos = self.current_position
             if mark_here.attributes or mark_here.pop_attributes:
@@ -300,6 +305,7 @@ class StyledSequence:
         # otherwise combination is already in place at the render_lock
         self._prepare_context()
         render_lock = self.text_plane._render_styled_lock(self.context)
+        skipped_pos = self.locals.on_rendering_skipped_positions = []
         try:
             char_fn = next(render_lock)
 
@@ -308,6 +314,7 @@ class StyledSequence:
                 # handle double-width characters
                 if getattr(self.context, "text_lastchar_was_double", False):
                     if self.context.direction in (Directions.RIGHT, Directions.LEFT):
+                        skipped_pos.append(self.current_position)
                         self.current_position += self.context.direction
         finally:
             next(render_lock, None)
@@ -485,15 +492,31 @@ class MarkMap(MutableMapping):
             self.data[concrete_index] = new_mark
 
 
-    def get_full(self, sequence_index, pos):
+    def get_full(self, sequence_index, pos, skipped=None):
 
         self.sequence_index = sequence_index
-        self.pos = pos
 
-        mark_seq = [(item, "plane") for item in self._concrete_special.get(pos, [])]
-        mark_seq += [(item, "sequence") for item in self._concrete_special.get(sequence_index, [])]
-        mark_seq += [(item, "plane") for item in _force_iter(self.get(pos, []))]
-        mark_seq += [(item, "sequence") for item in _force_iter(self.seq_data.get(sequence_index, []))]
+        if not skipped:
+            positions = [pos]
+        else:
+            positions = list(skipped)
+            positions.append(pos)
+
+        mark_seq = []
+        # To undestant why this loop, check the issue description at
+        # https://github.com/jsbueno/terminedia/issues/16
+        # TL; DR: ordinarily just 4 checks to find marks are done -
+        # but when printing double-width, or otherwise
+        # 'flying over' postions on a text-plane, the marks
+        # in the skipped positions are also fetched
+        for i, pos in enumerate(positions):
+            self.pos = pos
+            mark_seq += [(item, "plane") for item in self._concrete_special.get(pos, [])]
+            if i == 0:
+                mark_seq += [(item, "sequence") for item in self._concrete_special.get(sequence_index, [])]
+            mark_seq += [(item, "plane") for item in _force_iter(self.get(pos, []))]
+            if i == 0:
+                mark_seq += [(item, "sequence") for item in _force_iter(self.seq_data.get(sequence_index, []))]
 
         return mark_seq
 

@@ -437,7 +437,7 @@ def test_styled_text_transformers_inline_end_markup_dont_turn_off_location_based
     assert sc.data[6, 0].background == TM.Color("blue")
 
 
-@pytest.mark.parametrize(("direction",), [("left",), ("right",)])
+@pytest.mark.parametrize(("direction",), [("right",), ("left",)])
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_text_doesnot_skip_positional_mark_placed_at_continuation_of_double_character(direction):
@@ -448,15 +448,35 @@ def test_styled_text_doesnot_skip_positional_mark_placed_at_continuation_of_doub
         check_point = (6, 0)
     else:
         start = (6, 0)
-        check_point = (4, 0)
-    sh.text[1][start] = f"[direction: {direction}][effect: encircled]ABCD"
+        check_point = (3, 0)
+    sh.text[1][start] = f"[direction: {direction}][effect: encircled]ABC"
     sc.update()
     yield None
     # the next assert is covered by other tests -  but it ensures at once
     # that directions, effects, and double-width printing are working in a consistent way
     assert sh[check_point].value == "B"
+    # TODO: nowadays, the constant "TM.values.CONTINUATION is retrieved at the adjacent
+    # cell - this should be changed so that the value that is "continued" is retrieved,
+    # and a "raw" way should be provided to find the "CONTINUATION" indication
+    # (The backend rendering needs it)
+    # - so, the assert works now, but is commented out, as this behavior is
+    # subject to change:
+    # assert sh[check_point + V2(1, 0)].value == TM.values.CONTINUATION
+
     # This assert is the object of the current test:
     assert sh[check_point].foreground == TM.Color("red")
+
+@pytest.mark.skip("The skipped cell effect order is ok. there is another bug breaking the color popping, though")
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_styled_text_on_replaying_skipped_cell_mark_should_place_it_first_than_inline_mark_on_next_char():
+    sc, sh, text_plane = styled_text()
+    sh.text[1].marks[5, 0] = TM.Mark(attributes={"foreground": "red"})
+    sh.text[1][4, 0] = "[effect: encircled]A[color: yellow]B[/color]C"
+    sc.update()
+    yield None
+    assert sh[6, 0].foreground == TM.Color("yellow")
+    assert sh[8, 0].foreground == TM.Color("red")
 
 
 
