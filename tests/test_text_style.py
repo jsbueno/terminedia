@@ -437,6 +437,29 @@ def test_styled_text_transformers_inline_end_markup_dont_turn_off_location_based
     assert sc.data[6, 0].background == TM.Color("blue")
 
 
+@pytest.mark.parametrize(("direction",), [("left",), ("right",)])
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_styled_text_doesnot_skip_positional_mark_placed_at_continuation_of_double_character(direction):
+    sc, sh, text_plane = styled_text()
+    sh.text[1].marks[5, 0] = TM.Mark(attributes={"foreground": "red"})
+    if direction == "right":
+        start = (4, 0)
+        check_point = (6, 0)
+    else:
+        start = (6, 0)
+        check_point = (4, 0)
+    sh.text[1][start] = f"[direction: {direction}][effect: encircled]ABCD"
+    sc.update()
+    yield None
+    # the next assert is covered by other tests -  but it ensures at once
+    # that directions, effects, and double-width printing are working in a consistent way
+    assert sh[check_point].value == "B"
+    # This assert is the object of the current test:
+    assert sh[check_point].foreground == TM.Color("red")
+
+
+
 # Inner unit testing for StyledSequence
 
 def test_styled_text_push_context_attribute():
