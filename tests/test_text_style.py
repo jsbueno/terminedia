@@ -379,6 +379,20 @@ def test_styled_text_transformers_inline_end_markup_turn_off_just_last_transform
     assert sc.data[8, 0].background == TM.values.DEFAULT_BG
 
 
+def test_styled_text_marks_can_be_built_with_keywords_and_strings():
+    x = TM.Mark(color="green", effects="Blink", direction="Left")
+    assert x.attributes["foreground"] == TM.Color("green")
+    assert x.attributes["effects"] == TM.Effects.blink
+    assert x.attributes["direction"] == TM.Directions.LEFT
+    x = TM.Mark(background="green", effects="Blink, bold")
+    assert x.attributes["background"] == TM.Color("green")
+    assert x.attributes["effects"] == TM.Effects.blink | TM.Effects.bold
+    x = TM.Mark(effects="Blink | bold")
+    assert x.attributes["effects"] == TM.Effects.blink | TM.Effects.bold
+    x = TM.Mark(effects="Blink  bold")
+    assert x.attributes["effects"] == TM.Effects.blink | TM.Effects.bold
+
+
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_text_marks_inline_end_markup_dont_turn_off_location_based_mark():
