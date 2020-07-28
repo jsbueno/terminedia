@@ -71,8 +71,8 @@ import threading
 
 from terminedia.contexts import Context
 from terminedia.unicode import GraphemeIter
-from terminedia.utils import V2, Rect, get_current_tick
-from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX, RelativeMarkIndex, Directions
+from terminedia.utils import V2, Rect, get_current_tick, Color
+from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX, RelativeMarkIndex, Directions, Effects, TRANSPARENT
 
 
 RETAIN_POS = object()
@@ -612,11 +612,31 @@ class Mark:
     moveto: V2
     rmoveto: V2
 
-    def __init__(self, attributes=None, pop_attributes=None, moveto=None, rmoveto=None):
-        self.attributes = attributes
+    def __init__(self, attributes=None, pop_attributes=None, moveto=None, rmoveto=None, color=None, foreground=None, background=None, effects=None, direction=None, transformer=None):
+        self.attributes = attributes or {}
+        if isinstance(pop_attributes, (set, Sequence)):
+            pop_attributes = {name: None for name in pop_attributes}
         self.pop_attributes = pop_attributes
         self.moveto = moveto
         self.rmoveto = rmoveto
+        for parameter in "color foreground background effects direction transformer".split():
+            if not locals()[parameter]:
+                continue
+            value = locals()[parameter]
+            if parameter == "color": parameter = "foreground"
+            if parameter == "transformer": parameter = "pretransformer"
+            if parameter in ("foreground", "background") and not isinstance(value, Color):
+                value = Color(value)
+            if parameter == "effects" and not (isinstance(value, Effects) or value is TRANSPARENT):
+                sep = "," if "," in value else "|" if "|" in value else " "
+                effects = [e.strip() for e in value.split(sep) if e]
+                value = Effects.none
+                for effect in effects:
+                    value |= Effects.__members__[effect.lower()]
+            if parameter == "direction" and isinstance(value, str):
+                value = Directions.__dict__[value.upper()]
+
+            self.attributes[parameter] = value
 
     @classmethod
     def merge(cls, m1, m2):
