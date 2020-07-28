@@ -138,6 +138,8 @@ New rich-text and text-handling features:
         - implement TextPlane[num].last_pos as a simple instance attribute [V]
         - make text-rendering on plane thread-safe [V]
         - Write tests for .extents[V]
+    - when printing double-width characters, check if the skiped cell contained
+        any positional Mark before rendering the next character (github issue #16)[V]
 
 Minor Features:
  - TransformersContainer and SpriteContainer (TM.Utils.Hooklist)s can be shallow-copied with copy.copy()
