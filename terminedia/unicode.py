@@ -35,8 +35,8 @@ def _init_chars():
     for code in range(0, 0x10ffff):
         char = chr(code)
         values = {}
-        attrs = "name category east_asian_width"
-        for attr in attrs.split():
+        attrs = "name category east_asian_width".split()
+        for attr in attrs:
             try:
                 values[attr] = getattr(unicodedata, attr)(char)
             except ValueError:

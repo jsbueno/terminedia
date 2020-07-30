@@ -3,7 +3,7 @@ Targeted for next release (0.4):
 
 [text-branch]
 
-    - Accept friendlier parameter names when constructiong a TM.Mark object.
+    - Accept friendlier parameter names when constructiong a TM.Mark object. [V]
         - (currently all context-attributes hav to be inside an "attributes" dictionary passed as parameter - it should accept keyword parameters for each context attribute)
     - make Rich Text markup  usable by standalone "terminedia.print" (terminedia.print should work without an underlying shape) [future]:
             - parse text, and create a transient shape if markup is used
@@ -17,20 +17,24 @@ Targeted for next release (0.4):
 
             - create a few ready-to-use transformers using these features to apply gradients, and time (tick) changing visibility, or color offset.
 
-        - Add transformers "offset" (or "translate") channel: modify the placement of the given character (without changing "last_pos" on  the the caller machinery)
-        - Allow "offset" parameters to styled text, so that text can move according to tick:
-            - probably these should be specified as "SpecialMark" objects.
-            - pad right with"nop" characters
-            - select a renderable window of text
-            - allow negative offset;
+    - Add transformers "offset" (or "translate") channel: modify the placement of the given character (without changing "last_pos" on  the the caller machinery)
 
-        - Consider merging "SpecialMark" and "Mark" classes. (They are distinguishable by the presence of
-                                                              an ".index" attribute)
+    - Allow "offset" parameters to styled text, so that text can move according to tick:
+        - A subset of the text could be displayed as a "visible window"
+        - This would allow for text to be printed at the bottom of a text-region
+        and scroll-up in subsequent frames.
+        - probably these should be specified as "SpecialMark" objects.
+        - pad right with"nop" characters
+        - select a renderable window of text
+        - allow negative offset;
 
-        - Think of a nice API to make use of TM.text.StyledSequence that is shorter than instantiating one, passing the screen.data.text[1] as text_plane kwarg, and calling "render" on it followed by "screen.update()" :-) (probably changing "print", "at" and "__setitem__" on .text to use it :-) ):[WIP]
-]
-        - create an ANSI Sequence parser based on the MLTkenizer parser.
-        - Allow parsing mixed markup-and-ansi text and create a unique rich text object that can be rendered.
+    - Consider merging "SpecialMark" and "Mark" classes. (They are distinguishable by the presence of an ".index" attribute)
+
+    - Think of a nice API to make use of TM.text.StyledSequence that is shorter than instantiating one, passing the screen.data.text[1] as text_plane kwarg, and calling "render" on it followed by "screen.update()" :-) (probably changing "print", "at" and "__setitem__" on .text to use it :-) ):[V]
+
+    - create an ANSI Sequence parser based on the MLTkenizer parser.
+
+    - Allow parsing mixed markup-and-ansi text and create a unique rich text object that can be rendered.
 
     - Make shape.text alone behave like shape.text[1], with no need for indexing.
     - Cache TextPlane size data - it is a property called several times per cell position when rendering, and does a big mess going back to self.root.size
@@ -46,7 +50,7 @@ Targeted for next release (0.4):
         -Do it after "trans-dimensional-marks to ensure text can scroll across  several areas (e.g. columns) before falling off the screen
         - record the initial position and tick - possibly as the value in TextPlane.writtings
 
-    - Allow markup parser to recognize ":emoji_name:" style emojis, using the names and aliases as used by Pyton-emojis (from Ruby gen emojis):
+    - Allow markup parser to recognize ":emoji_name:" style emojis, using the names and aliases as used by Python-emojis (from Ruby gen emojis):
         - include emoji nick/alias information on TM.Unicode.Character information
         - Allow character search by emoji nick/alias
     - BUG: effects not being suspended upon a [/effect] tag
