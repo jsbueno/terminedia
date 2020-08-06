@@ -26,6 +26,14 @@ class Rect:
             case {"c1": Rect(c1, c2)}: pass
             case {"c1": Number(), "c2": Number(), "right": Number(), "bottom": Number()}:
                 c1, c2 = (kw["c1"], kw["c2"]), (right, bottom)
+            case {"c1": (_, _, _, _)}:
+                c1, c2 = kw["c1"][:2], kw["c1"][2:]
+            case {"c1": (c1:=(_, _)), "width_height": (_, _)}:
+                c2 = c1 + V2(width_height)
+            case {"c1": (c1:=(_, _)), "width": Number(), "height": Number()}:
+                c2 = c1 + V2(width, height)
+            case {"c1": (c1:=(_, _)), "c2": None, "right": Number(), "bottom": Number()}:
+                c2 = bottom, right
             case _:
                 c1, c2 = (0, 0)
 

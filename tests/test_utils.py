@@ -371,5 +371,6 @@ def test_observable_property_works_for_as_property_decorator():
         [[], {"right": 10, "bottom": 10, "center": (15, 15)}],
 ])
 def test_rect_constructor(args, kwargs):
+    #breakpoint()
     r = Rect(*args, **kwargs)
     assert r == Rect((10, 10), (20, 20))
