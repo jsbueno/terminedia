@@ -362,6 +362,7 @@ def test_observable_property_works_for_as_property_decorator():
         [[(10, 10, 20, 20)], {}],
         [[10, 10, 20, 20], {}],
         [Rect((10, 10), (20, 20)), {}],
+        [[Rect((10, 10), (20, 20))], {}],
         [[], {"left_or_corner1": (10, 10), "top_or_corner2": (20, 20)}],
         [[(10, 10)], {"width_height": (10, 10)}],
         [[(10, 10)], {"width": 10, "height": 10}],
