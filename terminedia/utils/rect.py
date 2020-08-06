@@ -1,5 +1,5 @@
 from .vector import V2
-
+from numbers import Number
 
 class Rect:
     __slots__ = ("_c1", "_c2")
@@ -24,12 +24,15 @@ class Rect:
         match kw:
             case {"c1": (c1:=(_, _)), "c2": (c2:=(_, _))}: pass
             case {"c1": Rect(c1, c2)}: pass
+            case {"c1": Number(), "c2": Number(), "right": Number(), "bottom": Number()}:
+                c1, c2 = (kw["c1"], kw["c2"]), (right, bottom)
             case _:
                 c1, c2 = (0, 0)
 
         self.c1 = V2(c1)
         self.c2 = V2(c2)
-
+        if center:
+            self.center = center
 
         return
         if isinstance(left_or_corner1, Rect):
