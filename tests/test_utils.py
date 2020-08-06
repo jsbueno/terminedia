@@ -373,3 +373,14 @@ def test_observable_property_works_for_as_property_decorator():
 def test_rect_constructor(args, kwargs):
     r = Rect(*args, **kwargs)
     assert r == Rect((10, 10), (20, 20))
+
+
+@pytest.mark.parametrize(
+    ["args", "kwargs", "expected"],[
+        [[(10, 10), (20, 20)], {}, (10, 10, 20, 20)],
+        [[], {}, (0, 0, 0, 0)],
+        [[(10, 10)], {}, (0, 0, 10, 10)],
+])
+def test_rect_constructor_with_expected_result(args, kwargs, expected):
+    r = Rect(*args, **kwargs)
+    assert r == Rect(*expected)
