@@ -3,6 +3,7 @@ from .vector import V2
 
 class Rect:
     __slots__ = ("_c1", "_c2")
+    __match_args__ = ("c1", "c2")
 
     def __init__(
         self,
@@ -22,6 +23,7 @@ class Rect:
 
         match kw:
             case {"c1": (c1:=(_, _)), "c2": (c2:=(_, _))}: pass
+            case {"c1": Rect(c1, c2)}: pass
             case _:
                 c1, c2 = (0, 0)
 
