@@ -34,14 +34,11 @@ class Rect:
                 c2 = c1 + V2(width, height)
             case {"c1": (c1:=(_, _)), "c2": None, "right": Number(), "bottom": Number()}:
                 c2 = bottom, right
-            case {"c1": (c2:=(_, _)), "c2": None, "center": (_, _)}:
-                c1 = 0, 0
             case {"c1": None, "right": Number(), "bottom": Number(), "center": (_, _)}:
                 c1 = 0, 0
                 c2 = bottom, right
-            case {"c1": (_, _), "c2": None, "bottom": None, "right": None, "width_height": None, "width": None, "height": None}:
+            case {"c1": (c2:=(_, _)), "c2": None}:
                 c1 = 0, 0
-                c2 = kw["c1"]
             case _:
                 c1, c2 = (0, 0)
 
