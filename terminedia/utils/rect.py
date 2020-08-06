@@ -16,6 +16,20 @@ class Rect:
         height=None,
         center=None,
     ):
+
+        kw = {"c1": left_or_corner1, "c2": top_or_corner2, "right": right, "bottom": bottom,
+              "width_height": width_height, "width": width, "height": height, "center": center}
+
+        match kw:
+            case {"c1": (c1:=(_, _)), "c2": (c2:=(_, _))}: pass
+            case _:
+                c1, c2 = (0, 0)
+
+        self.c1 = V2(c1)
+        self.c2 = V2(c2)
+
+
+        return
         if isinstance(left_or_corner1, Rect):
             self.c1 = left_or_corner1.c1
             self.c2 = left_or_corner1.c2
