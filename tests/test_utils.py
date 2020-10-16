@@ -5,6 +5,7 @@ import pytest
 
 from terminedia.utils import combine_signatures, TaggedDict, HookList
 from terminedia.utils.descriptors import ObservableProperty
+from terminedia.utils import Rect, V2
 
 
 def test_combine_signatures_works():
@@ -350,3 +351,36 @@ def test_observable_property_works_for_as_property_decorator():
         a.b
 
     assert flag
+
+
+@pytest.mark.parametrize(
+    ["args", "kwargs"],[
+        [[(10, 10), (20, 20)], {}],
+        [[[10, 10], [20, 20]], {}],
+        [[V2(10, 10), V2(20, 20)], {}],
+        [[[10, 10, 20, 20]], {}],
+        [[(10, 10, 20, 20)], {}],
+        [[10, 10, 20, 20], {}],
+        [Rect((10, 10), (20, 20)), {}],
+        [[Rect((10, 10), (20, 20))], {}],
+        [[], {"left_or_corner1": (10, 10), "top_or_corner2": (20, 20)}],
+        [[(10, 10)], {"width_height": (10, 10)}],
+        [[(10, 10)], {"width": 10, "height": 10}],
+        [[(10, 10)], {"right": 20, "bottom": 20}],
+        [[(10, 10)], {"center": (15, 15)}],
+        [[], {"right": 10, "bottom": 10, "center": (15, 15)}],
+])
+def test_rect_constructor(args, kwargs):
+    r = Rect(*args, **kwargs)
+    assert r == Rect((10, 10), (20, 20))
+
+
+@pytest.mark.parametrize(
+    ["args", "kwargs", "expected"],[
+        [[(10, 10), (20, 20)], {}, (10, 10, 20, 20)],
+        [[], {}, (0, 0, 0, 0)],
+        [[(10, 10)], {}, (0, 0, 10, 10)],
+])
+def test_rect_constructor_with_expected_result(args, kwargs, expected):
+    r = Rect(*args, **kwargs)
+    assert r == Rect(*expected)

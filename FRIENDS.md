@@ -32,6 +32,9 @@ And now for some similar projects
 # Plotting using Braille characters (Lua)
 https://github.com/asciimoo/lua-drawille
 
+# Converting images to colored UNICODE output (Python)
+https://github.com/kelvindecosta/picharsso
+
 # Full color using half-blocks images on terminal (rust)
 https://github.com/atanunq/viu
 

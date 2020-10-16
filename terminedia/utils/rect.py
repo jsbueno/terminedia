@@ -16,6 +16,28 @@ class Rect:
         height=None,
         center=None,
     ):
+        """
+        An abstract geometric rectangular area. Mostly used for object sizes.
+
+        It will take any form you get of four numbers representing the 2D coordinates of 2 corners
+        of the rectangle to be instantiated - one can pass a 4-number sequence as the first parameter,
+        two sequences of 2 pairs as the first 2 parameters, or 4 separate numbers
+        representing "x1, y1, x2, y2" as the first 4 parameters. If no coordinate is
+        passed at all, a "null rectangle" with coordinates (0, 0, 0, 0) is created;
+
+        If "width_height" as a 2-Sequence or, separately, "witdh" or "height" are passed, these are
+        used to compute the second corner of the rectangle.
+
+        If "center" is passed, it is used to translate both corners accordingly.
+
+        This can be used as a parameter almost anywhere a rectangle makes sense in terminedia:
+        to define a shape size, to draw an actual rectangle with .draw.rect, as an index
+        for a shape, to retrieve a sub-shape. For convenience, those places will also take in
+        other Rectangle representing numbers, like a sequence of 4 numbers.
+
+        Rect is a versatile class, with several writable properties that will translate or resize
+        the instance as appropriate.
+        """
         if isinstance(left_or_corner1, Rect):
             self.c1 = left_or_corner1.c1
             self.c2 = left_or_corner1.c2
