@@ -42,7 +42,6 @@ Targeted for next release (0.4):
 
     - pickle terminedia.unicode.CHAR_BASE as part of setup.py install (?)
     - enable re-shapping of TextPlane or Shape triggering re-flowing of textual content.
-<<<<<<< HEAD
 
     - Implement "trans-dimensional-mark" - mechanism to allow text-flow to continue
             in another TextPlane object, entirely.
@@ -60,14 +59,7 @@ Targeted for next release (0.4):
             - ambiguous character (as in unicodedata.east_asian_width(char) == 'A') changed to be of width
     - BUG: Transfomer "effect" channel on Sprite not working: suppressing effects altogether.
     - BUG: inline [/color] tag closing [color] tag placed as postioned mark on the text-plane.
-=======
-    - Implement "trans-dimensional-mark" - mechanism to allow text-flow to continue
-            in another TextPlane object, entirely.
-    - Connect screen.update to text_planes.update (maybe via sprite re-rendering)
-    - Allow markup parser to recognize ":emoji_name:" style emojis, using the names and aliases as used by Pyton-emojis (from Ruby gen emojis):
-        - include emoji nick/alias information on TM.Unicode.Character information
-        - Allow character search by emoji nick/alias
->>>>>>> 51a41bb49cbf9d8c419e12e6fdf5bb37fb11460f
+
 
 
 [WIP]
