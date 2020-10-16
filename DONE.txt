@@ -128,7 +128,6 @@ New rich-text and text-handling features:
     - allow programatic attributes on Mark objects (computed Color, etc...)[V]:
         - implemented as Transformers.[V]
 
-
     - correctly detect if final transformed character takes more than 1 cell width after applying effects, and correctly use 2 cells for character [V]
         - retrieve last-character width after calling Shape.__setitem__ [V]
         - check that last-character width works with multiple-character grapheme [V]
