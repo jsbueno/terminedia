@@ -2,6 +2,7 @@ import threading
 
 from collections.abc import MutableSequence, MutableMapping, Iterable, Mapping
 from copy import copy
+from enum import IntFlag
 
 
 def mirror_dict(dct):
@@ -275,3 +276,31 @@ class Grapheme2DArray:
 
     def __repr__(self):
         return f"{self.__class__.__name__}({tuple(self.size)!r})"
+
+
+
+class IterableFlag(IntFlag):
+    def __iter__(self):
+        """much hacky. very smart: composed flags are now iterable!"""
+        for element in self.__class__:
+            if self & element:
+                yield element
+
+    def __contains__(self, effect):
+        """if self is a group of various flags ored together, this returns if 'effect' is contained in then"""
+        return self & effect
+
+    def __len__(self):
+        x = self.value
+        count = 0
+        while x:
+            count += x % 2
+            x >> 1
+        return count
+
+    def __add__(self, other):
+        return self | other
+
+    def __sub__(self, other):
+        other = max(self.__class__) * 2 - 1 - (other.value if isinstance(other, Effects) else other)
+        return self & other

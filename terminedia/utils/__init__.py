@@ -5,11 +5,12 @@ from functools import partial
 from collections.abc import Mapping
 
 from .collections import (
-    mirror_dict,
     FrozenDict,
     HookList,
-    TaggedDict,
+    IterableFlag,
     LazyDict,
+    TaggedDict,
+    mirror_dict,
 )
 from .descriptors import LazyBindProperty, ObservableProperty
 from .vector import V2, NamedV2
