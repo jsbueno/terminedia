@@ -256,6 +256,24 @@ def _testkeys():
             print(".", end="", flush=True)
             time.sleep(0.3)
 
+def _testmouse():
+    # https://stackoverflow.com/questions/59864485/capturing-mouse-in-virtual-terminal-with-ansi-escape
+    # change stdin and stdout into unbuffered
+    with keyboard():
+        # ignite mouse through ancient, unknown brujeria
+        #sys.stdout.write("\x1b[?1003h\x1b[?1015h\x1b[?1006h")
+        sys.stdout.write("\x1b[?1005h") #\x1b[?1015h\x1b[?1006h")
+        sys.stdout.flush()
+        counter = 0
+        while counter < 200:
+
+            data = sys.stdin.buffer.read(16)
+            if data:
+                print(data)
+            time.sleep(0.05)
+            counter += 1
+
+    print("\x1b[?1005l")
 
 class _win32_KeyCodes:
     """Character keycodes as they appear in stdin

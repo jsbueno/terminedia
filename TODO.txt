@@ -1,6 +1,24 @@
 Targeted for next release (0.4):
 =================================
 
+
+[mouse-and-events]
+    - create a reliable way to read information back from stdin with ANSI events
+        - cursor position
+        - mouse events
+    - add an API for event subscribing system:
+        - if there are events, there should be a "main loop".
+        -( events will be fed by lower level "observableproperty" changes.)
+        - Add "enable mouse" as a context-manager on "input.py"
+        - when mouse is enabled, the mouse movement and buttons to properties on the Screen object:
+            -
+        - Problem: Konsole does not report mouse position with no buttons pressed (it works on gnome-terminal)
+
+
+    - add early widgets (button + text area)
+    - simple async "input" API
+    - simple "cls" (have to take into acount the current cursor position)
+
 [text-branch]
 
     - Accept friendlier parameter names when constructiong a TM.Mark object. [V]
@@ -275,7 +293,6 @@ Table drawing chars drawing API (maybe convert chars with a convolution after bl
 
 Super-high resolution (Unicode vintage charset and "sextant" blocks)[V]
 
-Mouse event support
 
 Audio support (pyAudio?)
 
