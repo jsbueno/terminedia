@@ -50,6 +50,6 @@ class Subscription:
 def dispatch(event):
     for subscription in Subscription.subscriptions.get(event.type, ()):
         if subscription.callback:
-            subscrition.callback(event)
+            subscription.callback(event)
         else:
             subscription.queue.append(event)
