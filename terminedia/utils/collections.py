@@ -286,9 +286,11 @@ class IterableFlag(IntFlag):
             if self & element:
                 yield element
 
-    def __contains__(self, effect):
+    def __contains__(self, element):
         """if self is a group of various flags ored together, this returns if 'effect' is contained in then"""
-        return self & effect
+        if not isinstance(element, self.__class__):
+            return False
+        return self & element
 
     def __len__(self):
         x = self.value
@@ -302,5 +304,6 @@ class IterableFlag(IntFlag):
         return self | other
 
     def __sub__(self, other):
-        other = max(self.__class__) * 2 - 1 - (other.value if isinstance(other, Effects) else other)
+        cls = self.__class__
+        other = max(self.__class__) * 2 - 1 - (other.value if isinstance(other, cls) else other)
         return self & other
