@@ -207,7 +207,7 @@ def test_observable_property_works_for_write_event():
         b = ObservableProperty()
 
     flag = False
-    def callback(_):
+    def callback(*args):
         nonlocal flag
         flag = True
 
@@ -225,7 +225,7 @@ def test_observable_property_works_for_get_event():
         b = ObservableProperty()
 
     flag = False
-    def callback(_):
+    def callback(*args):
         nonlocal flag
         flag = True
 
@@ -244,7 +244,7 @@ def test_observable_property_works_for_del_event():
         b = ObservableProperty()
 
     flag = False
-    def callback(_):
+    def callback(*args):
         nonlocal flag
         flag = True
 
@@ -267,7 +267,7 @@ def test_observable_property_unregister_works():
         b = ObservableProperty()
 
     flag = False
-    def callback(_):
+    def callback(*args):
         nonlocal flag
         flag = True
 
@@ -288,7 +288,7 @@ def test_observable_property_deleting_instance_clears_handlers():
         b = ObservableProperty()
 
     flag = False
-    def callback(_):
+    def callback(*args):
         nonlocal flag
         flag = True
 
@@ -307,7 +307,7 @@ def test_observable_property_handlers_change_and_several_callbacks_happen():
         b = ObservableProperty()
 
     counter = 0
-    def callback(_):
+    def callback(*args):
         nonlocal counter
         counter += 1
 
@@ -336,7 +336,7 @@ def test_observable_property_works_for_as_property_decorator():
             del self._b
 
     flag = False
-    def callback(_):
+    def callback(*args):
         nonlocal flag
         flag = True
 
@@ -351,6 +351,93 @@ def test_observable_property_works_for_as_property_decorator():
         a.b
 
     assert flag
+
+
+def test_observable_property_works_for_class_registers():
+
+    class A:
+        b = ObservableProperty()
+
+    flag = False
+    def callback(instance, value=None):
+        nonlocal flag
+        flag = True
+
+    a1 = A()
+    a2 = A()
+    A.b.register(None, "set", callback)
+    a1.b = 5
+    assert flag
+    flag = False
+    a2.b = 23
+    assert flag
+
+
+def test_observable_property_for_class_and_instances_is_independent():
+
+    class A:
+        b = ObservableProperty()
+
+    flag1 = flag2 = flagcls = False
+
+    def callbackcls(instance, value=None):
+        nonlocal flagcls
+        flagcls = True
+
+    def callback1(instance, value=None):
+        nonlocal flag1
+        flag1 = True
+
+    def callback2(instance, value=None):
+        nonlocal flag2
+        flag2 = True
+
+    a1 = A()
+    a2 = A()
+    A.b.register(None, "set", callbackcls)
+    A.b.register(a1, "set", callback1)
+    A.b.register(a2, "set", callback2)
+    a1.b = 5
+    assert flag1 and flagcls and not flag2
+    flagcls = False
+    flag1 = False
+    a2.b = 23
+    assert not flag1 and flagcls and  flag2
+
+
+def test_observable_property_for_subclasses_is_independent():
+
+    class A:
+        b = ObservableProperty()
+
+    class B(A):
+        pass
+
+    flag1 = flag2 = flaguniversal = False
+
+    def callbackuniversal(instance, value=None):
+        nonlocal flaguniversal
+        flaguniversal = True
+
+    def callback1(instance, value=None):
+        nonlocal flag1
+        flag1 = True
+
+    def callback2(instance, value=None):
+        nonlocal flag2
+        flag2 = True
+
+    a1 = A()
+    b2 = B()
+    A.b.register(None, "set", callbackuniversal)
+    A.b.register(A, "set", callback1)
+    B.b.register(B, "set", callback2)
+    a1.b = 5
+    assert flag1 and not flag2 and flaguniversal
+    flaguniversal = False
+    flag1 = False
+    b2.b = 23
+    assert not flag1 and flag2 and flaguniversal
 
 
 @pytest.mark.parametrize(

@@ -55,7 +55,7 @@ class ObservableProperty:
 
         Can work as the "property" decorator, and enable
         calls to be made to register callbacks on _instances_
-        of the owner class. Whenever the guarded attribute
+        or on the owner class. Whenever the guarded attribute
         is either read/written the callback is activated.
 
         Effective for linking properties eagerly.
@@ -108,30 +108,49 @@ class ObservableProperty:
         if instance is None:
             return self
         value = self.fget(instance)
-        if instance in self.registry:
+        if instance in self.registry or owner in self.registry or self in self.registry:
             self.execute(instance, "get", value)
         return value
 
     def __set__(self, instance, value):
         self.fset(instance, value)
-        if instance in self.registry:
+        if instance in self.registry or instance.__class__ in self.registry or self in self.registry:
             self.execute(instance, "set", value)
         return value
 
     def __delete__(self, instance):
         value = self.fdel(instance)
-        if instance in self.registry:
+        if instance in self.registry or instance.__class__ in self.registry or self in self.registry:
             self.execute(instance, "del")
         return value
 
     def execute(self, instance, event, value=None):
-        for target_event, handler in self.registry.get(instance, ()):
+        universal_events = self.registry.get(self, [])
+        classwide_events = self.registry.get(instance.__class__, [])
+        instance_events = self.registry.get(instance, [])
+        for target_event, handler in universal_events + classwide_events + instance_events:
             if target_event == event and handler in self.callbacks:
                 callback, args = self.callbacks[handler]
-                callback(value, *args)
+                callback(value, instance, *args)
 
     def register(self, instance, event, callback, *args):
+        """Used to register a callback for an event involving this property in an instance
+
+        Params:
+          - instance: The instance of the host class that will trigger the callback
+                Id instance is None, or the class itself, the callback
+                    is set for _all_ instances in all subclasses of the owner class,
+                    if instance is set to the owner class or a specific subclass,  events
+                        are registered for all instances of that subclass
+          - event: event type as string - one of: 'get', 'set', 'del'
+          - callback: The callable that will be run each time the property is accessed.
+            - the instance is passed as first positional parameter
+            - for "set" events, the value set is passed as a positional parameter.
+            - extra parameters should be passed in "args"
+        """
         handler = self.next_handler_id
+        if instance is None:
+            instance = self
         if instance not in self.registry:
             self.registry[instance] = []
         self.registry[instance].append((event, handler))

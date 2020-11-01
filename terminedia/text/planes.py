@@ -30,7 +30,7 @@ class CharPlaneData(dict):
         pass
 
 
-    def _update_size(self, _=None):
+    def _update_size(self, *args):
         size = self.size = self._parent.size
         self.width = size[0]
         self.height = size[1]
@@ -196,7 +196,7 @@ class TextPlane:
         concretized_text.last_pos = None
         for pad_attr in "padding pad_left pad_right pad_top pad_bottom".split():
             descriptor = getattr(type(self), pad_attr)
-            descriptor.register(self, "set", lambda v, attr=pad_attr: setattr(concretized_text, attr, v))
+            descriptor.register(self, "set", lambda inst, v, attr=pad_attr: setattr(concretized_text, attr, v))
             descriptor.register(concretized_text, "set", data._update_size)
         data._update_size()
         # plane["text"] = concretized_text
