@@ -107,3 +107,9 @@ def test_setting_hsv_component_works():
     c1.saturation = 0.5
 
     assert c1.components == (255, 127, 127)
+
+def test_colors_isclose():
+    a = Color("black")
+    assert a.isclose((0, 2, 2))
+    assert not a.isclose((0, 2, 4))
+    assert a.isclose((0, 2, 4), abs_tol=10)
