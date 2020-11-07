@@ -153,7 +153,7 @@ dilate_transformer = KernelTransformer(kernel_dilate)
 
 class GradientTransformer(Transformer):
 
-    def __init__(self, gradient, direction=Directions.RIGHT, size=None, channel="foreground", repeat="saw", **kwargs):
+    def __init__(self, gradient, direction=Directions.RIGHT, size=None, channel="foreground", repeat="saw", offset=0, **kwargs):
         """
         A Transformer that will take in a gradient object and return its value based on the position of each pixel
 
@@ -170,7 +170,14 @@ class GradientTransformer(Transformer):
                 of the source being transformed. Optionally the size can be constrained, and the gradient
                 will be repeated from that point on. If a "scaled" gradient is passed and no size is given,
                 the scale-factor of the gradient is used as size for the transformer.
-          - repeat: the repeat mode for the gradient when the positin being printed is past its "size"
+          - repeat: the repeat mode for the gradient when the position being printed is past its "size":
+                - "saw" Gradient flows from 0 to size and then starts over from 0
+                - "triangle" Gradient flows from 0 to size and then back to towards 0
+                - "none" Target output positions out of range [offset, size] are filled with the fixed
+                        colors at the boundary of the gradient
+                - "truncate" Target output positions out of range [offset, size] are not changed
+          - offset: value that will be considered the "point 0" from which the gradient is applied
+                (most usefull in repeat modes "none" and "trunct"
 
 
         """
@@ -179,6 +186,7 @@ class GradientTransformer(Transformer):
         self.direction = direction
         self.repeat = repeat
         self.channel = channel
+        self.offset = offset
         self.size = size
 
         super().__init__(**{channel: self._engine})
@@ -186,9 +194,19 @@ class GradientTransformer(Transformer):
     def get_gradient_pos(self, pos, target_size):
         scale_factor = getattr(self.gradient, "scale_factor", 1)
         size = self.size if self.size else scale_factor if scale_factor != 1 else target_size
+
+        pos -= self.offset
+
         if self.repeat == "saw":
             return (pos % size) / (size - 1)
-        return pos / size
+        if self.repeat == "triangle":
+            pos = pos % (2 * size)
+            if pos < size:
+                return pos / (size - 1)
+            return 1 - ((pos - size) / (size - 1))
+        # elif self.repeat == "none":
+        return pos / (size - 1)
+
 
     def _engine(self, source, pos):
         if self.direction == Directions.RIGHT:
