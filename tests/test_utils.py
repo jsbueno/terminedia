@@ -589,3 +589,10 @@ def test_gradient_scalling_works():
     assert gr_100[50] == Color((0.5, 0.5, 0.5))
     assert gr_100.parent is gr
 
+
+def test_gradient_scaled_can_set_new_color():
+    gr = Gradient([(0, (0, 0, 0)), (1, (1, 1, 1,))])
+    gr_10 = gr.scale(10)
+    gr_10[5] = (255, 0, 0)
+
+    assert gr[0.5] == Color((255, 0, 0))

@@ -65,6 +65,7 @@ class Gradient:
     def __setitem__(self, position, color, *args):
 
         color = Color(color)
+        position /= self.scale_factor
 
         for i, (p_start, *_) in enumerate(self.stops):
             if p_start == position:
@@ -80,7 +81,7 @@ class Gradient:
     def scale(self, scale_factor) -> Gradient:
         new_gr = Gradient.__new__(self.__class__)
         new_gr.stops = self.stops
-        new_gr.scale_factor = scale_factor
+        new_gr.scale_factor = self.scale_factor * scale_factor
         new_gr.parent = self
         return new_gr
 
