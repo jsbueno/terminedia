@@ -1,10 +1,11 @@
 Targeted for next release (0.4):
 =================================
 
-[gradient-transformers-ugrade]
+[gradient-transformers-upgrade]
     - Allow gradient to be applied to background, char and effects channel as well as "foreground" [V]
     - Accept an optional "size" parameter  to the GradientTransformer
     - accept an optional "repeat" mode parameter to the GradientTransformer
+    - accept an optional "offset" ''    ''  ...
     - improve discoverability and docs
 
 [text-branch]

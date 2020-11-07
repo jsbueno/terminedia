@@ -596,3 +596,17 @@ def test_gradient_scaled_can_set_new_color():
     gr_10[5] = (255, 0, 0)
 
     assert gr[0.5] == Color((255, 0, 0))
+
+def test_gradient_root_attribute_works():
+    gr = Gradient ([(0, "red"  ), (1, "green" )])
+    gr2 = gr.scale(10)
+    gr3 = gr2.scale(10)
+    assert gr.root is gr
+    assert gr2.root is gr
+    assert gr3.root is gr
+
+def test_gradient_scale_works_in_already_scaled_gradients():
+    gr = Gradient ([(0, "red"), (1, "green")])
+    gr2 = gr.scale(10)
+    gr3 = gr2.scale(10)
+    assert gr3.scale_factor == 100

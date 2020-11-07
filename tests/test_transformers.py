@@ -223,3 +223,21 @@ def test_gradient_transformer_works_on_vertical_direction():
     assert sc.data[12,0].foreground == Color((0, 0, 0))
     assert sc.data[12,5].foreground.isclose(Color((.5, .5, .5)), abs_tol=15)
     assert sc.data[12,9].foreground == Color((255, 255, 255))
+
+
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_gradient_transformer_with_horizontal_size():
+    sc, sh, sp = screen_shape_sprite()
+    gr = TM.Gradient([(0, (0,0,0)), (1, (1,1,1))])
+    tr = GradientTransformer(gr, size=10)
+    sp.transformers.append(tr)
+    sh.draw.line((0,5), (26, 5))
+    sc.update()
+    yield None
+    assert sc.data[0, 5].foreground == Color((0, 0, 0))
+    assert sc.data[5, 5].foreground.isclose(Color((.5, .5, .5)), abs_tol=15)
+    assert sc.data[9,5].foreground == Color((255, 255, 255))
+    assert sc.data[10,5].foreground == Color((0, 0, 0))
+    assert sc.data[19, 5].foreground == Color((255, 255, 255))
+    assert sc.data[20,5].foreground == Color((0, 0, 0))

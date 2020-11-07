@@ -24,6 +24,7 @@ class Gradient:
         use __getitem__ (gradient[0.3]) to get the color value at that point.
         """
         # Promote stops[1] to proper colors:
+        self.parent = None
         stops = [(stop[0], Color(stop[1]), *stop[2:]) for stop in stops]
         self.stops = sorted(stops, key=lambda stop: (stop[0], stops.index(stop)))
         # "root" gradients are always 0-1 range. Use the .scale method to get
@@ -77,6 +78,12 @@ class Gradient:
         else:
             self.stops.append((position, color, *args))
 
+    @property
+    def root(self):
+        root = self
+        while root.parent:
+            root = root.parent
+        return root
 
     def scale(self, scale_factor) -> Gradient:
         new_gr = Gradient.__new__(self.__class__)

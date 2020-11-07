@@ -179,26 +179,32 @@ class GradientTransformer(Transformer):
         self.direction = direction
         self.repeat = repeat
         self.channel = channel
+        self.size = size
 
         super().__init__(**{channel: self._engine})
 
-    def h_rel_pos(self, source, pos):
-        return pos.x / (source.width - 1)
-
-    def v_rel_pos(self, source, pos):
-        return pos.y / (source.height - 1)
+    def get_gradient_pos(self, pos, target_size):
+        scale_factor = getattr(self.gradient, "scale_factor", 1)
+        size = self.size if self.size else scale_factor if scale_factor != 1 else target_size
+        if self.repeat == "saw":
+            return (pos % size) / (size - 1)
+        return pos / size
 
     def _engine(self, source, pos):
         if self.direction == Directions.RIGHT:
-            pos = self.h_rel_pos(source, pos)
+            gr_pos = self.get_gradient_pos(pos.x, source.width)
         elif self.direction == Directions.LEFT:
-            pos = 1 - self.h_rel_pos(source, pos)
+            gr_pos = 1 - self.get_gradient_pos(pos.x, source.width)
         elif self.direction == Directions.DOWN:
-            pos = self.v_rel_pos(source, pos)
+            gr_pos = self.get_gradient_pos(pos.y, source.height)
         elif self.direction == Directions.UP:
-            pos = 1 - self.v_rel_pos(source, pos)
+            gr_pos = 1 - self.get_gradient_pos(pos.y, source.height)
 
-        return self.gradient[pos]
+        if getattr(self.gradient, "scale_factor", 1) != 1:
+            grad = self.gradient.root
+        else:
+            grad = self.gradient
+        return grad[gr_pos]
 
 
 class TransformersContainer(HookList):
@@ -206,7 +212,6 @@ class TransformersContainer(HookList):
         super().__init__(*args)
 
     stack = property(lambda s: s.data)
-
 
     def insert_hook(self, item):
         item = super().insert_hook(item)
