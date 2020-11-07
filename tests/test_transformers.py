@@ -1,7 +1,12 @@
+import string
+
 import pytest
 import terminedia.image as IMG
 import terminedia as TM
 from terminedia.values import DEFAULT_FG, Directions as D
+from terminedia.transformers import GradientTransformer
+
+from conftest import rendering_test, fast_render_mark
 
 Color = TM.Color
 
@@ -138,3 +143,68 @@ def test_transformers_container_bake_method_for_source_consuming_transformers():
     # representation of shape data:
     joiner = lambda d: '\n'.join(''.join(char for char in d[i: i + 5]) for i in range(0, 5 * 5, 5))
     assert joiner(sh.value_data) == joiner(reference_shape.value_data)
+
+## GradientTransformer tests
+
+def screen_shape_sprite():
+    sc = TM.Screen((26, 10))
+    sh = TM.shape((26, 10))
+    sp1 = sc.data.sprites.add(sh)
+    return sc, sh, sp1
+
+
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_gradient_transformer_works():
+    sc, sh, sp = screen_shape_sprite()
+    gr = TM.Gradient([(0, (0,0,0)), (1, (1,1,1))])
+    tr = GradientTransformer(gr)
+    sp.transformers.append(tr)
+    sh.draw.line((0,5), (26, 5))
+    sc.update()
+    yield None
+    assert sc.data[0,5].foreground == Color((0, 0, 0))
+    assert sc.data[12,5].foreground.isclose(Color((.5, .5, .5)), abs_tol=10)
+    assert sc.data[25,5].foreground == Color((255, 255, 255))
+
+
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_gradient_transformer_works_with_background_channel():
+    sc, sh, sp = screen_shape_sprite()
+    gr = TM.Gradient([(0, (0,0,0)), (1, (1,1,1))])
+    tr = GradientTransformer(gr, channel="background")
+    sp.transformers.append(tr)
+    sh.draw.line((0,5), (26, 5), char="*", color=(255, 0, 0))
+    sc.update()
+    yield None
+    assert sc.data[0,5].foreground == Color((255, 0, 0))
+    assert sc.data[0,5].background == Color((0, 0, 0))
+    assert sc.data[12,5].background.isclose(Color((.5, .5, .5)), abs_tol=10)
+    assert sc.data[25,5].background == Color((255, 255, 255))
+
+
+# TODO: test for other channels than "background" require a custom gradient
+# object, that will return a variation of characters according to the position
+
+
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_gradient_transformer_works_with_text_channel():
+    sc, sh, sp = screen_shape_sprite()
+
+    class CharGradient:
+        def __getitem__(self, pos):
+            pos = int(pos * 25)
+            return string.ascii_uppercase[pos]
+
+    tr = GradientTransformer(CharGradient(), channel="char")
+
+    sp.transformers.append(tr)
+    sh.draw.line((0,5), (26, 5), char="*", color=(255, 0, 0))
+    sc.update()
+    yield None
+    assert sc.data[0,5].foreground == Color((255, 0, 0))
+    assert sc.data[0,5].value == "A"
+    assert sc.data[12,5].value == "M"
+    assert sc.data[25,5].value == "Z"

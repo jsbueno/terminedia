@@ -153,18 +153,42 @@ dilate_transformer = KernelTransformer(kernel_dilate)
 
 class GradientTransformer(Transformer):
 
-    def __init__(self, gradient, direction=Directions.RIGHT, **kwargs):
+    def __init__(self, gradient, direction=Directions.RIGHT, size=None, channel="foreground", repeat="saw", **kwargs):
+        """
+        A Transformer that will take in a gradient object and return its value based on the position of each pixel
+
+        Params:
+          - gradient: The gradient to use. An instance of `terminedia.utils.Gradient`
+                will work for the color channels. A custom object that will return
+                the desired value when used with a value from 0 to 1 on __getitem__ can be
+                used for non-color channels.
+          - direction: The direction in which the gradient should flow
+          - channel: To which channel apply the gradient. By default to "foreground", but
+                can be "background", "effects", "char" and "pixel" (the last three
+                will require a custom "gradient" object returning values of the appropriate type)
+          - size: By default, the gradient size is adjusted to the width or height (depending on direction)
+                of the source being transformed. Optionally the size can be constrained, and the gradient
+                will be repeated from that point on. If a "scaled" gradient is passed and no size is given,
+                the scale-factor of the gradient is used as size for the transformer.
+          - repeat: the repeat mode for the gradient when the positin being printed is past its "size"
+
+
+        """
+
         self.gradient=gradient
         self.direction = direction
-        super().__init__(**kwargs)
+        self.repeat = repeat
+        self.channel = channel
+
+        super().__init__(**{channel: self._engine})
 
     def h_rel_pos(self, source, pos):
-        return pos.x / source.width
+        return pos.x / (source.width - 1)
 
     def v_rel_pos(self, source, pos):
-        return pos.y / source.height
+        return pos.y / (source.height - 1)
 
-    def foreground(self, source, pos):
+    def _engine(self, source, pos):
         if self.direction == Directions.RIGHT:
             pos = self.h_rel_pos(source, pos)
         elif self.direction == Directions.LEFT:

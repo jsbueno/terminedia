@@ -1,6 +1,12 @@
 Targeted for next release (0.4):
 =================================
 
+[gradient-transformers-ugrade]
+    - Allow gradient to be applied to background, char and effects channel as well as "foreground" [V]
+    - Accept an optional "size" parameter  to the GradientTransformer
+    - accept an optional "repeat mod" parameter to the GradientTransformer
+    - improve discoverability and docs
+
 [text-branch]
 
     - Accept friendlier parameter names when constructiong a TM.Mark object. [V]
