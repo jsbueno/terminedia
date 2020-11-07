@@ -3,9 +3,11 @@ from inspect import signature
 
 import pytest
 
+from terminedia import Color
+
 from terminedia.utils import combine_signatures, TaggedDict, HookList
 from terminedia.utils.descriptors import ObservableProperty
-from terminedia.utils import Rect, V2
+from terminedia.utils import Rect, V2, Gradient, EPSILON
 
 
 def test_combine_signatures_works():
@@ -471,3 +473,97 @@ def test_rect_constructor(args, kwargs):
 def test_rect_constructor_with_expected_result(args, kwargs, expected):
     r = Rect(*args, **kwargs)
     assert r == Rect(*expected)
+
+
+def test_gradient_works():
+    gr = Gradient([(0, (0, 0, 0)), (1, (1, 1, 1,))])
+
+    assert isinstance(gr[0], Color)
+    assert gr[0] == Color((0, 0, 0))
+    assert gr[1] == Color((1, 1, 1))
+    assert gr[.5] == Color((0.5, 0.5, 0.5))
+
+
+def test_gradient_can_be_manually_updated():
+    # Todo: add an "add_stop" method
+    gr = Gradient([(0, (0, 0, 0)), (1, (1, 1, 1,))])
+
+    assert gr[.5] == Color((0.5, 0.5, 0.5))
+
+    gr.stops.insert(1, (.5, Color((0, 255, 0))))
+
+    assert gr[.5] == Color((0, 255, 0))
+    assert gr[.25] == Color((0, .5, 0))
+
+
+@pytest.mark.skip
+def test_gradient_can_be_updated_with_new_points():
+    gr = Gradient([(0, (0, 0, 0)), (1, (1, 1, 1,))])
+
+    assert gr[.5] == Color((0.5, 0.5, 0.5))
+    gr[.5] = (0, 255, 0)
+
+    assert gr[.5] == Color((0, 255, 0))
+    assert gr[.25] == Color((0, .5, 0))
+
+
+@pytest.mark.skip
+def test_gradient_can_be_updated_replacing_points():
+    # Todo: add an "add_stop" method
+    gr = Gradient([(0, (0, 0, 0)), (1, (1, 1, 1,))])
+
+    assert gr[.5] == Color((0.5, 0.5, 0.5))
+    gr[.5] = (0, 255, 0)
+
+    assert gr[.5] == Color((0, 255, 0))
+    gr[.5] = (255, 0, 0)
+
+    assert gr[.5] == Color((255, 0, 0))
+    assert gr[.25] == Color((.5, 0, 0))
+
+
+@pytest.mark.skip
+def test_gradient_can_be_updated_with_point_just_before():
+    # Todo: add an "add_stop" method
+    gr = Gradient([(0, (0, 0, 0)), (1, (1, 1, 1,))])
+
+    assert gr[.5] == Color((0.5, 0.5, 0.5))
+    gr[.5] = (0, 255, 0)
+
+    gr[.5 - EPSILON] = (255, 0, 0)
+
+    assert gr[.5] == Color((0, 255, 0))
+    assert gr[.49999] == Color((255, 0, 0))
+
+
+@pytest.mark.skip
+def test_gradient_can_be_updated_with_point_just_after():
+    # Todo: add an "add_stop" method
+    gr = Gradient([(0, (0, 0, 0)), (1, (1, 1, 1,))])
+
+    assert gr[.5] == Color((0.5, 0.5, 0.5))
+    gr[.5] = (0, 255, 0)
+
+    gr[.5 + EPSILON] = (255, 0, 0)
+
+    assert gr[.5] == Color((0, 255, 0))
+    assert gr[.49999] == Color((0, 255, 0))
+    assert gr[.500001] == Color((255, 0, 0))
+
+
+def test_gradient_scalling_works():
+    gr = Gradient([(0, (0, 0, 0)), (1, (1, 1, 1,))])
+    gr_10 = gr.scale(10)
+    gr_100 = gr.scale(100)
+
+    assert gr_10[0] == Color((0, 0, 0))
+    assert gr_10[10] == Color((1, 1, 1))
+    assert gr_10[5] == Color((0.5, 0.5, 0.5))
+    assert gr[1] == Color((1, 1, 1))
+    assert gr_10.parent is gr
+
+    assert gr_100[0] == Color((0, 0, 0))
+    assert gr_100[100] == Color((1, 1, 1))
+    assert gr_100[50] == Color((0.5, 0.5, 0.5))
+    assert gr_100.parent is gr
+

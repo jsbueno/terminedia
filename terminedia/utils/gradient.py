@@ -1,20 +1,33 @@
+from __future__ import annotations
+
+import typing as T
+
 from .colors import Color
 
 
+# NB. at this point, annotations are not made in a strict way to pass mypy or other
+# tooling checking, and are intended as documntation hints only
+
+EPSILON = None
+
 class Gradient:
-    def __init__(self, stops):
+    def __init__(self, stops: T.Sequence[T.Tuple[float, Color]]):
         """Define a gradient.
         Args:
            stops: list where each component is a 2-tuple - the first item
            is a 0<= numbr <= 1, the second is a color.
 
-        use __getitem__ (grdient[0.3]) to get the color value at that point.
+        use __getitem__ (gradient[0.3]) to get the color value at that point.
         """
         # Promote stops[1] to proper colors:
         stops = [(stop[0], Color(stop[1]), *stop[2:]) for stop in stops]
         self.stops = sorted(stops, key=lambda stop: (stop[0], stops.index(stop)))
+        # "root" gradients are always 0-1 range. Use the .scale method to get
+        # a child gradient that stretches from 0 to the scale factor.
+        self.scale_factor = 1
 
     def __getitem__(self, position):
+        position /= self.scale_factor
         p_previous = -1
         c_previous = self.stops[0][1]
         for p_start, color, *_ in self.stops:
@@ -41,6 +54,13 @@ class Gradient:
                 for i in (0, 1, 2)
             )
         )
+
+    def scale(self, scale_factor) -> Gradient:
+        new_gr = Gradient.__new__(self.__class__)
+        new_gr.stops = self.stops
+        new_gr.scale_factor = scale_factor
+        new_gr.parent = self
+        return new_gr
 
     def __repr__(self):
         return f"Gradient({self.stops})"

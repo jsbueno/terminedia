@@ -15,7 +15,7 @@ from .descriptors import LazyBindProperty, ObservableProperty
 from .vector import V2, NamedV2
 from .rect import Rect
 from .colors import css_colors, Color, SpecialColor
-from .gradient import Gradient
+from .gradient import Gradient, EPSILON
 
 
 root_context = None
