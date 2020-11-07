@@ -8,7 +8,11 @@ from .colors import Color
 # NB. at this point, annotations are not made in a strict way to pass mypy or other
 # tooling checking, and are intended as documntation hints only
 
-EPSILON = None
+class InfinitesimalTainted:
+    pass
+
+EPSILON = InfinitesimalTainted
+
 
 class Gradient:
     def __init__(self, stops: T.Sequence[T.Tuple[float, Color]]):
@@ -39,6 +43,8 @@ class Gradient:
             return color
         if p_previous == -1 or p_start == p_previous:
             return color
+
+        # Linear color segments - in the future we can use a curve function;
         scale = 1 / (p_start - p_previous)
         weight_from_previous = 1 - ((position - p_previous) * scale)
         weight_from_next = 1 - ((p_start - position) * scale)
@@ -54,6 +60,27 @@ class Gradient:
                 for i in (0, 1, 2)
             )
         )
+
+
+    def __setitem__(self, position, color, *args):
+        insert_after = insert_before = False
+        if isinstance(position, InfinitesimalTainted):
+
+            pass
+
+        color = Color(color)
+
+        for i, (p_start, *_) in enumerate(self.stops):
+            if p_start == position:
+                if not insert_after and not insert_before:
+                    self.stops[i] = (position, color, *args)
+            if p_start > position:
+                # new stop:
+                self.stops.insert(i, (position, color, *args))
+                break
+        else:
+            self.stops.append((position, color, *args))
+
 
     def scale(self, scale_factor) -> Gradient:
         new_gr = Gradient.__new__(self.__class__)

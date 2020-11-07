@@ -496,7 +496,6 @@ def test_gradient_can_be_manually_updated():
     assert gr[.25] == Color((0, .5, 0))
 
 
-@pytest.mark.skip
 def test_gradient_can_be_updated_with_new_points():
     gr = Gradient([(0, (0, 0, 0)), (1, (1, 1, 1,))])
 
@@ -507,7 +506,6 @@ def test_gradient_can_be_updated_with_new_points():
     assert gr[.25] == Color((0, .5, 0))
 
 
-@pytest.mark.skip
 def test_gradient_can_be_updated_replacing_points():
     # Todo: add an "add_stop" method
     gr = Gradient([(0, (0, 0, 0)), (1, (1, 1, 1,))])
