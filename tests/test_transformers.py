@@ -208,3 +208,18 @@ def test_gradient_transformer_works_with_text_channel():
     assert sc.data[0,5].value == "A"
     assert sc.data[12,5].value == "M"
     assert sc.data[25,5].value == "Z"
+
+
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_gradient_transformer_works_on_vertical_direction():
+    sc, sh, sp = screen_shape_sprite()
+    gr = TM.Gradient([(0, (0,0,0)), (1, (1,1,1))])
+    tr = GradientTransformer(gr, direction=TM.Directions.DOWN)
+    sp.transformers.append(tr)
+    sh.draw.line((12,0), (12, 10))
+    sc.update()
+    yield None
+    assert sc.data[12,0].foreground == Color((0, 0, 0))
+    assert sc.data[12,5].foreground.isclose(Color((.5, .5, .5)), abs_tol=15)
+    assert sc.data[12,9].foreground == Color((255, 255, 255))
