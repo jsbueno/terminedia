@@ -8,10 +8,10 @@ from .colors import Color
 # NB. at this point, annotations are not made in a strict way to pass mypy or other
 # tooling checking, and are intended as documntation hints only
 
-class InfinitesimalTainted:
-    pass
 
-EPSILON = InfinitesimalTainted
+#: Add or subtract this value when inserting a new gradient stop to change the
+#: color immediatelly after or immediatelly before an existing stop:
+EPSILON = .0000001
 
 
 class Gradient:
@@ -63,17 +63,12 @@ class Gradient:
 
 
     def __setitem__(self, position, color, *args):
-        insert_after = insert_before = False
-        if isinstance(position, InfinitesimalTainted):
-
-            pass
 
         color = Color(color)
 
         for i, (p_start, *_) in enumerate(self.stops):
             if p_start == position:
-                if not insert_after and not insert_before:
-                    self.stops[i] = (position, color, *args)
+                self.stops[i] = (position, color, *args)
             if p_start > position:
                 # new stop:
                 self.stops.insert(i, (position, color, *args))

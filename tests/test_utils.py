@@ -484,16 +484,18 @@ def test_gradient_works():
     assert gr[.5] == Color((0.5, 0.5, 0.5))
 
 
-def test_gradient_can_be_manually_updated():
-    # Todo: add an "add_stop" method
-    gr = Gradient([(0, (0, 0, 0)), (1, (1, 1, 1,))])
+def test_gradient_with_single_stop_works_after_stop():
+    gr = Gradient([(0, (255, 0, 0)) ])
+    assert gr[0] == Color((255, 0, 0))
+    assert gr[.5] == Color((255, 0, 0))
+    assert gr[1] == Color((255, 0, 0))
 
-    assert gr[.5] == Color((0.5, 0.5, 0.5))
 
-    gr.stops.insert(1, (.5, Color((0, 255, 0))))
-
-    assert gr[.5] == Color((0, 255, 0))
-    assert gr[.25] == Color((0, .5, 0))
+def test_gradient_with_single_stop_works_before_stop():
+    gr = Gradient([(.5, (255, 0, 0)) ])
+    assert gr[0] == Color((255, 0, 0))
+    assert gr[.5] == Color((255, 0, 0))
+    assert gr[1] == Color((255, 0, 0))
 
 
 def test_gradient_can_be_updated_with_new_points():
@@ -504,6 +506,30 @@ def test_gradient_can_be_updated_with_new_points():
 
     assert gr[.5] == Color((0, 255, 0))
     assert gr[.25] == Color((0, .5, 0))
+
+
+def test_gradient_update_after_last_stop_works():
+    gr = Gradient([(.5, (255, 0, 0))])
+
+    gr[.7] = (0, 255, 0)
+
+    assert gr[0] == Color((255, 0, 0))
+    assert gr[.5] == Color((255, 0, 0))
+    assert gr[.7] == Color((0, 255, 0))
+    assert gr[1] == Color((0, 255, 0))
+    assert gr[.6] == Color((.5, .5, 0))
+
+
+def test_gradient_update_before_first_stop_works():
+    gr = Gradient([(.5, (255, 0, 0))])
+
+    gr[.3] = (0, 255, 0)
+
+    assert gr[1] == Color((255, 0, 0))
+    assert gr[.5] == Color((255, 0, 0))
+    assert gr[.3] == Color((0, 255, 0))
+    assert gr[0] == Color((0, 255, 0))
+    assert gr[.4] == Color((.5, .5, 0))
 
 
 def test_gradient_can_be_updated_replacing_points():
@@ -520,7 +546,6 @@ def test_gradient_can_be_updated_replacing_points():
     assert gr[.25] == Color((.5, 0, 0))
 
 
-@pytest.mark.skip
 def test_gradient_can_be_updated_with_point_just_before():
     # Todo: add an "add_stop" method
     gr = Gradient([(0, (0, 0, 0)), (1, (1, 1, 1,))])
@@ -531,10 +556,9 @@ def test_gradient_can_be_updated_with_point_just_before():
     gr[.5 - EPSILON] = (255, 0, 0)
 
     assert gr[.5] == Color((0, 255, 0))
-    assert gr[.49999] == Color((255, 0, 0))
+    assert gr[.4999] == Color((254, 0, 0))
 
 
-@pytest.mark.skip
 def test_gradient_can_be_updated_with_point_just_after():
     # Todo: add an "add_stop" method
     gr = Gradient([(0, (0, 0, 0)), (1, (1, 1, 1,))])
@@ -545,8 +569,8 @@ def test_gradient_can_be_updated_with_point_just_after():
     gr[.5 + EPSILON] = (255, 0, 0)
 
     assert gr[.5] == Color((0, 255, 0))
-    assert gr[.49999] == Color((0, 255, 0))
-    assert gr[.500001] == Color((255, 0, 0))
+    assert gr[.4999] == Color((0, 254, 0))
+    assert gr[.50001] == Color((255, 0, 0))
 
 
 def test_gradient_scalling_works():
