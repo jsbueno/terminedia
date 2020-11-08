@@ -301,3 +301,27 @@ def test_gradient_transformer_with_horizontal_size_and_repeat_triangle():
     assert sc.data[10,5].foreground == Color((255, 255, 255))
     assert sc.data[19, 5].foreground == Color((0, 0, 0))
     assert sc.data[25,5].foreground.isclose(Color((.5, .5, .5)), abs_tol=15)
+
+
+def test_gradient_transformer_with_repeat_truncate_generates_wrapper_receiving_propper_channel():
+    from inspect import signature
+
+    sc, sh, sp, gr = screen_shape_sprite()
+    tr = GradientTransformer(gr, size=10, repeat="truncate", channel="char")
+    assert "char" in signature(tr.char).parameters
+
+
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_gradient_transformer_with_horizontal_size_with_repeat_truncate_and_offset():
+    sc, sh, sp, gr = screen_shape_sprite()
+    tr = GradientTransformer(gr, size=10, repeat="truncate", offset=5)
+    sp.transformers.append(tr)
+    sh.draw.line((0,5), (26, 5), color="red")
+    sc.update()
+    yield None
+    assert sc.data[0, 5].foreground == Color((255, 0, 0))
+    assert sc.data[3, 5].foreground == Color((255, 0, 0))
+    assert sc.data[5, 5].foreground == Color((0, 0, 0))
+    assert sc.data[14,5].foreground == Color((255, 255, 255))
+    assert sc.data[19, 5].foreground == Color((255, 0, 0))

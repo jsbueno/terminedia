@@ -2,6 +2,7 @@ from inspect import signature
 
 from terminedia.utils import V2, HookList, get_current_tick
 from terminedia.values import EMPTY, FULL_BLOCK, TRANSPARENT, Directions, Color
+from terminedia.utils import combine_signatures
 
 class Transformer:
 
@@ -151,6 +152,10 @@ kernel_dilate = {
 dilate_transformer = KernelTransformer(kernel_dilate)
 
 
+class _GradientOutOfRange(BaseException):
+    pass
+
+
 class GradientTransformer(Transformer):
 
     def __init__(self, gradient, direction=Directions.RIGHT, size=None, channel="foreground", repeat="saw", offset=0, **kwargs):
@@ -179,7 +184,6 @@ class GradientTransformer(Transformer):
           - offset: value that will be considered the "point 0" from which the gradient is applied
                 (most usefull in repeat modes "none" and "trunct"
 
-
         """
 
         self.gradient=gradient
@@ -189,7 +193,18 @@ class GradientTransformer(Transformer):
         self.offset = offset
         self.size = size
 
-        super().__init__(**{channel: self._engine})
+        if repeat == "truncate":
+
+            @combine_signatures(self._engine, include=[channel])
+            def engine(source, pos, **kwargs):
+                try:
+                    return self._engine(source, pos)
+                except _GradientOutOfRange:
+                    return kwargs[self.channel]
+        else:
+            engine = self._engine
+
+        super().__init__(**{channel: engine})
 
     def get_gradient_pos(self, pos, target_size):
         scale_factor = getattr(self.gradient, "scale_factor", 1)
@@ -204,6 +219,9 @@ class GradientTransformer(Transformer):
             if pos < size:
                 return pos / (size - 1)
             return 1 - ((pos - size) / (size - 1))
+        if self.repeat == "truncate":
+            if pos < 0 or pos >= size:
+                raise _GradientOutOfRange()
         # elif self.repeat == "none":
         return pos / (size - 1)
 
