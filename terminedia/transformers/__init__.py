@@ -2,6 +2,7 @@ from inspect import signature
 
 from terminedia.utils import V2, HookList, get_current_tick
 from terminedia.values import EMPTY, FULL_BLOCK, TRANSPARENT, Directions, Color
+from terminedia.utils import combine_signatures
 
 class Transformer:
 
@@ -151,30 +152,95 @@ kernel_dilate = {
 dilate_transformer = KernelTransformer(kernel_dilate)
 
 
+class _GradientOutOfRange(BaseException):
+    pass
+
+
 class GradientTransformer(Transformer):
 
-    def __init__(self, gradient, direction=Directions.RIGHT, **kwargs):
+    def __init__(self, gradient, direction=Directions.RIGHT, size=None, channel="foreground", repeat="saw", offset=0, **kwargs):
+        """
+        A Transformer that will take in a gradient object and return its value based on the position of each pixel
+
+        Params:
+          - gradient: The gradient to use. An instance of `terminedia.utils.Gradient`
+                will work for the color channels. A custom object that will return
+                the desired value when used with a value from 0 to 1 on __getitem__ can be
+                used for non-color channels.
+          - direction: The direction in which the gradient should flow
+          - channel: To which channel apply the gradient. By default to "foreground", but
+                can be "background", "effects", "char" and "pixel" (the last three
+                will require a custom "gradient" object returning values of the appropriate type)
+          - size: By default, the gradient size is adjusted to the width or height (depending on direction)
+                of the source being transformed. Optionally the size can be constrained, and the gradient
+                will be repeated from that point on. If a "scaled" gradient is passed and no size is given,
+                the scale-factor of the gradient is used as size for the transformer.
+          - repeat: the repeat mode for the gradient when the position being printed is past its "size":
+                - "saw" Gradient flows from 0 to size and then starts over from 0
+                - "triangle" Gradient flows from 0 to size and then back to towards 0
+                - "none" Target output positions out of range [offset, size] are filled with the fixed
+                        colors at the boundary of the gradient
+                - "truncate" Target output positions out of range [offset, size] are not changed
+          - offset: value that will be considered the "point 0" from which the gradient is applied
+                (most usefull in repeat modes "none" and "trunct"
+
+        """
+
         self.gradient=gradient
         self.direction = direction
-        super().__init__(**kwargs)
+        self.repeat = repeat
+        self.channel = channel
+        self.offset = offset
+        self.size = size
 
-    def h_rel_pos(self, source, pos):
-        return pos.x / source.width
+        if repeat == "truncate":
 
-    def v_rel_pos(self, source, pos):
-        return pos.y / source.height
+            @combine_signatures(self._engine, include=[channel])
+            def engine(source, pos, **kwargs):
+                try:
+                    return self._engine(source, pos)
+                except _GradientOutOfRange:
+                    return kwargs[self.channel]
+        else:
+            engine = self._engine
 
-    def foreground(self, source, pos):
+        super().__init__(**{channel: engine})
+
+    def get_gradient_pos(self, pos, target_size):
+        scale_factor = getattr(self.gradient, "scale_factor", 1)
+        size = self.size if self.size else scale_factor if scale_factor != 1 else target_size
+
+        pos -= self.offset
+
+        if self.repeat == "saw":
+            return (pos % size) / (size - 1)
+        if self.repeat == "triangle":
+            pos = pos % (2 * size)
+            if pos < size:
+                return pos / (size - 1)
+            return 1 - ((pos - size) / (size - 1))
+        if self.repeat == "truncate":
+            if pos < 0 or pos >= size:
+                raise _GradientOutOfRange()
+        # elif self.repeat == "none":
+        return pos / (size - 1)
+
+
+    def _engine(self, source, pos):
         if self.direction == Directions.RIGHT:
-            pos = self.h_rel_pos(source, pos)
+            gr_pos = self.get_gradient_pos(pos.x, source.width)
         elif self.direction == Directions.LEFT:
-            pos = 1 - self.h_rel_pos(source, pos)
+            gr_pos = 1 - self.get_gradient_pos(pos.x, source.width)
         elif self.direction == Directions.DOWN:
-            pos = self.v_rel_pos(source, pos)
+            gr_pos = self.get_gradient_pos(pos.y, source.height)
         elif self.direction == Directions.UP:
-            pos = 1 - self.v_rel_pos(source, pos)
+            gr_pos = 1 - self.get_gradient_pos(pos.y, source.height)
 
-        return self.gradient[pos]
+        if getattr(self.gradient, "scale_factor", 1) != 1:
+            grad = self.gradient.root
+        else:
+            grad = self.gradient
+        return grad[gr_pos]
 
 
 class TransformersContainer(HookList):
@@ -182,7 +248,6 @@ class TransformersContainer(HookList):
         super().__init__(*args)
 
     stack = property(lambda s: s.data)
-
 
     def insert_hook(self, item):
         item = super().insert_hook(item)

@@ -142,7 +142,7 @@ def combine_signatures(func, wrapper=None, include=None):
         return ([value] if value else [", ".join(seq)]) if seq else []
 
     annotations = func.__annotations__.copy()
-    for parameter in pars_wrapper.get(ParKind.KEYWORD_ONLY):
+    for parameter in (pars_wrapper.get(ParKind.KEYWORD_ONLY) or ()):
         annotations[parameter.name] = parameter.annotation
 
     param_spec = ", ".join(

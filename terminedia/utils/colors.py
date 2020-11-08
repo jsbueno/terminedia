@@ -1,3 +1,7 @@
+import math
+import numbers
+import typing as T
+
 from colorsys import rgb_to_hsv, hsv_to_rgb
 
 css_colors = {
@@ -57,6 +61,10 @@ class _ComponentHSVDescriptor(_ComponentDescriptor):
         hsv[self.position] = value
         instance.hsv = hsv
 
+
+ColorCompat = T.Union["Color", T.Sequence[numbers.Real], str]
+
+
 class Color:
     """One Color class to Rule then all
 
@@ -85,7 +93,7 @@ class Color:
             self._components[i] = value
         self.name = ""
 
-    def __init__(self, value=None, hsv=None):
+    def __init__(self, value: ColorCompat=None, hsv=None):
         self._components = bytearray(b"\x00\x00\x00\xff")
         self.special = None
         self.name = ""
@@ -204,6 +212,15 @@ class Color:
     @hsv.setter
     def hsv(self, values):
         self.components = self.normalize_color(hsv_to_rgb(*values))
+
+    def isclose(self, other: ColorCompat, abs_tol=3) -> bool:
+        """Returns True if the other color components are close to this color.
+
+        The RGB components are compared, using the 0-255 number range
+        """
+        if not isinstance(other, Color):
+            other = Color(other)
+        return all(math.isclose(c1, c2, rel_tol=0, abs_tol=abs_tol) for c1, c2 in zip(self, other))
 
 
 special_color_names = "DEFAULT_FG DEFAULT_BG CONTEXT_COLORS TRANSPARENT".split()
