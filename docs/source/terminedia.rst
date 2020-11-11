@@ -68,10 +68,50 @@ terminedia.terminal module
    :undoc-members:
    :show-inheritance:
 
+terminedia.text.fonts module
+----------------------
+
+.. automodule:: terminedia.text.fonts
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+terminedia.text.style module
+----------------------
+
+.. automodule:: terminedia.text.style
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+terminedia.text.planes module
+----------------------
+
+.. automodule:: terminedia.text.planes
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 terminedia.text module
 ----------------------
 
 .. automodule:: terminedia.text
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+terminedia.transformers module
+----------------------
+
+.. automodule:: terminedia.transformers
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+terminedia.transformers.library module
+----------------------
+
+.. automodule:: terminedia.transformers.library
    :members:
    :undoc-members:
    :show-inheritance:
