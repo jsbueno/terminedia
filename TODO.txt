@@ -138,7 +138,12 @@ smaller features:
                     - create a benchmarking script
                     - create a two-step process that yields a callback
                         with the signature of current Transformers.Process
-
+        - Write a combining/blending transformer that can contain other transformers:
+            - blend color information (maybe using more than "normal" blending)
+            - be able to apply masks and "clips" on the underlying transformers.
+            - use example: a GradientTransformer can then blend and tint other colors
+            in the text without one needing to rewrite, or hard code the blending code
+            in that class.
 
 
         -Enhance transforners __repr__
@@ -160,6 +165,7 @@ smaller features:
         - color-value to different unicode-circles
         - color-value to different unicode-squares
         - linear gradients
+
 
     - Reactive rendering
 
