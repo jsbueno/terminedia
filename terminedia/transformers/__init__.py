@@ -2,7 +2,7 @@ from inspect import signature
 
 from terminedia.utils import V2, HookList, get_current_tick
 from terminedia.values import EMPTY, FULL_BLOCK, TRANSPARENT, Directions, Color
-from terminedia.utils import combine_signatures
+from terminedia.utils import combine_signatures, Gradient
 
 class Transformer:
 
@@ -166,7 +166,8 @@ class GradientTransformer(Transformer):
           - gradient: The gradient to use. An instance of `terminedia.utils.Gradient`
                 will work for the color channels. A custom object that will return
                 the desired value when used with a value from 0 to 1 on __getitem__ can be
-                used for non-color channels.
+                used for non-color channels. If a list of 2-tuples containing the a stop point and
+                a color is passed, a Gradient object will be constructed automatically.
           - direction: The direction in which the gradient should flow
           - channel: To which channel apply the gradient. By default to "foreground", but
                 can be "background", "effects", "char" and "pixel" (the last three
@@ -186,7 +187,7 @@ class GradientTransformer(Transformer):
 
         """
 
-        self.gradient=gradient
+        self.gradient = gradient if not isinstance(gradient, list) else Gradient(gradient)
         self.direction = direction
         self.repeat = repeat
         self.channel = channel
