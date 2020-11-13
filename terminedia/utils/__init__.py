@@ -90,6 +90,7 @@ def combine_signatures(func, wrapper=None, include=None):
         def wrapper(*args, new_parameter=None, **kwargs):
             ...
             return func(*args, **kwargs)
+        return wrapper
     """
     # TODO: move this into 'extradeco' independent package
     from functools import partial, wraps
@@ -176,6 +177,29 @@ def combine_signatures(func, wrapper=None, include=None):
 
 
 def contextkwords(func=None, context_path=None, text_attrs=False):
+    """Decorator to automatically add drawing-context related parameters to a function
+
+    The decorated function "context" will be automatically updated to accept
+    "char, color, background, effects, fill and context" as optional parameters,
+    and this change is reflected in its signature, in an iPython and IDE friendly way.
+
+    The passed in optional parameters are not forwarded to the target function -
+    instead, this decorator guesses the context used by the function,
+    and updates that for the duration of the call.
+
+    (the rules for retrieveing the context for the function are:
+        if it is a method, or otherwise the first positional argument to it
+        is a class with a "context" attribute, that context is used.
+
+        if "context_path" is set, then it is assumed the decorated function
+        is a method and the first positional parameter is "self" -
+        "context_path" should be a dotted name with the attribute components
+        to reach the context - example `context_path='parent.context' will
+        pick the context as `self.parent.context`
+
+        otherwise, terminedia's "root_context" is updated.
+    ')
+    """
     if func is None:
         return partial(contextkwords, context_path=context_path, text_attrs=text_attrs)
     sig = inspect.signature(func)
@@ -194,15 +218,8 @@ def contextkwords(func=None, context_path=None, text_attrs=False):
         **kwargs,
     ):
         """
-        Decorator to pass decorated function an updated, stacked context
-        with all options passed in the call already set.
-
-        If an explicit
-        'transformers' if passed will be used to draw the pixels, if it makes sense
-        (i.e. the pixels are t    Add a "clear" draw method to empty-up a target.o
-        be transformed on write, rather than on reading)
-
-        Existing transformers on the current context will be ignored
+        Wrapper that updates the drawing context for the wrapped with kw-params related
+        to drawing context.
         """
         global root_context
         if not root_context:
@@ -212,8 +229,10 @@ def contextkwords(func=None, context_path=None, text_attrs=False):
             direction = kwargs.pop("direction", None)
         else:
             font = direction = None
+
+        # If none of the context parameters if passed, simply call the original function
         if all(
-            attr is not None
+            attr is None
             for attr in (
                 char,
                 color,
