@@ -213,6 +213,49 @@ Future
         this markup [V]
 
 - BACKENDS:
+
+    - "The One" optmization: (maybe sprint around Christmas 2020)
+        - Benchmark complex rendering (with 2 more levels of sprites and 4+ levels of transformers + text effects / frame)
+        - add consistent benchmarking as a script in tools
+        - then proceed to revamp everything:
+            - refactor as many pixel by pixel function calls to a way that can be pre-set to a retangular area and then used as a generator:
+                - Rendering backend: should get a "shape", a rect and a file stream, and usr
+                    a method on the shape to setup pixel yielding for that area, and use a single
+                    "for" block for rendering.
+                - (final backend rendering method should be contained in a single function, with no extra calls)
+                - shapes:
+                    - have a method to setup an area, that will, in turn, setup areas in it's text planes, and sprites
+                    - use generator semantics with "send" to the sprites (so that transformers with any kind of transparency
+                        can have their data).
+                    - optimize storage to use arrays instead of lists. (no need to numpy - just arrays of 4 bytes and
+                        a fast way to interpret those as  a single UTF-32 unicode codepoint string)
+                - transformers:
+                    - benchmark to check if this is worth the effort:
+                    - (optional) have a decorator that could work on bytecode level to upgrade a normal function-based transformer
+                            to a generator:
+                                - insert a `pos, pixel, source, ... = yield mydata; char, foreground, background, effects = pixel` line
+                                at the start of the bytecode;
+                                - replace all "return" values for a "bytecode jump" to the line with the "yield".
+                                - since the transformer-generator will be garbage colector once its area-blitting is over,
+                                there is no problem that such a transformer becomes an "infinite size" generator
+                - text-planes and text-style:
+                    - have blitted text-styles in teh text-plane have the combined (text-plane positional + string positional) Marks in place,
+                    ready to work as a generator for all "full pixels". Updating the shape will trigger the rendering for text planes
+                        - it is possible that this is hard to do for text-planes of more than one block per character (big-text):
+                            if that is the case, just leave big-text rendering as eager (as they work today(, and document that.
+                - subpixel:
+                    - benchmark to csheck if "de-normalizing" the super-refactored code in there would make some difference.
+                    - (current code is super-geekie but requires 3-level calls to set/reset each subpixel)
+                    - if keeping elegance is a must, evolve a script in tools that will "glue together" the denormalized code inline.
+                    - (or check pymacro)
+    - ^^ these optimizations should bring frame performance to a more reasonable value (10s of FPS expected. Currently 5
+         FPS is something just achiaveable for the most simple of renderings, just affecting an area of the screen).
+         At this point the bottleneck
+         should be the terminal emulator program (then check for Kitty and other terminals that intend to be fast)
+
+
+
+
     Image 'screenshot' backend
         - including rendering animations as gifs or image-sequences
     image backend (pixels are simple color-only boring, image pixels)
