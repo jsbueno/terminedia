@@ -20,11 +20,11 @@ sys.path.insert(0, os.path.abspath("../../terminedia"))
 # -- Project information -----------------------------------------------------
 
 project = "terminedia"
-copyright = "2019, João S. O. Bueno"
+copyright = "2019, 2020 João S. O. Bueno"
 author = "João S. O. Bueno"
 
 # The full version, including alpha/beta/rc tags
-release = "0.3.0dev0"
+release = "0.4.0dev0"
 
 
 # -- General configuration ---------------------------------------------------

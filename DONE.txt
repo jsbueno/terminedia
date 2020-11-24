@@ -140,6 +140,17 @@ New rich-text and text-handling features:
     - when printing double-width characters, check if the skiped cell contained
         any positional Mark before rendering the next character (github issue #16)[V]
 
+[gradient-transformers-upgrade]
+    - Allow gradient to be applied to background, char and effects channel as well as "foreground"
+    - Accept an optional "size" parameter  to the GradientTransformer
+    - accept an optional "repeat" mode parameter to the GradientTransformer:
+        - repeat mode "saw"
+        - repeat mode "triangle"
+        - repeat mode "truncate"
+        - repeat mode "none"
+    - accept an optional "offset" parameter
+    - improve discoverability and docs
+
 Minor Features:
  - TransformersContainer and SpriteContainer (TM.Utils.Hooklist)s can be shallow-copied with copy.copy()
  - Context.foreground is an alias for context.color

@@ -79,4 +79,4 @@ Terminedia
    :members:
    :imported-members:
    :undoc-members:
-   :special-members: __init__,__enter__,__exit__,__contains__
+   :special-members: __init__,__enter__,__exit__,__contains__,__getitem__,__setitem__

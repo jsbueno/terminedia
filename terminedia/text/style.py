@@ -740,24 +740,28 @@ class MLTokenizer(Tokenizer):
             rmoveto = None
             moveto = None
 
+            token = token.strip()
+            if token.startswith("/"):
+                starting_tag= False
+                token = token[1:]
+            else:
+                starting_tag = True
+
             if ":" in token:
                 action, value = [v.strip() for v in token.split(":")]
                 action = action.lower()
-                if action == "effect":
-                    action = "effects"
-                if action not in ("transformer", "font", "char"):
-                    value = value.lower()
+
             else:
                 action = token.strip()
                 value = None
                 if action in {"left", "right", "up", "down"}:
                     value = action
                     action = "direction"
-            if action.startswith("/"):
-                starting_tag= False
-                action = action[1:]
-            else:
-                starting_tag = True
+
+            if action == "effect":
+                action = "effects"
+            if action not in ("transformer", "font", "char") and value:
+                value = value.lower()
 
             # Allow for special color values:
             if action in ("color", "foreground") and value == "default":
