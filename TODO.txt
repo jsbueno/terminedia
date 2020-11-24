@@ -146,7 +146,7 @@ smaller features:
             in that class.
 
 
-        -Enhance transforners __repr__
+        -Enhance transformers __repr__
 
     Sprites:
         - Add Spatial transformation
