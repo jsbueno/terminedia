@@ -355,7 +355,7 @@ _button_map = {
 
 class _Mouse:
 
-    CLICK_THRESHOLD = 0.2
+    CLICK_THRESHOLD = 0.3
 
     def __init__(self):
         # TBD: check for re-entering?
@@ -363,7 +363,6 @@ class _Mouse:
         self.last_click = (0, 0)
 
     def __enter__(self):
-        print("wonga")
         self.keyboard = keyboard()
         self.keyboard.__enter__()
         self.enabled = True

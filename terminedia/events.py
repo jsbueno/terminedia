@@ -26,7 +26,7 @@ class Event:
         self.type = type
 
     def __repr__(self):
-        return f"Event <{self.type}>"
+        return f"Event <{self.type}> {self.__dict__}"
 
 
 class Subscription:
