@@ -1,13 +1,16 @@
 """non-blocking Keyboard reading and other input related code
 """
+import enum
 import os
+import re
 import sys
 import time
 
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
 
-from terminedia.utils import mirror_dict
+from terminedia.utils import mirror_dict, V2
+from terminedia.events import Event, dispatch, EventTypes
 
 
 # Keyboard reading code copied and evolved from
@@ -66,8 +69,7 @@ def _posix_keyboard():
         termios.tcsetattr(fd, termios.TCSAFLUSH, attrs_save)
         fcntl.fcntl(fd, fcntl.F_SETFL, flags_save)
 
-
-def _posix_inkey(break_=True, clear=True):
+def _posix_inkey(break_=True, clear=True, _dispatch=False):
     """Return currently pressed key as a string
 
     Args:
@@ -75,6 +77,8 @@ def _posix_inkey(break_=True, clear=True):
         (\x03) should raise KeyboardInterrupt or be returned as a
         keycode. Defaults to True.
       -clear (bool): clears the keyboard buffer contents
+      - _dispatch (bool): dispatch keyboard Events for keypresses
+             used internally for event-based keyboard input
 
     *Important*: This function only works inside a
     :any:`keyboard` managed context. (Posix)
@@ -104,11 +108,18 @@ def _posix_inkey(break_=True, clear=True):
         if not c:
             break
         if c == "\x03" and break_:
-            raise KeyboardInterrupt
+            raise KeyboardInterrupt()
         keycode += c
         if (len(keycode) == 1 or keycode in KeyCodes.codes) and keycode != "\x1b":
             break
+        if mouse.enabled:
+            m = mouse.match(keycode)
+            if m:
+                return ""
         c = sys.stdin.read(1)
+
+    if _dispatch:
+        dispatch(Event(EventTypes.KeyPress, key=keycode))
 
     return keycode
 
@@ -198,7 +209,7 @@ class _posix_KeyCodes:
 @contextmanager
 def _win32_keyboard():
     """
-    This context manager is available to offer compatibility with the Posix equivalent. 
+    This context manager is available to offer compatibility with the Posix equivalent.
 
     It is not really needed under Windows.
 
@@ -210,14 +221,16 @@ def _win32_keyboard():
 
 
 
-def _win32_inkey(break_=True, clear=True):
+def _win32_inkey(break_=True, clear=True, _dispatch=True):
     """Return currently pressed key as a string
 
     Args:
       - break\_ (bool): Boolean parameter specifying whether "CTRL + C"
         (\x03) should raise KeyboardInterrupt or be returned as a
         keycode. Defaults to True.
-      -clear (bool): clears the keyboard buffer contents
+      - clear (bool): clears the keyboard buffer contents
+      - _dispatch (bool): dispatch keyboard Events for keypresses
+            used internally for event-based keyboard reading
 
     *Important*: This function only works inside a
     :any:`keyboard` managed context. (Posix)
@@ -235,10 +248,13 @@ def _win32_inkey(break_=True, clear=True):
 
     if not msvcrt.kbhit():
         return ""
-    
+
     code = msvcrt.getwch()
     if code in "\x00à" : # and msvcrt.kbhit():
         code += msvcrt.getwch()
+
+    if _dispatch:
+        dispatch(Event(EventTypes.KeyPress, key=keycode))
 
     return code
 
@@ -261,8 +277,8 @@ def _testmouse():
     # change stdin and stdout into unbuffered
     with keyboard():
         # ignite mouse through ancient, unknown brujeria
-        #sys.stdout.write("\x1b[?1003h\x1b[?1015h\x1b[?1006h")
-        sys.stdout.write("\x1b[?1005h") #\x1b[?1015h\x1b[?1006h")
+        sys.stdout.write("\x1b[?1003h\x1b[?1015h\x1b[?1006h")
+        #sys.stdout.write("\x1b[?1005h") #\x1b[?1015h\x1b[?1006h")
         sys.stdout.flush()
         counter = 0
         while counter < 200:
@@ -312,6 +328,94 @@ class _win32_KeyCodes:
     LEFT = "àK"
 
     codes = mirror_dict(locals())
+
+
+class MouseButtons(enum.IntFlag):
+    Button1 = 1
+    Button2 = 2
+    Button3 = 4
+    MouseWheelUp = 8
+    MouseWheelDown = 16
+    Button4 = 8     # SIC: this is an alias
+    Button5 = 16
+    Button6 = 32
+    Button7 = 64
+
+
+_button_map = {
+    0: MouseButtons.Button1,
+    1: MouseButtons.Button2,
+    2: MouseButtons.Button3,
+    64: MouseButtons.Button4,
+    65: MouseButtons.Button5,
+    128: MouseButtons.Button6,
+    129: MouseButtons.Button7,
+}
+
+
+class _Mouse:
+
+    CLICK_THRESHOLD = 0.2
+
+    def __init__(self):
+        # TBD: check for re-entering?
+        self.enabled = False
+        self.last_click = (0, 0)
+
+    def __enter__(self):
+        print("wonga")
+        self.keyboard = keyboard()
+        self.keyboard.__enter__()
+        self.enabled = True
+        # sys.stdout.write("\x1b[?1005h")
+        sys.stdout.write("\x1b[?1003h\x1b[?1015h\x1b[?1006h")
+        sys.stdout.flush()
+
+    def __exit__(self, *args):
+        sys.stdout.write("\x1b[?1005l")
+        sys.stdout.flush()
+        self.enabled = False
+        self.keyboard.__exit__(*args)
+
+
+    def match(self, sequence):
+        # The ANSI sequence for a mouse event in mode 1006 is '<ESC>[B;Col;RowM' (last char is 'm' if button-release)
+        m = re.match(r"\x1b\[\<(?P<button>\d+);(?P<column>\d+);(?P<row>\d+)(?P<press>[Mm])", sequence)
+        if not m:
+            return None
+        params = m.groupdict()
+        pressed = params["press"] == "M"
+        button = _button_map.get(int(params["button"]) & (~0x20), None)
+        moving = bool(int(params["button"]) & 0x20)
+
+        col = int(params["column"]) - 1
+        row = int(params["row"]) - 1
+
+        click_event = event = None
+
+        # TBD: check for different buttons in press events and send combined button events
+        if moving:
+            event = Event(EventTypes.MouseMove, pos=V2(col, row), buttons=button)
+        elif pressed:
+            event = Event(EventTypes.MousePress, pos=V2(col, row), buttons=button)
+            self.last_click = (time.time(), button)
+        else:
+            event = Event(EventTypes.MouseRelease, pos=V2(col, row), buttons=button)
+            if time.time() - self.last_click[0] < self.CLICK_THRESHOLD and button == self.last_click[1]:
+                click_event = Event(EventTypes.MouseClick, pos=V2(col, row), buttons=button)
+
+        if event:
+            dispatch(event)
+
+        if click_event:
+            dispatch(click_event)
+
+        return event
+
+
+
+mouse = _Mouse()
+
 
 
 if sys.platform != "win32":

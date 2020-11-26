@@ -8,7 +8,7 @@ from terminedia.utils import IterableFlag
 
 class EventTypes(IterableFlag):
     Tick = 1
-    Keypress = 2
+    KeyPress = 2
     Phrase = 4  # Emitted on enter press
     MouseMove = 8
     MousePress = 16
@@ -41,7 +41,11 @@ class Subscription:
             self.queue = deque()
         self.types = event_types
         for type_ in event_types:
-            cls.subscriptions.setdefault(type_, WeakSet()).add(self)
+            cls.subscriptions.setdefault(type_, set()).add(self)
+
+    def kill(self):
+        for type in self.event_types:
+            self.__class__.subscriptions[type].remove(self)
 
     def __repr__(self):
         return f"Subscription {self.types}{', callback: ' + repr(self.callback) if self.callback else '' }"
