@@ -371,7 +371,7 @@ class _Mouse:
         sys.stdout.flush()
 
     def __exit__(self, *args):
-        sys.stdout.write("\x1b[?1005l")
+        sys.stdout.write("\x1b[?1003l")
         sys.stdout.flush()
         self.enabled = False
         self.keyboard.__exit__(*args)
