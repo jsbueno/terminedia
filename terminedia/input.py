@@ -110,7 +110,7 @@ def _posix_inkey(break_=True, clear=True, _dispatch=False):
         if c == "\x03" and break_:
             raise KeyboardInterrupt()
         keycode += c
-        if (len(keycode) == 1 or keycode in KeyCodes.codes) and keycode != "\x1b":
+        if (len(keycode) == 1 or keycode in KeyCodes.codes) and keycode != "\x1b" or len(keycode) > 20:
             break
         if mouse.enabled:
             m = mouse.match(keycode)

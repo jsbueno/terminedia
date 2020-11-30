@@ -5,19 +5,36 @@ Targeted for next release (0.4):
 [mouse-and-events]
     - create a reliable way to read information back from stdin with ANSI events
         - cursor position
-        - mouse events
+        - mouse events (V)
     - add an API for event subscribing system:
+        - add minimal event dispatcher system (V)
         - if there are events, there should be a "main loop".
-        -( events will be fed by lower level "observableproperty" changes.)
-        - Add "enable mouse" as a context-manager on "input.py"
-        - when mouse is enabled, the mouse movement and buttons to properties on the Screen object:
-            -
+        - Add "enable mouse" as a context-manager on "input.py" (V)
+
+
         - Problem: Konsole does not report mouse position with no buttons pressed (it works on gnome-terminal)
+        - way to do "event pump": currently one does call "inkey":
+            - refactor _posix_inkey to us a separate function to read keystrokes + mouse + ANSI responses as tokens
+            - create "event pump" call in events to get the events running
+            - have a keyboard + mouse event subscritpion on the "Screen" object context  (just use TM.events.Subscription)
+            - stablish a default event-discard policy (by number of ticks? seconds?)
+            - have the "sceen update" call pump the events.
 
 
-    - add early widgets (button + text area)
+
+    - add early widgets:
+        - base (evolve from Sprite - or even add as mixin to sprite)
+        - button
+        - text entry
+        - text area
+        - radio/checkbox
+        - menus
+
     - simple async "input" API
     - simple "cls" (have to take into acount the current cursor position)
+
+    - (copied from file bottom) implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change:
+        - check if there is a ms-windows equivalent
 
 
 [text-branch]
