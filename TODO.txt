@@ -6,36 +6,61 @@ Targeted for next release (0.4):
     - create a reliable way to read information back from stdin with ANSI events
         - cursor position
         - mouse events (V)
-    - add an API for event subscribing system:
+    - add an API for event subscribing system [WIP]:
         - add minimal event dispatcher system (V)
-        - if there are events, there should be a "main loop".
+        - if there are events, there should be a "main loop" (currently, one call per frame to Screen.update)
         - Add "enable mouse" as a context-manager on "input.py" (V)
 
 
-        - Problem: Konsole does not report mouse position with no buttons pressed (it works on gnome-terminal)
-        - way to do "event pump": currently one does call "inkey":
+        - way to do "event pump" [v]:
+            - call "terminedia.events.process [v] # was "currently one does call 'inkey'":
             - refactor _posix_inkey to us a separate function to read keystrokes + mouse + ANSI responses as tokens
-            - create "event pump" call in events to get the events running
+            - create "event pump" call in events to get the events running [v]
             - have a keyboard + mouse event subscritpion on the "Screen" object context  (just use TM.events.Subscription)
-            - stablish a default event-discard policy (by number of ticks? seconds?)
-            - have the "sceen update" call pump the events.
+            - establish a default event-discard policy (by number of ticks? seconds?)
+            - have the "screen update" call pump the events[v]
+
+    - Problem: Konsole does not report mouse position with no buttons pressed (it works on gnome-terminal)
+
+    - refactor "inkey" so that tokens in sys.stdin are read in an independent way.
+
+
+    - last frame events can be retrieved without the need to add callbacks.
+
+
+    - simple async "input" API
+    - simple "cls" (have to take into acount the current cursor position)
+
+    - (copied from file bottom) implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change: [WIP]
+        - Create a signal handler
+        - Register the signal handler on Screen instantiation
+        - Unregister signal handler on Screen de-instantiation
+        - Handler should send Terminedia event
+        - decouple terminedia event "dispatch" from actually calling the callbacks; create an event "process" that does that; [V]
+                - add  a signl queue for holding all events. (deque). [V]
+                - This will prevent screen.data Shape resizing in the mid of some processing and potential catastrohpic bugs
+        - Actually create "shape.resize" methods - (just truncate on reduce, fill with context attrs on enlarge)
 
 
 
-    - add early widgets:
+        - check if there is a ms-windows equivalent - (yes - have to be hacked in: https://github.com/microsoft/terminal/issues/281)
+
+    - Integrate "Observable Properties" into the event system?
+            (currently used in text.resize, which is triggered by adding a border)
+
+[Future - wiget and App branch]:
+
+    - add early widgets: (#NB: can be done in another branch than "mouse and events")
         - base (evolve from Sprite - or even add as mixin to sprite)
         - button
         - text entry
         - text area
         - radio/checkbox
         - menus
+    - tab/shift tab based widget focus
 
-    - simple async "input" API
-    - simple "cls" (have to take into acount the current cursor position)
-
-    - (copied from file bottom) implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change:
-        - check if there is a ms-windows equivalent
-
+    - add way for "text" objects to be larger than their parent shapes
+        - scrollbars
 
 [text-branch]
 

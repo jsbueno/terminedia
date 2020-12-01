@@ -5,6 +5,7 @@ import time
 from math import ceil
 
 import terminedia.text
+import terminedia.events
 from terminedia.contexts import Context
 from terminedia.utils import contextkwords, V2, Rect, tick_forward, LazyBindProperty
 from terminedia.subpixels import BrailleChars, HalfChars, SextantChars
@@ -338,8 +339,34 @@ class Screen:
         with self.commands:
             self.draw.blit(position, shape, **kwargs)
 
-    def update(self, pos1=None, pos2=None):
+    def process_events(self):
+        """Dispatches procss-wide events (like keyboard and mouse if enabled)
 
+        This will be called automatically on "self.update" - it is
+        set as a separate method because one could call this to get
+        input events before proceeding with the actuall display update.
+        """
+        terminedia.events.process()
+
+    def update(self, pos1=None, pos2=None):
+        """Main method to update the display
+
+        An interactive application or animation should call this once
+        per frame to have th display contents updated on the terminal.
+
+        It can optionally update just a part of the output screen, if
+        pos1 or pos2 are given.
+
+        As of pre-0.4.0 development an app should manually provide
+        its "mainloop" and call this on each frame. Later development
+        will probably have an optional higher level loop
+        that will automate calling here.
+
+        Args:
+            - pos1, pos2: Corners of a rectangle delimitting the area to be updated.
+                (optionally, 'pos1' can be a Rect object)
+        """
+        self.process_events()
         rect = Rect(pos1, pos2)
         if rect.c2 == (0, 0) and pos2 is None:
             rect.c2 = (self.width, self.height)
@@ -357,6 +384,7 @@ class Screen:
             # move cursor a couple lines from the bottom to avoid scrolling
             for i in range(3):
                 self.commands.up()
+
 
     def __repr__(self):
         return "".join(

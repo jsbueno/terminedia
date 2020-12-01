@@ -24,7 +24,8 @@ lastclick = None
 
 with TM.input.mouse, TM.Screen() as sc:
     while True:
-        key = TM.input.inkey(_dispatch=True)
+        key = TM.input.inkey()  #_dispatch=True)
+        sc.update()
         time.sleep(0.1)
         if key == "\x1b":
             break

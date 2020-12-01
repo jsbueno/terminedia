@@ -10,7 +10,7 @@ from collections import defaultdict, namedtuple
 from contextlib import contextmanager
 
 from terminedia.utils import mirror_dict, V2
-from terminedia.events import Event, dispatch, EventTypes
+from terminedia.events import Event, EventTypes
 
 
 # Keyboard reading code copied and evolved from
@@ -119,7 +119,7 @@ def _posix_inkey(break_=True, clear=True, _dispatch=False):
         c = sys.stdin.read(1)
 
     if _dispatch:
-        dispatch(Event(EventTypes.KeyPress, key=keycode))
+        Event(EventTypes.KeyPress, key=keycode)
 
     return keycode
 
@@ -221,7 +221,7 @@ def _win32_keyboard():
 
 
 
-def _win32_inkey(break_=True, clear=True, _dispatch=True):
+def _win32_inkey(break_=True, clear=True, _dispatch=False):
     """Return currently pressed key as a string
 
     Args:
@@ -254,7 +254,7 @@ def _win32_inkey(break_=True, clear=True, _dispatch=True):
         code += msvcrt.getwch()
 
     if _dispatch:
-        dispatch(Event(EventTypes.KeyPress, key=keycode))
+        Event(EventTypes.KeyPress, key=keycode)
 
     return code
 
@@ -402,12 +402,6 @@ class _Mouse:
             event = Event(EventTypes.MouseRelease, pos=V2(col, row), buttons=button)
             if time.time() - self.last_click[0] < self.CLICK_THRESHOLD and button == self.last_click[1]:
                 click_event = Event(EventTypes.MouseClick, pos=V2(col, row), buttons=button)
-
-        if event:
-            dispatch(event)
-
-        if click_event:
-            dispatch(click_event)
 
         return event
 
