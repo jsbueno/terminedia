@@ -686,6 +686,9 @@ class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
         )
         return rep
 
+    def resize(self, new_size):
+        raise NotImplementedError()
+
 
 
 # "Virtualsubclassing" - 2 days after I wrote there were no

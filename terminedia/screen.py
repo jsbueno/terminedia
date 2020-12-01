@@ -75,8 +75,6 @@ class Screen:
 
     def __init__(self, size=(), clear_screen=True, backend="ansi"):
         if not size:
-            #: Set in runtime to a method to retrieve the screen width, height.
-            #: The class is **not** aware of terminal resizings while running, though.
             self.get_size = lambda: V2(os.get_terminal_size())
             try:
                 size = self.get_size()
@@ -87,8 +85,10 @@ class Screen:
                         "Pass an explicit (cols, rows) size when instantiating {self.__class__}"
                     )
                 raise
+            self.dynamic_size = True
         else:
             self.get_size = lambda: V2(size)
+            self.dynamic_size = False
 
         #: Namespace to configure drawing and printing color and other parameters.
         #: Currently, the attributes that are used from here are
@@ -135,6 +135,32 @@ class Screen:
         from terminedia import context
         self.root_context = context
         self._last_setitem = 0
+        self._init_event_system()
+
+    def _init_event_system(self):
+        self._event_subscriptions = []
+        terminedia.events._register_sigwinch()
+        self._event_subscriptions.append(
+            terminedia.events.Subscription(
+                terminedia.events.EventTypes.TerminalSizeChange,
+                self._size_change
+            )
+        )
+
+
+    def _size_change(self, event):
+        # handler - called automatically when the terminal is resized.
+        if event.type != terminedia.events.EventTypes.TerminalSizeChange:
+            return
+
+        if not self.dynamic_size:
+            # Screen size was hardcoded at screen instantiation.
+            return
+
+        self.data.resize(event.size)
+        # That is it. Other parts of the app that should be aware of screen resizing,
+        # should subscribe to the TerminalSizeChange event
+
 
     @LazyBindProperty(type=Context)
     def context(self):
@@ -385,6 +411,10 @@ class Screen:
             for i in range(3):
                 self.commands.up()
 
+    def __del__(self):
+        for subscription in self._event_subscriptions:
+            subscription.kill()
+        terminedia.events._unregister_sigwinch()
 
     def __repr__(self):
         return "".join(

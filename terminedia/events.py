@@ -2,8 +2,11 @@ import time
 
 from collections import deque
 from weakref import WeakSet
+import os
+import signal
 
-from terminedia.utils import IterableFlag
+
+from terminedia.utils import IterableFlag, V2
 
 
 #: Inner, process-wide event queue.
@@ -11,6 +14,9 @@ from terminedia.utils import IterableFlag
 #: events.process, which will be sent to subscribers or discarded.
 #: (Screen.update has an implicit call to events.process)
 _event_queue = deque()
+
+_sigwinch_counter = 0
+_original_sigwinch = None
 
 
 
@@ -65,7 +71,7 @@ class Subscription:
             cls.subscriptions.setdefault(type_, set()).add(self)
 
     def kill(self):
-        for type in self.event_types:
+        for type in self.types:
             self.__class__.subscriptions[type].remove(self)
 
     def __repr__(self):
@@ -93,4 +99,48 @@ def process():
             else:
                 subscription.queue.append(event)
     _event_queue.clear()
+
+
+
+def window_change_handler(signal_number, frame):
+    """Called as a signal to terminal-window resize
+
+    It is set as a handler on terminedia.Screen instantiation,
+    and will automatically add window-resize events on
+    terminedia event system.
+    """
+
+    new_size = V2(os.get_terminal_size())
+    Event(EventTypes.TerminalSizeChange, size=new_size, dispatch=True)
+
+
+def _register_sigwinch():
+    # Called automatically on "Screen" instantiation.
+    # An app not using Screen that care about handling window reszing could call this manually.
+
+    global _sigwinch_counter, _original_sigwinch
+    if not getattr(signal, "SIGWINCH", ""):
+        # Non Posix platform have no sigwinch - terminal size change have
+        # to be detected by other means.
+        return
+    if _sigwinch_counter == 0:
+        _original_sigwinch = signal.getsignal(signal.SIGWINCH)
+
+    _sigwinch_counter += 1
+
+    signal.signal(signal.SIGWINCH, window_change_handler)
+
+
+def _unregister_sigwinch():
+    # meant to be called by Screen.__del__ - which will very little likely take
+    # place more than once per app. And no matter if it it fails to be called
+    # on app shutdown
+    global _sigwinch_counter
+    if not getattr(signal, "SIGWINCH", "") or not _sigwinch_counter:
+        return
+    _sigwinch_counter -= 1
+    if _sigwinch_counter == 0 and _original_sigwinch:
+        signal.signal(signal.SIGWINCH, _original_sigwinch)
+
+
 
