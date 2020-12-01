@@ -443,6 +443,7 @@ class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
     """
 
     PixelCls = pixel_factory(bool)
+    _default_bg = False
 
     @classmethod
     def new(cls, size, **kwargs):
@@ -686,9 +687,32 @@ class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
         )
         return rep
 
-    def resize(self, new_size):
-        raise NotImplementedError()
+    def _resize_data_one(self, new_size, data, fill_value):
+        old_size = V2(self.width, self.height)
+        lines = [data[i : i + old_size.x] for i in range(0, len(data), old_size.x)]
+        new_data = []
+        diff = new_size.x - old_size.x
+        for y, line in zip(range(new_size.y), lines):
 
+            if diff > 0:
+                line.extend([fill_value] * diff)
+            elif diff < 0:
+                line[diff:] = []
+            new_data.extend(line)
+
+        y_diff = new_size.y - old_size.y
+        if y_diff > 0:
+            new_data.extend([fill_value] * new_size.x * y_diff)
+
+        return new_data
+
+    def _resize_data(self, new_size):
+        self.data = self._resize_data_one(new_size, self.data, fill_value=getattr(self.context, "background_char", self.__class__._default_bg))
+
+    def resize(self, new_size):
+        self._resize_data(V2(new_size))
+        self.width, self.height = new_size
+        self.dirty_set()
 
 
 # "Virtualsubclassing" - 2 days after I wrote there were no
@@ -938,11 +962,16 @@ class ImageShape(ValueShape):
             color = tuple(color)
         self.data.putpixel(pos, color)
 
+    def resize(self, new_size):
+        self.data = self.data.resize(new_size)
+        self.width, self.height = self.data.width, self.data.height
+
     def clear(self, transparent=False):
         img = self.data
         # FIXME: might need to check and upgrade the image to RGBA first
         color = tuple(self.context.background) if not transparent else (0, 0, 0, 0)
         img.paste(tuple(self.context.background), [0,0, img.size[0], img.size[1]])
+
 
 class PalettedShape(Shape):
     """'Shape' class intended to represent images, using a color-map to map characters to block colors.
@@ -961,6 +990,7 @@ class PalettedShape(Shape):
     effects = False  # FUTURE: support for bold, blink, underline...
 
     PixelCls = pixel_factory(bool, has_foreground=True)
+    _default_bg = False
 
     def __init__(self, data, color_map=None):
         if color_map is None:
@@ -1049,6 +1079,7 @@ class FullShape(Shape):
         has_effects=True,
         translate_dots=False,
     )
+    _default_bg = EMPTY
 
     @staticmethod
     def _data_func(size):
@@ -1189,6 +1220,17 @@ class FullShape(Shape):
                     component if plane is not self.value_data else CONTINUATION
                 )
         # set information so higher level users can partake char width (text, blit)
+
+    def _resize_data(self, new_size):
+        for data_comp, fill in zip("value_data fg_data bg_data eff_data".split(), "background_char foreground background effects".split()):
+            data = getattr(self, data_comp)
+            setattr(
+                self, data_comp,
+                self._resize_data_one(
+                    new_size, data,
+                    fill_value=getattr(self.context, fill, self.__class__._default_bg)
+                )
+            )
 
     @classmethod
     def promote(cls, other_shape, resolution=None):

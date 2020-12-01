@@ -10,7 +10,8 @@ Targeted for next release (0.4):
         - add minimal event dispatcher system (V)
         - if there are events, there should be a "main loop" (currently, one call per frame to Screen.update)
         - Add "enable mouse" as a context-manager on "input.py" (V)
-
+        - Add "guard-expressions" to event subscriptions, so it is possible to, for example,
+                subscribe for specific key-presses (or any other simple-test with event attributes)
 
         - way to do "event pump" [v]:
             - call "terminedia.events.process [v] # was "currently one does call 'inkey'":
