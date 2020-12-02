@@ -101,7 +101,7 @@ class Screen:
 
         #: Namespace to allow high-resolution drawing using a :any:`HighRes` instance
         #: One should either use the public methods in HighRes or the methods on the
-        #: :any:`Drawing` instance at ``Screen.high.draw`` to do 1/4 block pixel
+        #: :any:`Drawing` instance at ``Screen.high.draw`` to do 1/2, 1/4, 1/6 and 1/8 block pixel
         #: manipulation.
         self.high = HighRes(self)
         self.braille = HighRes(
@@ -132,6 +132,7 @@ class Screen:
         self.data = FullShape.new((self.width, self.height))
         # Synchronize context for data and screen painting.
         self.data.context = self.context
+        self.sprites = self.data.sprites
         from terminedia import context
         self.root_context = context
         self._last_setitem = 0

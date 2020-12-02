@@ -32,15 +32,16 @@ Targeted for next release (0.4):
     - simple async "input" API
     - simple "cls" (have to take into acount the current cursor position)
 
-    - (copied from file bottom) implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change: [WIP]
-        - Create a signal handler
-        - Register the signal handler on Screen instantiation
-        - Unregister signal handler on Screen de-instantiation
-        - Handler should send Terminedia event
+    - implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change: [v]
+        - Create a signal handler [v]
+        - Register the signal handler on Screen instantiation [v]
+        - Unregister signal handler on Screen de-instantiation [v]
+        - Handler should send Terminedia event [v]
         - decouple terminedia event "dispatch" from actually calling the callbacks; create an event "process" that does that; [V]
-                - add  a signl queue for holding all events. (deque). [V]
+                - add  a signl queue for holding all events. (deque). [v]
                 - This will prevent screen.data Shape resizing in the mid of some processing and potential catastrohpic bugs
-        - Actually create "shape.resize" methods - (just truncate on reduce, fill with context attrs on enlarge)
+        - Actually create "shape.resize" methods - (just truncate on reduce, fill with context attrs on enlarge) [v]
+        - Dispatch a self.data.resize order upon screen resize event on Screen [v]
 
 
 
@@ -438,8 +439,6 @@ Advanced terminal handling features
     animating and coloring text output ... monkey patching a subprocess stdin, stdout and stderr.
     handle scrolling capabilities and pre-post buffer
     terminal agnostic screen commands (terminfo and infocmp to de-hardcode ANSI sequences)
-    implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change:
-        - check if there is a ms-windows equivalent
 
 more features
 ###############

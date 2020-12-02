@@ -79,7 +79,12 @@ class Subscription:
 
 
 def dispatch(event):
-    """Queues any event to be dispatchd latter, when "process" is called"""
+    """Queues any event to be dispatchd latter, when "process" is called.
+
+    An Event will normally call this implicitly when instantiated. But
+    if one pass it `dispatch=False` upon instanciation, this have to be
+    called manually.
+    """
     _event_queue.append(event)
 
 # Alias so the function can be called by another name in Event.__init__
