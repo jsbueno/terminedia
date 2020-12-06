@@ -1,6 +1,6 @@
 import pytest
 
-from terminedia.events import dispatch, Event, Subscription, EventTypes
+from terminedia.events import dispatch, Event, Subscription, EventTypes, process
 
 
 def test_event_system_subscripton_queue_works():
@@ -9,7 +9,7 @@ def test_event_system_subscripton_queue_works():
     assert subscription.queue is not None and not subscription.queue
 
     e = Event(EventTypes.Tick)
-    dispatch(e)
+    process()
     assert subscription.queue and subscription.queue.popleft() is e
 
 
@@ -24,18 +24,20 @@ def test_event_system_subscripton_callback_works():
     assert subscription.queue is None and subscription.callback
 
     e = Event(EventTypes.Tick)
-    dispatch(e)
+    process()
     assert callback_called
     assert subscription.queue is None
 
 
 def test_event_system_select_events():
     subscription = Subscription([0, 1])
-
-    dispatch(Event(2))
+    Event(2)
+    process()
     assert not subscription.queue
-    dispatch(Event(0))
+    Event(0)
+    process()
     assert subscription.queue
     subscription.queue.clear()
-    dispatch(Event(1))
+    Event(1)
+    process()
     assert subscription.queue

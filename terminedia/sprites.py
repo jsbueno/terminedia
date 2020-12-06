@@ -103,6 +103,7 @@ class SpriteContainer(HookList):
         return item
 
     def get_at(self, pos, pixel=None):
+        # TBD:unit test sprite layering
         pcls = type(pixel)
         for sprite in reversed(self.data):
             if not sprite.active:
