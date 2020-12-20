@@ -14,7 +14,7 @@ if sys.platform == "win32":
     colorama.init(convert=True)
 
 from terminedia.input import keyboard, inkey, pause, KeyCodes, getch
-from terminedia.utils import Color, Rect, V2, Gradient
+from terminedia.utils import Color, Rect, V2, Gradient, ColorGradient
 from terminedia.sprites import Sprite
 from terminedia.terminal import ScreenCommands, JournalingScreenCommands
 from terminedia.values import (

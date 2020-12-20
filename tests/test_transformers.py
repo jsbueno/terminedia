@@ -150,7 +150,7 @@ def screen_shape_sprite():
     sc = TM.Screen((26, 10))
     sh = TM.shape((26, 10))
     sp1 = sc.data.sprites.add(sh)
-    gr = TM.Gradient([(0, (0,0,0)), (1, (1,1,1))])
+    gr = TM.ColorGradient([(0, (0,0,0)), (1, (1,1,1))])
     return sc, sh, sp1, gr
 
 
