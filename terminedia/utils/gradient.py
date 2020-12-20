@@ -15,17 +15,22 @@ EPSILON = .0000001
 
 
 class Gradient:
+
+    BASE_TYPE = float
+
     def __init__(self, stops: T.Sequence[T.Tuple[float, Color]]):
         """Define a gradient.
         Args:
            stops: list where each component is a 2-tuple - the first item
-           is a 0<= numbr <= 1, the second is a color.
+           is a 0<= numbr <= 1, the second is a value of the type to be interpolated.
+           The base Gradient class works with float numbers. Subclasses like
+           ColorGradient interpolate other kind of values.
 
-        use __getitem__ (gradient[0.3]) to get the color value at that point.
+        use __getitem__ (i.e. gradient[0.3]) to get the value at that point.
         """
         # Promote stops[1] to proper colors:
         self.parent = None
-        stops = [(stop[0], Color(stop[1]), *stop[2:]) for stop in stops]
+        stops = [(stop[0], self.BASE_TYPE(stop[1]), *stop[2:]) for stop in stops]
         self.stops = sorted(stops, key=lambda stop: (stop[0], stops.index(stop)))
         # "root" gradients are always 0-1 range. Use the .scale method to get
         # a child gradient that stretches from 0 to the scale factor.
@@ -35,48 +40,44 @@ class Gradient:
         position /= self.scale_factor
         p_previous = -1
         c_previous = self.stops[0][1]
-        for p_start, color, *_ in self.stops:
+        for p_start, c_next, *_ in self.stops:
             if p_previous < position <= p_start:
                 break
             p_previous = p_start
-            c_previous = color
+            c_previous = c_next
         else:
-            return color
+            return c_next
         if p_previous == -1 or p_start == p_previous:
-            return color
+            return c_next
 
         # Linear color segments - in the future we can use a curve function;
         scale = 1 / (p_start - p_previous)
         weight_from_previous = 1 - ((position - p_previous) * scale)
         weight_from_next = 1 - ((p_start - position) * scale)
 
-        c_previous = c_previous.normalized
-        color = color.normalized
-        return Color(
-            (
-                min(
-                    1.0,
-                    c_previous[i] * weight_from_previous + color[i] * weight_from_next,
-                )
-                for i in (0, 1, 2)
-            )
-        )
+        return self.interpolate(c_previous, c_next, weight_from_previous, weight_from_next)
+
+    def interpolate(self, previous, next_, weight_from_previous, weight_from_next):
+        """Interpolation that works for linear numeric values"""
+        return previous * weight_from_previous + next_ * weight_from_next
 
 
-    def __setitem__(self, position, color, *args):
+    def __setitem__(self, position, value, *args):
 
-        color = Color(color)
+        if not isinstance(value, self.BASE_TYPE):
+            value = self.BASE_TYPE(value)
+
         position /= self.scale_factor
 
         for i, (p_start, *_) in enumerate(self.stops):
             if p_start == position:
-                self.stops[i] = (position, color, *args)
+                self.stops[i] = (position, value, *args)
             if p_start > position:
                 # new stop:
-                self.stops.insert(i, (position, color, *args))
+                self.stops.insert(i, (position, value, *args))
                 break
         else:
-            self.stops.append((position, color, *args))
+            self.stops.append((position, value, *args))
 
     @property
     def root(self):
@@ -86,11 +87,25 @@ class Gradient:
         return root
 
     def scale(self, scale_factor) -> Gradient:
-        new_gr = Gradient.__new__(self.__class__)
+        new_gr = self.__class__.__new__(self.__class__)
         new_gr.stops = self.stops
         new_gr.scale_factor = self.scale_factor * scale_factor
         new_gr.parent = self
         return new_gr
 
     def __repr__(self):
-        return f"Gradient({self.stops})"
+        return f"{self.__class__.__name__}({self.stops})"
+
+
+class ColorGradient(Gradient):
+    BASE_TYPE = Color
+
+    def interpolate(slf, c_previous, c_next, weight_from_previous, weight_from_next):
+
+        c_previous = c_previous.normalized
+        c_next = c_next.normalized
+        return Color((min(1.0,
+                 c_previous[i] * weight_from_previous + c_next[i] * weight_from_next,
+            ) for i in (0, 1, 2)
+        ))
+

@@ -2,7 +2,7 @@ from inspect import signature
 
 from terminedia.utils import V2, HookList, get_current_tick
 from terminedia.values import EMPTY, FULL_BLOCK, TRANSPARENT, Directions, Color
-from terminedia.utils import combine_signatures, Gradient
+from terminedia.utils import combine_signatures, Gradient, ColorGradient
 
 class Transformer:
 
@@ -158,7 +158,7 @@ class _GradientOutOfRange(BaseException):
 
 class GradientTransformer(Transformer):
 
-    def __init__(self, gradient, direction=Directions.RIGHT, size=None, channel="foreground", repeat="saw", offset=0, **kwargs):
+    def __init__(self, gradient, direction=Directions.RIGHT, size=None, channel="foreground", repeat="saw", offset=0, gradient_cls=ColorGradient, **kwargs):
         """
         A Transformer that will take in a gradient object and return its value based on the position of each pixel
 
@@ -187,7 +187,7 @@ class GradientTransformer(Transformer):
 
         """
 
-        self.gradient = gradient if not isinstance(gradient, list) else Gradient(gradient)
+        self.gradient = gradient if not isinstance(gradient, list) else gradient_cls(gradient)
         self.direction = direction
         self.repeat = repeat
         self.channel = channel
