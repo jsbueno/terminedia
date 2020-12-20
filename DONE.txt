@@ -150,6 +150,7 @@ New rich-text and text-handling features:
         - repeat mode "none"
     - accept an optional "offset" parameter
     - improve discoverability and docs
+    - Gradient class refactored to be able to interpolate generic values: ColorGradient should be used for color gradients.
 
 Minor Features:
  - TransformersContainer and SpriteContainer (TM.Utils.Hooklist)s can be shallow-copied with copy.copy()
