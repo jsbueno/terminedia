@@ -1,6 +1,7 @@
 Targeted for next release (0.4):
 =================================
-
+    - [bug] None ended-slices of shapes should work (i.e. screen.data[10:, :]) should work: bug in Rect class
+    - [bug]
 
 [mouse-and-events]
     - create a reliable way to read information back from stdin with ANSI events
