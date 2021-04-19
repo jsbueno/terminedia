@@ -413,7 +413,7 @@ class Screen:
         """
         tick_forward()
 
-        if not self._inkey_called_since_last_update:
+        if terminedia.input.keyboard_on and not self._inkey_called_since_last_update:
             # Ensure the dispatch of keypress events:
             terminedia.inkey()
 

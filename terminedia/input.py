@@ -16,6 +16,8 @@ from terminedia.utils import mirror_dict, V2
 from terminedia.events import Event, EventTypes, list_subscriptions
 
 
+keyboard_on = False
+
 # Keyboard reading code copied and evolved from
 # https://stackoverflow.com/a/6599441/108205
 # (@mheyman, Mar, 2011)
@@ -36,6 +38,7 @@ def _posix_keyboard():
 
 
     """
+    global keyboard_on
     fd = sys.stdin.fileno()
     # save old state
     flags_save = fcntl.fcntl(fd, fcntl.F_GETFL)
@@ -64,12 +67,14 @@ def _posix_keyboard():
     )
     termios.tcsetattr(fd, termios.TCSANOW, attrs)
     fcntl.fcntl(fd, fcntl.F_SETFL, flags_save | os.O_NONBLOCK)
+    keyboard_on = True
     try:
         yield
     finally:
         # restore old state
         termios.tcsetattr(fd, termios.TCSAFLUSH, attrs_save)
         fcntl.fcntl(fd, fcntl.F_SETFL, flags_save)
+        keyboard_on = False
 
 
 _last_pressed_after_ESC = ""
@@ -258,10 +263,12 @@ def _win32_keyboard():
     It is not really needed under Windows.
 
     """
+    global keyboard_on
+    keyboard_on = True
     try:
         yield
     finally:
-        pass
+        keyboard_on = False
 
 
 
