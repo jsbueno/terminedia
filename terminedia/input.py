@@ -1,16 +1,19 @@
 """non-blocking Keyboard reading and other input related code
 """
 import enum
+import io
 import os
 import re
 import sys
 import time
 
+import typing as T
+
 from collections import defaultdict, namedtuple
 from contextlib import contextmanager
 
 from terminedia.utils import mirror_dict, V2
-from terminedia.events import Event, EventTypes
+from terminedia.events import Event, EventTypes, list_subscriptions
 
 
 # Keyboard reading code copied and evolved from
@@ -31,7 +34,6 @@ def _posix_keyboard():
     controling can enter both this and an instance of :any:`Screen` in the
     same "with" block.
 
-    (Currently Posix only)
 
     """
     fd = sys.stdin.fileno()
@@ -69,16 +71,59 @@ def _posix_keyboard():
         termios.tcsetattr(fd, termios.TCSAFLUSH, attrs_save)
         fcntl.fcntl(fd, fcntl.F_SETFL, flags_save)
 
-def _posix_inkey(break_=True, clear=True, _dispatch=False):
+
+_last_pressed_after_ESC = ""
+
+def _posix_scan_code(stream):
+    global _last_pressed_after_ESC
+
+    composed = ""
+    while True:
+        # read byte by byte, so that no extra input is consumed from stdin
+        if _last_pressed_after_ESC:
+            next_char = _last_pressed_after_ESC
+        else:
+            next_char = stream.read(1)
+        if not next_char:
+            return composed, True
+        # There is one special case, when "ESC" is pressed in non-clearing mode:
+        # we should not have read the next token, but it is already fetched by now.
+        if len(composed) == 2 and composed[0] == "\x1b" and composed[1] != "[":
+            _last_pressed_after_ESC = composed[1]
+            return composed[0], False
+
+        _last_pressed_after_ESC = ""
+        composed += next_char
+        if composed == "\x1b":
+            continue
+        if len(composed) == 1 or composed in KeyCodes.codes or len(composed) > 30:
+            return composed, False
+        if mouse.enabled:
+            # mouse.match consumes the token
+            m = mouse.match(composed)
+            if m:
+                return "", False
+
+
+def _posix_inkey(break_=True, clear=True):
     """Return currently pressed key as a string
+
+    This is the implemenation of old 8-bit basic "inkey" and "inkey$" builtins,
+    and also the heart of the keybard input system.
 
     Args:
       - break\_ (bool): Boolean parameter specifying whether "CTRL + C"
         (\x03) should raise KeyboardInterrupt or be returned as a
         keycode. Defaults to True.
-      -clear (bool): clears the keyboard buffer contents
-      - _dispatch (bool): dispatch keyboard Events for keypresses
-             used internally for event-based keyboard input
+      -clear (bool): clears the keyboard buffer contents.
+            If False, queued keyboard codes are returned in order, for each call
+            Otherwise queued codes are discarded and only the last-pressed character
+            if returned. Even when "clear" is True, one keyboard event
+            is generated for each token.
+            Also, note that calling Screen.update will cause this to be called
+            with clear=True, to flush all keypress events. Applications using
+            'inkey' to read all input should make all the calls between 'updates'
+            defaults to True
 
     *Important*: This function only works inside a
     :any:`keyboard` managed context. (Posix)
@@ -93,34 +138,32 @@ def _posix_inkey(break_=True, clear=True, _dispatch=False):
     simultaneous key-presses.
 
     """
-    keycode = ""
 
-    if clear:
-        c = sys.stdin.read(10000)
-        if c:
-            c = c[
-                c.rfind("\x1b") :
-            ]  # if \x1b is not found, rfind returns -1, which is the desired value
+    # In this context, 'token' is either a single-char string, representing an
+    # 'ordinary' keypress or an escape sequence representing a special key or mouse event.
+    old_keycode = ""
+
+    if not clear:
+        buffer = sys.stdin
     else:
-        c = sys.stdin.read(1)  # returns a single character
+        # read all buffer, generate events for all tokens
+        # but return only the last event
+        # (so, the caller to "inkey" have info on the last pressed key)
+        buffer = io.StringIO(sys.stdin.read(10000))
+        buffer.seek(0)
 
     while True:
-        if not c:
-            break
-        if c == "\x03" and break_:
+        keycode, stream_eof = _posix_scan_code(buffer)
+        if stream_eof and not keycode:
+            keycode = old_keycode
+        if keycode == '\x03' and break_:
             raise KeyboardInterrupt()
-        keycode += c
-        if (len(keycode) == 1 or keycode in KeyCodes.codes) and keycode != "\x1b" or len(keycode) > 20:
+        if list_subscriptions(EventTypes.KeyPress):
+            Event(EventTypes.KeyPress, key=keycode)
+        if not clear or stream_eof:
+            # next characters will be consumed in next calls
             break
-        if mouse.enabled:
-            m = mouse.match(keycode)
-            if m:
-                return ""
-        c = sys.stdin.read(1)
-
-    if _dispatch:
-        Event(EventTypes.KeyPress, key=keycode)
-
+        old_keycode = keycode
     return keycode
 
 
@@ -152,6 +195,7 @@ def pause(timeout=0) -> None:
 
     """
     getch(timeout)
+
 
 def _testkeys():
     """Debug function to print out keycodes as read by :any:`inkey`"""
@@ -221,7 +265,7 @@ def _win32_keyboard():
 
 
 
-def _win32_inkey(break_=True, clear=True, _dispatch=False):
+def _win32_inkey(break_=True, clear=True):
     """Return currently pressed key as a string
 
     Args:
@@ -229,8 +273,7 @@ def _win32_inkey(break_=True, clear=True, _dispatch=False):
         (\x03) should raise KeyboardInterrupt or be returned as a
         keycode. Defaults to True.
       - clear (bool): clears the keyboard buffer contents
-      - _dispatch (bool): dispatch keyboard Events for keypresses
-            used internally for event-based keyboard reading
+
 
     *Important*: This function only works inside a
     :any:`keyboard` managed context. (Posix)
@@ -244,6 +287,9 @@ def _win32_inkey(break_=True, clear=True, _dispatch=False):
     is not configurable, nor can it detect modifier keys, or
     simultaneous key-presses.
 
+    [WIP: latest updates adding support for the event system
+    on the posix side where not reflected here]
+
     """
 
     if not msvcrt.kbhit():
@@ -253,7 +299,7 @@ def _win32_inkey(break_=True, clear=True, _dispatch=False):
     if code in "\x00à" : # and msvcrt.kbhit():
         code += msvcrt.getwch()
 
-    if _dispatch:
+    if list_subscriptions(EventTypes.KeyPress):
         Event(EventTypes.KeyPress, key=keycode)
 
     return code
@@ -404,6 +450,10 @@ class _Mouse:
                 click_event = Event(EventTypes.MouseClick, pos=V2(col, row), buttons=button)
 
         return event
+
+    def __call__(self):
+        # Keeps symmetry with "keyboard" which must be called for use as with context management
+        return self
 
 
 

@@ -32,6 +32,12 @@ class EventTypes(IterableFlag):
     Custom = 256
 
 
+# Get rid of the "EventTypes namespace":
+# make names above avaliable from TM.events.NAME
+for event in EventTypes:
+    globals()[event.name] = event
+
+
 class Event:
     def __init__(self, type, dispatch=True, **kwargs):
         """Event object - used to deliver messages across various
@@ -46,7 +52,7 @@ class Event:
         from terminedia.utils import get_current_tick
         self.__dict__.update(kwargs)
         self.timestamp = time.time()
-        self.tick = get_current_tick()
+        self.tick = kwargs.pop("tick", None) or get_current_tick()
         self.type = type
 
         if dispatch:
@@ -82,13 +88,20 @@ def dispatch(event):
     """Queues any event to be dispatchd latter, when "process" is called.
 
     An Event will normally call this implicitly when instantiated. But
-    if one pass it `dispatch=False` upon instanciation, this have to be
-    called manually.
+    if one pass it `dispatch=False` upon instantiation,
+    (for example, to set extra attributes before sending it away)
+    this have to be called manually.
     """
     _event_queue.append(event)
 
-# Alias so the function can be called by another name in Event.__init__
+
+# Alias so this function can be called by another name inside Event.__init__
 _event_dispatch = dispatch
+
+
+def list_subscriptions(type_: EventTypes) -> set():
+    """Returns a set with all active subscriptions for the given event type"""
+    return Subscription.subscriptions.get(type_, set())
 
 
 def process():
@@ -98,13 +111,12 @@ def process():
     not using Screen.update should call this on each iteration
     """
     for event in _event_queue:
-        for subscription in Subscription.subscriptions.get(event.type, ()):
+        for subscription in list_subscriptions(event.type):
             if subscription.callback:
                 subscription.callback(event)
             else:
                 subscription.queue.append(event)
     _event_queue.clear()
-
 
 
 def window_change_handler(signal_number, frame):
@@ -147,5 +159,12 @@ def _unregister_sigwinch():
     if _sigwinch_counter == 0 and _original_sigwinch:
         signal.signal(signal.SIGWINCH, _original_sigwinch)
 
+
+
+# These work as decorators for the events.
+# (The usual way to dispatch events is calling "Screen.update")
+keypress_handler = lambda func: Subscription(EventTypes.KeyPress, func).callback
+mouseclick_handler = lambda func: Subscription(EventTypes.MouseClick, func).callback
+mouse_handler = lambda func: Subscription(EventTypes.MouseClick | EventTypes.MouseMove | EventTypes.MousePress | EventTypes.MouseRelease, func).callback
 
 

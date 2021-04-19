@@ -19,7 +19,11 @@ from .colors import css_colors, Color, SpecialColor
 from .gradient import Gradient, EPSILON, ColorGradient
 
 
+# TODO: think of a smarter "lazy import" mechanism
+# to avoid circular imports
 root_context = None
+Event = None
+EventTypes = None
 
 
 def size_in_blocks(size, resolution=""):
@@ -51,8 +55,9 @@ def size_in_pixels(size, resolution=""):
 
 
 def get_current_tick():
-    """use a counter global to Screen module, increased on
-    calls to screen.update()
+    """use a counter in the root context
+
+    increased on calls to screen.update()
     """
     global root_context
     if not root_context:
@@ -61,10 +66,17 @@ def get_current_tick():
 
 
 def tick_forward():
-    global root_context
+    global root_context, Event, EventTypes
+
+    # Lazy imports:
     if not root_context:
         from terminedia import context as root_context
-    root_context.ticks = get_current_tick() + 1
+    if not Event:
+        from terminedia.events import Event, EventTypes
+
+    current = root_context.ticks = get_current_tick() + 1
+    # All events have "tick" automatically, but passing it explicitly avoids "get_current_tick" to be called again.
+    Event(EventTypes.Tick, tick=current)
 
 
 def combine_signatures(func, wrapper=None, include=None):

@@ -36,6 +36,7 @@ from terminedia.transformers import Transformer, TransformersContainer, Gradient
 # always available after importing the main library:
 import terminedia.transformers.library
 import terminedia.unicode
+from terminedia.events import EventTypes
 
 
 __version__ = "0.3.dev0"

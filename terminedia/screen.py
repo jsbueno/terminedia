@@ -74,6 +74,8 @@ class Screen:
     last_effects = None
 
     def __init__(self, size=(), clear_screen=True, backend="ansi"):
+        from terminedia import context as root_context
+
         if not size:
             self.get_size = lambda: V2(os.get_terminal_size())
             try:
@@ -133,21 +135,35 @@ class Screen:
         # Synchronize context for data and screen painting.
         self.data.context = self.context
         self.sprites = self.data.sprites
-        from terminedia import context
-        self.root_context = context
+        self.root_context = root_context
         self._last_setitem = 0
         self._init_event_system()
 
     def _init_event_system(self):
         self._event_subscriptions = []
         terminedia.events._register_sigwinch()
-        self._event_subscriptions.append(
+        self._event_subscriptions.extend([
             terminedia.events.Subscription(
                 terminedia.events.EventTypes.TerminalSizeChange,
                 self._size_change
-            )
-        )
+            ),
+            terminedia.events.Subscription(
+                terminedia.events.EventTypes.KeyPress,
+                self._inkey_pressed_check
+            ),
 
+        ])
+        self._inkey_called_since_last_update = False
+
+    def _inkey_pressed_check(self, event):
+        # Used to mark whether `update` should call "inkey"
+        # to ensure keyboard event dispatching.
+        # This is needed because inkey consumes stdin data, and if
+        # we call it unconditionally on Screen updade, we might suppress
+        # key presses expected by applications using "terminedia.inkey" to check for
+        # input instead of using the keyboard system
+
+        self._inkey_called_since_last_update = True
 
     def _size_change(self, event):
         # handler - called automatically when the terminal is resized.
@@ -172,6 +188,7 @@ class Screen:
         if self.clear_screen:
             self.commands.toggle_buffer()
         self.clear(self.clear_screen)
+
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -371,7 +388,7 @@ class Screen:
 
         This will be called automatically on "self.update" - it is
         set as a separate method because one could call this to get
-        input events before proceeding with the actuall display update.
+        input events before proceeding with the actual display update.
         """
         terminedia.events.process()
 
@@ -392,7 +409,16 @@ class Screen:
         Args:
             - pos1, pos2: Corners of a rectangle delimitting the area to be updated.
                 (optionally, 'pos1' can be a Rect object)
+
         """
+        tick_forward()
+
+        if not self._inkey_called_since_last_update:
+            # Ensure the dispatch of keypress events:
+            terminedia.inkey()
+
+        self._inkey_called_since_last_update = False
+
         self.process_events()
         rect = Rect(pos1, pos2)
         if rect.c2 == (0, 0) and pos2 is None:
@@ -406,7 +432,6 @@ class Screen:
                 for y in range(rect.top, rect.bottom):
                     for x in range(rect.left, rect.right):
                         self[x, y] = _REPLAY
-        tick_forward()
         if self.root_context.interactive_mode:
             # move cursor a couple lines from the bottom to avoid scrolling
             for i in range(3):
