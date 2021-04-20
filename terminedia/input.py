@@ -16,119 +16,289 @@ from terminedia.utils import mirror_dict, V2
 from terminedia.events import Event, EventTypes, list_subscriptions
 
 
-keyboard_on = False
+class KeyboardBase:
+    # abstract
+    def __enter__(self):
+        pass
 
-# Keyboard reading code copied and evolved from
-# https://stackoverflow.com/a/6599441/108205
-# (@mheyman, Mar, 2011)
+    def __exit__(self, *args):
+        pass
 
+    def inkey(self, break_=True, clear=True):
+        pass
+
+    def __call__(self):
+        return self
+
+class _posix_KeyCodes:
+    """Character keycodes as they appear in stdin
+
+    (and as they are reported by :any:`inkey` function). This class
+    is used only as a namespace. Also note that printable-character
+    keys, such as upper and lower case letters, numbers and symbols
+    are not listed here, as their "code" is just a string containing
+    themselves.
+    """
+
+    F1 = "\x1bOP"
+    F2 = "\x1bOQ"
+    F3 = "\x1bOR"
+    F4 = "\x1bOS"
+    F5 = "\x1b[15~"
+    F6 = "\x1b[17~"
+    F7 = "\x1b[18~"
+    F8 = "\x1b[19~"
+    F9 = "\x1b[20~"
+    F10 = "\x1b[21~"
+    F11 = "\x1b[23~"
+    F12 = "\x1b[24~"
+    ESC = "\x1b"
+    BACK = "\x7f"
+    DELETE = "\x1b[3~"
+    ENTER = "\r"
+    PGUP = "\x1b[5~"
+    PGDOWN = "\x1b[6~"
+    HOME = "\x1b[H"
+    END = "\x1b[F"
+    INSERT = "\x1b[2~"
+    UP = "\x1b[A"
+    RIGHT = "\x1b[C"
+    DOWN = "\x1b[B"
+    LEFT = "\x1b[D"
+
+    codes = mirror_dict(locals())
+
+
+class PosixKeyboard(KeyboardBase):
+
+    # Keyboard reading code copied and evolved from
+    # https://stackoverflow.com/a/6599441/108205
+    # (@mheyman, Mar, 2011)
+
+    def __init__(self):
+        self.enabled = 0
+        self._last_pressed_after_ESC = False
+
+    def __enter__(self):
+        """
+        This context manager reconfigures `stdin` so that key presses
+        are read in a non-blocking way.
+
+        Inside a managed block, the :any:`inkey` function can be called and will
+        return whether a key is currently pressed, and which it is.
+
+        An app that will make use of keyboard reading alongside screen
+        controling can enter both this and an instance of :any:`Screen` in the
+        same "with" block.
+
+        """
+        self.fd = sys.stdin.fileno()
+        # save old state
+        if self.enabled == 0:
+            self.flags_save = fcntl.fcntl(self.fd, fcntl.F_GETFL)
+            self.attrs_save = termios.tcgetattr(self.fd)
+        # make raw - the way to do this comes from the termios(3) man page.
+        attrs = list(self.attrs_save)  # copy the stored version to update
+        # iflag
+        attrs[0] &= ~(
+            termios.IGNBRK
+            | termios.BRKINT
+            | termios.PARMRK
+            | termios.ISTRIP
+            | termios.INLCR
+            | termios.IGNCR
+            | termios.ICRNL
+            | termios.IXON
+        )
+        # oflag
+        attrs[1] &= ~termios.OPOST
+        # cflag
+        attrs[2] &= ~(termios.CSIZE | termios.PARENB)
+        attrs[2] |= termios.CS8
+        # lflag
+        attrs[3] &= ~(
+            termios.ECHONL | termios.ECHO | termios.ICANON | termios.ISIG | termios.IEXTEN
+        )
+        termios.tcsetattr(self.fd, termios.TCSANOW, attrs)
+        fcntl.fcntl(self.fd, fcntl.F_SETFL, self.flags_save | os.O_NONBLOCK)
+        self.enabled += 1
+        return self
+
+    def __exit__(self, exc_type, exc_value, tb):
+        # restore old state
+        self.enabled -= 1
+        if self.enabled <= 0:
+            self.reset()
+
+
+    def reset(self):
+        if hasattr(self, "attrs_save"):
+            termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.attrs_save)
+            fcntl.fcntl(self.fd, fcntl.F_SETFL, self.flags_save)
+        self.enabled = 0
+        self._last_pressed_after_ESC = ""
+
+    def _scan_code(self, stream):
+
+        composed = ""
+        while True:
+            # read byte by byte, so that no extra input is consumed from stdin
+            if self._last_pressed_after_ESC:
+                next_char = self._last_pressed_after_ESC
+            else:
+                next_char = stream.read(1)
+            if not next_char:
+                return composed, True
+            # There is one special case, when "ESC" is pressed in non-clearing mode:
+            # we should not have read the next token, but it is already fetched by now.
+            if len(composed) == 2 and composed[0] == "\x1b" and composed[1] != "[":
+                self._last_pressed_after_ESC = composed[1]
+                return composed[0], False
+
+            self._last_pressed_after_ESC = ""
+            composed += next_char
+            if composed == "\x1b":
+                continue
+            if len(composed) == 1 or composed in self.keycodes.codes or len(composed) > 30:
+                return composed, False
+
+            # "mouse" is a module alias for the singleton of the posix-mouse reader, defined bellow.
+            if mouse.enabled:
+                # mouse.match consumes the token
+                m = mouse.match(composed)
+                if m:
+                    return "", False
+
+
+    def inkey(self, break_=True, clear=True):
+        """Return currently pressed key as a string
+
+        This is the implemenation of old 8-bit basic "inkey" and "inkey$" builtins,
+        and also the heart of the keybard input system.
+
+        Args:
+        - break\_ (bool): Boolean parameter specifying whether "CTRL + C"
+            (\x03) should raise KeyboardInterrupt or be returned as a
+            keycode. Defaults to True.
+        -clear (bool): clears the keyboard buffer contents.
+                If False, queued keyboard codes are returned in order, for each call
+                Otherwise queued codes are discarded and only the last-pressed character
+                if returned. Even when "clear" is True, one keyboard event
+                is generated for each token.
+                Also, note that calling Screen.update will cause this to be called
+                with clear=True, to flush all keypress events. Applications using
+                'inkey' to read all input should make all the calls between 'updates'
+                defaults to True
+
+        *Important*: This function only works inside a
+        :any:`keyboard` managed context. (Posix)
+
+        Code values or code sequences for non-character keys,
+        like ESC, direction arrows, fkeys are kept as constants
+        in the "KeyCodes" class.
+
+        Unfortunatelly, due to the nature of console streaming,
+        this can't receive "keypress" or "keyup" events, and repeat-rate
+        is not configurable, nor can it detect modifier keys, or
+        simultaneous key-presses.
+
+        """
+
+        # In this context, 'token' is either a single-char string, representing an
+        # 'ordinary' keypress or an escape sequence representing a special key or mouse event.
+
+        old_keycode = ""
+
+        if not clear:
+            buffer = sys.stdin
+        else:
+            # read all buffer, generate events for all tokens
+            # but return only the last event
+            # (so, the caller to "inkey" have info on the last pressed key)
+            buffer = io.StringIO(sys.stdin.read(10000))
+            buffer.seek(0)
+
+        while True:
+            keycode, stream_eof = self._scan_code(buffer)
+            if stream_eof and not keycode:
+                keycode = old_keycode
+            if keycode == '\x03' and break_:
+                raise KeyboardInterrupt()
+            if list_subscriptions(EventTypes.KeyPress):
+                Event(EventTypes.KeyPress, key=keycode)
+            if not clear or stream_eof:
+                # next characters will be consumed in next calls
+                break
+            old_keycode = keycode
+        return keycode
+
+    keycodes = _posix_KeyCodes
+
+
+class _win32_KeyCodes:
+    """Character keycodes as they appear in stdin
+
+    (and as they are reported by :any:`inkey` function). This class
+    is used only as a namespace. Also note that printable-character
+    keys, such as upper and lower case letters, numbers and symbols
+    are not listed here, as their "code" is just a string containing
+    themselves.
+    """
+
+    F1 = "\x00;"
+    F2 = "\x00<"
+    F3 = "\x00="
+    F4 = "\x00>"
+    F5 = "\x00?"
+    F6 = "\x00@"
+    F7 = "\x00A"
+    F8 = "\x00B"
+    F9 = "\x00C"
+    F10 = "\x00D"
+    F11 = "á\x85"
+    F12 = "á\x86"
+    ESC = "\x1b"
+    BACK = "\x08"
+    DELETE = "à5"
+    ENTER = "\r"
+    PGUP = "àI"
+    PGDOWN = "àQ"
+    HOME = "àG"
+    END = "àO"
+    INSERT = "àR"
+    UP = "àH"
+    RIGHT = "àM"
+    DOWN = "àP"
+    LEFT = "àK"
+
+    codes = mirror_dict(locals())
 
 @contextmanager
-def _posix_keyboard():
+def _win32_keyboard():
     """
-    This context manager reconfigures `stdin` so that key presses
-    are read in a non-blocking way.
+    This context manager is available to offer compatibility with the Posix equivalent.
 
-    Inside a managed block, the :any:`inkey` function can be called and will
-    return whether a key is currently pressed, and which it is.
-
-    An app that will make use of keyboard reading alongside screen
-    controling can enter both this and an instance of :any:`Screen` in the
-    same "with" block.
-
+    It is not really needed under Windows.
 
     """
-    global keyboard_on
-    fd = sys.stdin.fileno()
-    # save old state
-    flags_save = fcntl.fcntl(fd, fcntl.F_GETFL)
-    attrs_save = termios.tcgetattr(fd)
-    # make raw - the way to do this comes from the termios(3) man page.
-    attrs = list(attrs_save)  # copy the stored version to update
-    # iflag
-    attrs[0] &= ~(
-        termios.IGNBRK
-        | termios.BRKINT
-        | termios.PARMRK
-        | termios.ISTRIP
-        | termios.INLCR
-        | termios.IGNCR
-        | termios.ICRNL
-        | termios.IXON
-    )
-    # oflag
-    attrs[1] &= ~termios.OPOST
-    # cflag
-    attrs[2] &= ~(termios.CSIZE | termios.PARENB)
-    attrs[2] |= termios.CS8
-    # lflag
-    attrs[3] &= ~(
-        termios.ECHONL | termios.ECHO | termios.ICANON | termios.ISIG | termios.IEXTEN
-    )
-    termios.tcsetattr(fd, termios.TCSANOW, attrs)
-    fcntl.fcntl(fd, fcntl.F_SETFL, flags_save | os.O_NONBLOCK)
-    keyboard_on = True
+    global enabled
+    enabled = True
     try:
         yield
     finally:
-        # restore old state
-        termios.tcsetattr(fd, termios.TCSAFLUSH, attrs_save)
-        fcntl.fcntl(fd, fcntl.F_SETFL, flags_save)
-        keyboard_on = False
+        enabled = False
 
 
-_last_pressed_after_ESC = ""
 
-def _posix_scan_code(stream):
-    global _last_pressed_after_ESC
-
-    composed = ""
-    while True:
-        # read byte by byte, so that no extra input is consumed from stdin
-        if _last_pressed_after_ESC:
-            next_char = _last_pressed_after_ESC
-        else:
-            next_char = stream.read(1)
-        if not next_char:
-            return composed, True
-        # There is one special case, when "ESC" is pressed in non-clearing mode:
-        # we should not have read the next token, but it is already fetched by now.
-        if len(composed) == 2 and composed[0] == "\x1b" and composed[1] != "[":
-            _last_pressed_after_ESC = composed[1]
-            return composed[0], False
-
-        _last_pressed_after_ESC = ""
-        composed += next_char
-        if composed == "\x1b":
-            continue
-        if len(composed) == 1 or composed in KeyCodes.codes or len(composed) > 30:
-            return composed, False
-        if mouse.enabled:
-            # mouse.match consumes the token
-            m = mouse.match(composed)
-            if m:
-                return "", False
-
-
-def _posix_inkey(break_=True, clear=True):
+def _win32_inkey(break_=True, clear=True):
     """Return currently pressed key as a string
-
-    This is the implemenation of old 8-bit basic "inkey" and "inkey$" builtins,
-    and also the heart of the keybard input system.
 
     Args:
       - break\_ (bool): Boolean parameter specifying whether "CTRL + C"
         (\x03) should raise KeyboardInterrupt or be returned as a
         keycode. Defaults to True.
-      -clear (bool): clears the keyboard buffer contents.
-            If False, queued keyboard codes are returned in order, for each call
-            Otherwise queued codes are discarded and only the last-pressed character
-            if returned. Even when "clear" is True, one keyboard event
-            is generated for each token.
-            Also, note that calling Screen.update will cause this to be called
-            with clear=True, to flush all keypress events. Applications using
-            'inkey' to read all input should make all the calls between 'updates'
-            defaults to True
+      - clear (bool): clears the keyboard buffer contents
+
 
     *Important*: This function only works inside a
     :any:`keyboard` managed context. (Posix)
@@ -142,34 +312,22 @@ def _posix_inkey(break_=True, clear=True):
     is not configurable, nor can it detect modifier keys, or
     simultaneous key-presses.
 
+    [WIP: latest updates adding support for the event system
+    on the posix side where not reflected here]
+
     """
 
-    # In this context, 'token' is either a single-char string, representing an
-    # 'ordinary' keypress or an escape sequence representing a special key or mouse event.
-    old_keycode = ""
+    if not msvcrt.kbhit():
+        return ""
 
-    if not clear:
-        buffer = sys.stdin
-    else:
-        # read all buffer, generate events for all tokens
-        # but return only the last event
-        # (so, the caller to "inkey" have info on the last pressed key)
-        buffer = io.StringIO(sys.stdin.read(10000))
-        buffer.seek(0)
+    code = msvcrt.getwch()
+    if code in "\x00à" : # and msvcrt.kbhit():
+        code += msvcrt.getwch()
 
-    while True:
-        keycode, stream_eof = _posix_scan_code(buffer)
-        if stream_eof and not keycode:
-            keycode = old_keycode
-        if keycode == '\x03' and break_:
-            raise KeyboardInterrupt()
-        if list_subscriptions(EventTypes.KeyPress):
-            Event(EventTypes.KeyPress, key=keycode)
-        if not clear or stream_eof:
-            # next characters will be consumed in next calls
-            break
-        old_keycode = keycode
-    return keycode
+    if list_subscriptions(EventTypes.KeyPress):
+        Event(EventTypes.KeyPress, key=keycode)
+
+    return code
 
 
 def getch(timeout=0) -> str:
@@ -216,115 +374,6 @@ def _testkeys():
             time.sleep(0.3)
 
 
-class _posix_KeyCodes:
-    """Character keycodes as they appear in stdin
-
-    (and as they are reported by :any:`inkey` function). This class
-    is used only as a namespace. Also note that printable-character
-    keys, such as upper and lower case letters, numbers and symbols
-    are not listed here, as their "code" is just a string containing
-    themselves.
-    """
-
-    F1 = "\x1bOP"
-    F2 = "\x1bOQ"
-    F3 = "\x1bOR"
-    F4 = "\x1bOS"
-    F5 = "\x1b[15~"
-    F6 = "\x1b[17~"
-    F7 = "\x1b[18~"
-    F8 = "\x1b[19~"
-    F9 = "\x1b[20~"
-    F10 = "\x1b[21~"
-    F11 = "\x1b[23~"
-    F12 = "\x1b[24~"
-    ESC = "\x1b"
-    BACK = "\x7f"
-    DELETE = "\x1b[3~"
-    ENTER = "\r"
-    PGUP = "\x1b[5~"
-    PGDOWN = "\x1b[6~"
-    HOME = "\x1b[H"
-    END = "\x1b[F"
-    INSERT = "\x1b[2~"
-    UP = "\x1b[A"
-    RIGHT = "\x1b[C"
-    DOWN = "\x1b[B"
-    LEFT = "\x1b[D"
-
-    codes = mirror_dict(locals())
-
-
-@contextmanager
-def _win32_keyboard():
-    """
-    This context manager is available to offer compatibility with the Posix equivalent.
-
-    It is not really needed under Windows.
-
-    """
-    global keyboard_on
-    keyboard_on = True
-    try:
-        yield
-    finally:
-        keyboard_on = False
-
-
-
-def _win32_inkey(break_=True, clear=True):
-    """Return currently pressed key as a string
-
-    Args:
-      - break\_ (bool): Boolean parameter specifying whether "CTRL + C"
-        (\x03) should raise KeyboardInterrupt or be returned as a
-        keycode. Defaults to True.
-      - clear (bool): clears the keyboard buffer contents
-
-
-    *Important*: This function only works inside a
-    :any:`keyboard` managed context. (Posix)
-
-    Code values or code sequences for non-character keys,
-    like ESC, direction arrows, fkeys are kept as constants
-    in the "KeyCodes" class.
-
-    Unfortunatelly, due to the nature of console streaming,
-    this can't receive "keypress" or "keyup" events, and repeat-rate
-    is not configurable, nor can it detect modifier keys, or
-    simultaneous key-presses.
-
-    [WIP: latest updates adding support for the event system
-    on the posix side where not reflected here]
-
-    """
-
-    if not msvcrt.kbhit():
-        return ""
-
-    code = msvcrt.getwch()
-    if code in "\x00à" : # and msvcrt.kbhit():
-        code += msvcrt.getwch()
-
-    if list_subscriptions(EventTypes.KeyPress):
-        Event(EventTypes.KeyPress, key=keycode)
-
-    return code
-
-
-def _testkeys():
-    """Debug function to print out keycodes as read by :any:`inkey`"""
-    with keyboard():
-        while True:
-            try:
-                key = inkey()
-            except KeyboardInterrupt:
-                break
-            if key:
-                print("", key.encode("utf-8"), end="", flush=True)
-            print(".", end="", flush=True)
-            time.sleep(0.3)
-
 def _testmouse():
     # https://stackoverflow.com/questions/59864485/capturing-mouse-in-virtual-terminal-with-ansi-escape
     # change stdin and stdout into unbuffered
@@ -344,43 +393,6 @@ def _testmouse():
 
     print("\x1b[?1005l")
 
-class _win32_KeyCodes:
-    """Character keycodes as they appear in stdin
-
-    (and as they are reported by :any:`inkey` function). This class
-    is used only as a namespace. Also note that printable-character
-    keys, such as upper and lower case letters, numbers and symbols
-    are not listed here, as their "code" is just a string containing
-    themselves.
-    """
-
-    F1 = "\x00;"
-    F2 = "\x00<"
-    F3 = "\x00="
-    F4 = "\x00>"
-    F5 = "\x00?"
-    F6 = "\x00@"
-    F7 = "\x00A"
-    F8 = "\x00B"
-    F9 = "\x00C"
-    F10 = "\x00D"
-    F11 = "á\x85"
-    F12 = "á\x86"
-    ESC = "\x1b"
-    BACK = "\x08"
-    DELETE = "à5"
-    ENTER = "\r"
-    PGUP = "àI"
-    PGDOWN = "àQ"
-    HOME = "àG"
-    END = "àO"
-    INSERT = "àR"
-    UP = "àH"
-    RIGHT = "àM"
-    DOWN = "àP"
-    LEFT = "àK"
-
-    codes = mirror_dict(locals())
 
 
 class MouseButtons(enum.IntFlag):
@@ -471,9 +483,8 @@ mouse = _Mouse()
 if sys.platform != "win32":
     import fcntl
     import termios
-
-    inkey = _posix_inkey
-    keyboard = _posix_keyboard
+    keyboard = PosixKeyboard()
+    inkey = keyboard.inkey
     KeyCodes = _posix_KeyCodes
 else:
     import msvcrt
