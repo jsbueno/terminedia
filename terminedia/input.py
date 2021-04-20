@@ -18,6 +18,9 @@ from terminedia.events import Event, EventTypes, list_subscriptions
 
 class KeyboardBase:
     # abstract
+    def __init__(self):
+        self.enabled = 0
+
     def __enter__(self):
         pass
 
@@ -29,6 +32,7 @@ class KeyboardBase:
 
     def __call__(self):
         return self
+
 
 class _posix_KeyCodes:
     """Character keycodes as they appear in stdin
@@ -69,14 +73,14 @@ class _posix_KeyCodes:
     codes = mirror_dict(locals())
 
 
-class PosixKeyboard(KeyboardBase):
+class _PosixKeyboard(KeyboardBase):
 
     # Keyboard reading code copied and evolved from
     # https://stackoverflow.com/a/6599441/108205
     # (@mheyman, Mar, 2011)
 
     def __init__(self):
-        self.enabled = 0
+        super().__init__()
         self._last_pressed_after_ESC = False
 
     def __enter__(self):
@@ -273,61 +277,52 @@ class _win32_KeyCodes:
 
     codes = mirror_dict(locals())
 
-@contextmanager
-def _win32_keyboard():
-    """
-    This context manager is available to offer compatibility with the Posix equivalent.
+class _WindowsKeyboard(KeyboardBase):
+    def __enter__(self):
+        """
+        This context manager is available to offer compatibility with the Posix equivalent.
 
-    It is not really needed under Windows.
+        It is not really needed under Windows, as the keyboard input is got via
+        a "side channel" API.
 
-    """
-    global enabled
-    enabled = True
-    try:
-        yield
-    finally:
-        enabled = False
+        """
+        self.enabled += 1
+        return self
 
-
-
-def _win32_inkey(break_=True, clear=True):
-    """Return currently pressed key as a string
-
-    Args:
-      - break\_ (bool): Boolean parameter specifying whether "CTRL + C"
-        (\x03) should raise KeyboardInterrupt or be returned as a
-        keycode. Defaults to True.
-      - clear (bool): clears the keyboard buffer contents
+    def __exit__(self, exc_type, exc_value, tb):
+        self.enabled -= 1
 
 
-    *Important*: This function only works inside a
-    :any:`keyboard` managed context. (Posix)
 
-    Code values or code sequences for non-character keys,
-    like ESC, direction arrows, fkeys are kept as constants
-    in the "KeyCodes" class.
+    def inkey(self, break_=True, clear=True):
+        """Return currently pressed key as a string
 
-    Unfortunatelly, due to the nature of console streaming,
-    this can't receive "keypress" or "keyup" events, and repeat-rate
-    is not configurable, nor can it detect modifier keys, or
-    simultaneous key-presses.
+        Args:
+        - break\_ (bool): Boolean parameter specifying whether "CTRL + C"
+            (\x03) should raise KeyboardInterrupt or be returned as a
+            keycode. Defaults to True.
+        - clear (bool): clears the keyboard buffer contents
 
-    [WIP: latest updates adding support for the event system
-    on the posix side where not reflected here]
 
-    """
+        [WIP: latest updates adding support for the event system
+        on the posix side where not reflected here]
+        [TODO: Dispatch mouse event handling from here]
 
-    if not msvcrt.kbhit():
-        return ""
+        """
 
-    code = msvcrt.getwch()
-    if code in "\x00à" : # and msvcrt.kbhit():
-        code += msvcrt.getwch()
+        if not msvcrt.kbhit():
+            return ""
 
-    if list_subscriptions(EventTypes.KeyPress):
-        Event(EventTypes.KeyPress, key=keycode)
+        code = msvcrt.getwch()
+        if code in "\x00à" : # and msvcrt.kbhit():
+            code += msvcrt.getwch()
 
-    return code
+        if list_subscriptions(EventTypes.KeyPress):
+            Event(EventTypes.KeyPress, key=keycode)
+
+        return code
+
+    keycodes = _win32_KeyCodes
 
 
 def getch(timeout=0) -> str:
@@ -475,21 +470,22 @@ class _Mouse:
         return self
 
 
-
+# Singleton avaliable application wide:
 mouse = _Mouse()
-
 
 
 if sys.platform != "win32":
     import fcntl
     import termios
-    keyboard = PosixKeyboard()
+    # Singleton avaliable application wide:
+    keyboard = _PosixKeyboard()
     inkey = keyboard.inkey
     KeyCodes = _posix_KeyCodes
 else:
     import msvcrt
-    inkey = _win32_inkey
-    keyboard = _win32_keyboard
+    # Singleton avaliable application wide:
+    keyboard = _WindowsKeyboard()
+    inkey = keyboard.inkey
     KeyCodes = _win32_KeyCodes
 
 
