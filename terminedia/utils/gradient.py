@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import typing as T
 
 from .colors import Color
@@ -86,7 +84,7 @@ class Gradient:
             root = root.parent
         return root
 
-    def scale(self, scale_factor) -> Gradient:
+    def scale(self, scale_factor) -> "Gradient":
         new_gr = self.__class__.__new__(self.__class__)
         new_gr.stops = self.stops
         new_gr.scale_factor = self.scale_factor * scale_factor
