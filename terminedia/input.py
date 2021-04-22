@@ -207,7 +207,6 @@ class _PosixKeyboard(KeyboardBase):
         simultaneous key-presses.
 
         """
-
         # In this context, 'token' is either a single-char string, representing an
         # 'ordinary' keypress or an escape sequence representing a special key or mouse event.
 
@@ -228,7 +227,7 @@ class _PosixKeyboard(KeyboardBase):
                 keycode = old_keycode
             if keycode == '\x03' and break_:
                 raise KeyboardInterrupt()
-            if list_subscriptions(EventTypes.KeyPress):
+            if keycode and list_subscriptions(EventTypes.KeyPress):
                 Event(EventTypes.KeyPress, key=keycode)
             if not clear or stream_eof:
                 # next characters will be consumed in next calls

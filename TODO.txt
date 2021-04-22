@@ -339,7 +339,8 @@ Future
 
 - Event system
     Allow for CSS like animations, mainloop and callback registration
-    for events
+    for events [V]
+        - need a way to specify animations (preliminary event system alreayd accepts callback by "tick")
 
 - System Font finding and auto-terminal config
     - Find a way to find witch unicode-glyphs are available in system-wide fonts
@@ -536,3 +537,4 @@ Bugs
     bug: terminedia-shapes for colored shapes(shape2) is behaving weird for the first frame, after refactoring how Transparency works with sprites
     bug: Screen.data.render yielding strange results for just some text rendered on screen.
     bug: Screen.print and Screen.text[1].print - not working, (probably broken by markup usage in text[].at)
+    bug: several tests failing on pypy3

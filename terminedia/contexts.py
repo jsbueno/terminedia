@@ -272,3 +272,6 @@ class _RootContext(Context):
     ## but it does that by creating a full context class
     ## in _locals - while text-styling might need another context
     ## attribute on a per-character basis.
+
+# TODO:(2) evolve the "extracontext" package until it can be have a drop-in replacement
+# for the Context classes defined here.

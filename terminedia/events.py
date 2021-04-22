@@ -1,3 +1,4 @@
+import asyncio
 import time
 
 from collections import deque
@@ -7,6 +8,7 @@ import signal
 
 
 from terminedia.utils import IterableFlag, V2
+import terminedia
 
 
 #: Inner, process-wide event queue.
@@ -30,6 +32,7 @@ class EventTypes(IterableFlag):
     MouseClick = 64
     TerminalSizeChange = 128
     Custom = 256
+    QuitLoop = 512
 
 
 # Get rid of the "EventTypes namespace":
@@ -74,11 +77,37 @@ class Subscription:
             self.queue = deque()
         self.types = event_types
         for type_ in event_types:
-            cls.subscriptions.setdefault(type_, set()).add(self)
+            cls.subscriptions.setdefault(type_, []).append(self)
+        self.resolution = .005
+        self.terminated = False
+
+    def __bool__(self):
+        if self.callback:
+            return True
+        return bool(self.queue)
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        # callbackless subscriptions can be used in an async-for to fetch events
+        if self.callback:
+            raise TypeError("Subscriptions with a callback set can't be iterated")
+        while not self.terminated:
+            if self.queue:
+                return self.queue.popleft()
+            await asyncio.sleep(self.resolution)
+            # HACK: pump keyboard events if not in a Screen context
+            if KeyPress in self.types:
+                terminedia.inkey()
+            process()
+
+        raise StopAsyncIteration()
 
     def kill(self):
         for type in self.types:
             self.__class__.subscriptions[type].remove(self)
+        self.terminated = True
 
     def __repr__(self):
         return f"Subscription {self.types}{', callback: ' + repr(self.callback) if self.callback else '' }"

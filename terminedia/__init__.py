@@ -37,16 +37,17 @@ from terminedia.transformers import Transformer, TransformersContainer, Gradient
 import terminedia.transformers.library
 import terminedia.unicode
 from terminedia.events import EventTypes
+from terminedia.asynchronous import terminedia_main, ainput
 
 
-__version__ = "0.3.dev0"
+__version__ = "0.4.dev0"
 __author__ = "João S. O. Bueno"
 
 
 print = ScreenCommands().print
 
 # These will be used for other backends than terminal rendering:
-context = _RootContext(default_fg="white", default_bg="black")
+context = _RootContext(default_fg="white", default_bg="black", fps=5)
 context.interactive_mode = sys.argv[0] == "" or sys.argv[0].endswith("ipython")
 context.fast_render = True
 
