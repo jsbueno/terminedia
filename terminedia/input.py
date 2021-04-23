@@ -103,7 +103,8 @@ class _PosixKeyboard(KeyboardBase):
             self.attrs_save = termios.tcgetattr(self.fd)
         # make raw - the way to do this comes from the termios(3) man page.
         attrs = list(self.attrs_save)  # copy the stored version to update
-        # iflag
+
+        # Check flags at https://linux.die.net/man/3/termios
         attrs[0] &= ~(
             termios.IGNBRK
             | termios.BRKINT
@@ -210,7 +211,7 @@ class _PosixKeyboard(KeyboardBase):
         # In this context, 'token' is either a single-char string, representing an
         # 'ordinary' keypress or an escape sequence representing a special key or mouse event.
 
-        old_keycode = ""
+        last_emitted = old_keycode = ""
 
         if not clear:
             buffer = sys.stdin
@@ -228,7 +229,9 @@ class _PosixKeyboard(KeyboardBase):
             if keycode == '\x03' and break_:
                 raise KeyboardInterrupt()
             if keycode and list_subscriptions(EventTypes.KeyPress):
-                Event(EventTypes.KeyPress, key=keycode)
+                if not(last_emitted == keycode and old_keycode == keycode):
+                    Event(EventTypes.KeyPress, key=keycode)
+                last_emitted = keycode
             if not clear or stream_eof:
                 # next characters will be consumed in next calls
                 break
