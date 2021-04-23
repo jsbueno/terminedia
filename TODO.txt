@@ -49,7 +49,7 @@ Targeted for next release (0.4):
 
     - mouse handling on windows
 
-    - inkey should error on posix if called outside of a "keyboard" context manager [WIP]
+    - inkey should error on posix if called outside of a "keyboard" context manager [v]
 
 [Future - wiget and App branch]:
 

@@ -218,6 +218,9 @@ class _PosixKeyboard(KeyboardBase):
         # In this context, 'token' is either a single-char string, representing an
         # 'ordinary' keypress or an escape sequence representing a special key or mouse event.
 
+        if not self.enabled:
+            raise RuntimeError("keyboard context manager must be entered to enable non-blocking keyboard reads")
+
         if self.not_consumed and consume:
             return self.not_consumed.popleft()
 
