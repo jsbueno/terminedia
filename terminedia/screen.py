@@ -351,6 +351,13 @@ class Screen:
 
         """
 
+        if len(value) > 1:
+            # Redirect strings through the text machinery.
+            # it will separate each char in a cell, take care
+            # of double chars, embedded attributes and so on
+            self.text[1][pos] = value
+            return
+
         cls = self.__class__
         with self.lock:
             # Force underlying shape machinnery to apply context attributes and transformations:
