@@ -132,9 +132,9 @@ class ScreenCommands(BackendColorContextMixin):
                         ("\x1b" if i else "") + arg
                         for i, arg in enumerate(args[0].split("\x1b"))
                     ]
-            for arg in args:
+            for i, arg in enumerate(args):
                 file.write(arg)
-                if sep:
+                if sep and i < len(args) - 1:
                     file.write(sep)
             if end:
                 file.write(end)
