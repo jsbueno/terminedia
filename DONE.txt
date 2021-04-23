@@ -17,7 +17,7 @@ version 0.4
 
  - terminedia_main Asynchronous mainloop
  - ainput asynchronous input function
-
+ - Screen.data aliased to Screen.shape to indicate it _should_ be used directly, and it is no internal-state only.
 
 New 'transformers library':
     - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters

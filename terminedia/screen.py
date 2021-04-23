@@ -131,7 +131,7 @@ class Screen:
         #: various output operations in a single block that is rendered at once.
         self.commands = CommandsClass()
         self.clear_screen = clear_screen
-        self.data = FullShape.new((self.width, self.height))
+        self.shape = self.data = FullShape.new((self.width, self.height))
         # Synchronize context for data and screen painting.
         self.data.context = self.context
         self.sprites = self.data.sprites
