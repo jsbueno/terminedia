@@ -136,16 +136,25 @@ def list_subscriptions(type_: EventTypes) -> set():
 def process():
     """Sends any created events since the last call to their subscribers.
 
-    Screen.update will call this regularly - programs
-    not using Screen.update should call this on each iteration
+    Screen.update, and interations on subscriptions will call this regularly;
+
     """
-    for event in _event_queue:
-        for subscription in list_subscriptions(event.type):
-            if subscription.callback:
-                subscription.callback(event)
-            else:
-                subscription.queue.append(event)
+
+    # Event processing in callbacks is synchronous, and as the callbacks
+    # can create other events, we have to copy the queue on each interaction
+    # to avoid the queue is changed during interaction.
+
+    events = deque(_event_queue)
     _event_queue.clear()
+    while  events:
+        for event in events:
+            for subscription in list_subscriptions(event.type):
+                if subscription.callback:
+                    subscription.callback(event)
+                else:
+                    subscription.queue.append(event)
+        events = deque(_event_queue)
+        _event_queue.clear()
 
 
 def window_change_handler(signal_number, frame):

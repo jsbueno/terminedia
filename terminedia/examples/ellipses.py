@@ -17,6 +17,9 @@ def test_ellipses(scr, sleep=0.2):
     scr.high.draw.ellipse((5, 3), (85, 60), fill=False)
     pause()
 
+    import asyncio
+
+
     for i in range(30):
         with scr.commands:
             for x in range(0, scr.high.get_size()[0] - 50, 10):
@@ -36,7 +39,7 @@ def test_ellipses(scr, sleep=0.2):
 
 @click.command()
 @click.option(
-    "sleep", "--sleep", "-s", default=0.2, help="Seconds to pause after each dran frame"
+    "sleep", "--sleep", "-s", default=0.2, help="Seconds to pause after each drawn frame"
 )
 def main(sleep=0.2):
     """Example and benchmark tests for the drawing API using ellipses

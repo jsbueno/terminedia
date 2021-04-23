@@ -36,16 +36,18 @@ async def terminedia_main(screen=None, context=None):
     if screen is None:
         screen = Screen()
     if context is None:
-        from terminedia import root_context as context
+        from terminedia import context
 
     break_loop = Subscription(QuitLoop)
+    context.screen = screen
 
-    while not break_loop:
+    with terminedia.keyboard, screen:
+        while not break_loop:
 
-        frame_start = time.time()
-        await asyncio.sleep(0)
-        screen.update()
-        await asyncio.sleep(1 / context.fps)
+            frame_start = time.time()
+            await asyncio.sleep(0)
+            screen.update()
+            await asyncio.sleep(1 / context.fps)
 
 
 def _refresh_line(text, pos, max_pos, backspace=0):
