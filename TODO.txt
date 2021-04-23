@@ -16,21 +16,19 @@ Targeted for next release (0.4):
 
         - way to do "event pump" [v]:
             - call "terminedia.events.process [v] # was "currently one does call 'inkey'":
-            - refactor _posix_inkey to us a separate function to read keystrokes + mouse + ANSI responses as tokens
+            - refactor _posix_inkey to us a separate function to read keystrokes + mouse + ANSI responses as tokens[v]
             - create "event pump" call in events to get the events running [v]
-            - have a keyboard + mouse event subscritpion on the "Screen" object context  (just use TM.events.Subscription)
+            - have a keyboard + mouse event subscritpion on the "Screen" object context [v]
             - establish a default event-discard policy (by number of ticks? seconds?)
             - have the "screen update" call pump the events[v]
 
     - Problem: Konsole does not report mouse position with no buttons pressed (it works on gnome-terminal)
 
-    - refactor "inkey" so that tokens in sys.stdin are read in an independent way.
+    - refactor "inkey" so that tokens in sys.stdin are read in an independent way.[v]
 
+    - last frame events can be retrieved without the need to add callbacks.[?]
 
-    - last frame events can be retrieved without the need to add callbacks.
-
-
-    - simple async "input" API
+    - simple async "input" API [v]
     - simple "cls" (have to take into acount the current cursor position)
 
     - implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change: [v]
@@ -44,12 +42,14 @@ Targeted for next release (0.4):
         - Actually create "shape.resize" methods - (just truncate on reduce, fill with context attrs on enlarge) [v]
         - Dispatch a self.data.resize order upon screen resize event on Screen [v]
 
-
-
         - check if there is a ms-windows equivalent - (yes - have to be hacked in: https://github.com/microsoft/terminal/issues/281)
 
     - Integrate "Observable Properties" into the event system?
             (currently used in text.resize, which is triggered by adding a border)
+
+    - mouse handling on windows
+
+    - inkey should error on posix if called outside of a "keyboard" context manager [WIP]
 
 [Future - wiget and App branch]:
 

@@ -15,6 +15,10 @@ version 0.4
  - sextant (1/6 block) (depends on unicode 12 with vintage charset)(V)
  - ObservableProperty descriptor class enabling reactive programing patterns(V)
 
+ - terminedia_main Asynchronous mainloop
+ - ainput asynchronous input function
+
+
 New 'transformers library':
     - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters
     - ThresholdTransformer - apply a threshold filter to a colored image.
