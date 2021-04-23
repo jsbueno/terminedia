@@ -9,7 +9,7 @@ import time
 
 import typing as T
 
-from collections import defaultdict, namedtuple
+from collections import defaultdict, deque, namedtuple
 from contextlib import contextmanager
 
 from terminedia.utils import mirror_dict, V2
@@ -82,6 +82,7 @@ class _PosixKeyboard(KeyboardBase):
     def __init__(self):
         super().__init__()
         self._last_pressed_after_ESC = False
+        self.not_consumed = deque()
 
     def __enter__(self):
         """
@@ -175,7 +176,7 @@ class _PosixKeyboard(KeyboardBase):
                     return "", False
 
 
-    def inkey(self, break_=True, clear=True):
+    def inkey(self, break_=True, clear=True, consume=True):
         """Return currently pressed key as a string
 
         This is the implemenation of old 8-bit basic "inkey" and "inkey$" builtins,
@@ -185,7 +186,7 @@ class _PosixKeyboard(KeyboardBase):
         - break\_ (bool): Boolean parameter specifying whether "CTRL + C"
             (\x03) should raise KeyboardInterrupt or be returned as a
             keycode. Defaults to True.
-        -clear (bool): clears the keyboard buffer contents.
+        - clear (bool): clears the keyboard buffer contents.
                 If False, queued keyboard codes are returned in order, for each call
                 Otherwise queued codes are discarded and only the last-pressed character
                 if returned. Even when "clear" is True, one keyboard event
@@ -194,6 +195,12 @@ class _PosixKeyboard(KeyboardBase):
                 with clear=True, to flush all keypress events. Applications using
                 'inkey' to read all input should make all the calls between 'updates'
                 defaults to True
+        - consume: remove the received key from keypresses. When using an event-based
+                approach, this function is responsible for dispatching the events, and
+                have to be called. The default behavior, however, will make keypresses
+                go missing when "inkey" is called to read the keyboard with the even system on.
+                TL;DR: the calls to inkey made by the inner event system should pass
+                False to this parameter, otherwise leave it as is.
 
         *Important*: This function only works inside a
         :any:`keyboard` managed context. (Posix)
@@ -210,6 +217,9 @@ class _PosixKeyboard(KeyboardBase):
         """
         # In this context, 'token' is either a single-char string, representing an
         # 'ordinary' keypress or an escape sequence representing a special key or mouse event.
+
+        if self.not_consumed and consume:
+            return self.not_consumed.popleft()
 
         last_emitted = old_keycode = ""
 
@@ -236,6 +246,8 @@ class _PosixKeyboard(KeyboardBase):
                 # next characters will be consumed in next calls
                 break
             old_keycode = keycode
+        if not consume:
+            self.not_consumed.append(keycode)
         return keycode
 
     keycodes = _posix_KeyCodes
@@ -296,7 +308,7 @@ class _WindowsKeyboard(KeyboardBase):
 
 
 
-    def inkey(self, break_=True, clear=True):
+    def inkey(self, break_=True, clear=True, consume=True):
         """Return currently pressed key as a string
 
         Args:

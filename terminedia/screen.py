@@ -422,7 +422,7 @@ class Screen:
 
         if terminedia.input.keyboard.enabled and not self._inkey_called_since_last_update:
             # Ensure the dispatch of keypress events:
-            terminedia.inkey()
+            terminedia.inkey(consume=False)
 
         self._inkey_called_since_last_update = False
 

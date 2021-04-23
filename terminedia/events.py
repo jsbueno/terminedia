@@ -99,7 +99,7 @@ class Subscription:
             await asyncio.sleep(self.resolution)
             # HACK: pump keyboard events if not in a Screen context
             if KeyPress in self.types:
-                terminedia.inkey()
+                terminedia.inkey(consume=False)
             process()
 
         raise StopAsyncIteration()
