@@ -37,7 +37,7 @@ def draw(event):
     char = inkey() or char
     #if char == "\x1b":
         #Event(EventTypes.QuitLoop)
-    sc.data.draw.rect(Rect((random.randint(0, width), random.randint(0,height)), width_height=(20, 10)), color=random.choice("red green yellow blue".split()), char=char, fill=True)
+    sc.draw.rect(Rect((random.randint(0, width), random.randint(0,height)), width_height=(20, 10)), color=random.choice("red green yellow blue".split()), char=char, fill=True)
 
 
 def main():

@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 _REPLAY = object()
 
 
+legacy_screen_draw = False
+
 class Screen:
     """Canvas class for terminal drawing.
 
@@ -97,8 +99,6 @@ class Screen:
         #: ``color``, ``background``, ``direction``, ``effects`` and ``char``.
         self.context = Context()
 
-        #: Namespace for drawing methods, containing an instance of the :any:`Drawing` class
-        self.draw = Drawing(self.set_at, self.reset_at, self.get_size, self.context)
         self.width, self.height = self.size = size
 
         #: Namespace to allow high-resolution drawing using a :any:`HighRes` instance
@@ -132,12 +132,40 @@ class Screen:
         self.commands = CommandsClass()
         self.clear_screen = clear_screen
         self.shape = self.data = FullShape.new((self.width, self.height))
+
+        #: Namespace for drawing methods, containing an instance of the :any:`Drawing` class
+        self.draw = Drawing(self.set_at, self.reset_at, self.get_size, self.context)
+
         # Synchronize context for data and screen painting.
         self.data.context = self.context
         self.sprites = self.data.sprites
         self.root_context = root_context
         self._last_setitem = 0
         self._init_event_system()
+
+    def accelerate(self):
+        """makes drawing less interactive, but faster
+
+        Replaces the "self.draw" namespace to the one going through the
+        associated shape (self.shape) - aftewrards
+        self.update() have to be called in order to reflect any
+        drawing on the terminal, but it gets faster as updates
+        in large blocks.
+
+        Also, the "native" `self.draw` is a bit rough when it commes
+        to drawing off the screen limits.
+
+        This is called automatically by the terminedia_main loop.
+
+        There is no "de-acellarate" converse call, once an app is
+        already using screen.update it makes little sense
+        to togle back, but all one have to do if needed, is to
+        replace the attribute by a new Draw instance as created
+        inside `__init__`.
+
+        """
+        self.draw = self.shape.draw
+
 
     def _init_event_system(self):
         self._event_subscriptions = []

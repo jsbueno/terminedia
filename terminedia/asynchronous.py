@@ -41,6 +41,8 @@ async def terminedia_main(screen=None, context=None):
     break_loop = Subscription(QuitLoop)
     context.screen = screen
 
+    screen.accelerate()
+
     with terminedia.keyboard, screen:
         while not break_loop:
 
