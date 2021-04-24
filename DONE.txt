@@ -19,6 +19,7 @@ version 0.4
  - ainput asynchronous input function
  - Screen.data aliased to Screen.shape to indicate it _should_ be used directly, and it is no internal-state only.
  - Screen.accelerate to bypass legacy drawing mode when using the mainloop
+ - terminedia "input" function: synchronous version of ainput
 
 New 'transformers library':
     - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters

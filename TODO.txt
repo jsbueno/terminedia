@@ -50,6 +50,8 @@ Targeted for next release (0.4):
     - mouse handling on windows
 
     - inkey should error on posix if called outside of a "keyboard" context manager [v]
+    - terminedia "input" function: synchronous version of ainput [WIP]
+    - make input accept context-parameters, like print does.
 
 [Future - wiget and App branch]:
 

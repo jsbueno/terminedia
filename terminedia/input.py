@@ -372,6 +372,25 @@ def pause(timeout=0) -> None:
     getch(timeout)
 
 
+def input(prompt="", maxwidth=None, insert=True):
+    import asyncio
+    from terminedia.asynchronous import ainput
+
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        # when there is no loop and not on main thread:
+        # for example, from within ipython
+        loop = asyncio.new_eventloop()
+
+
+    input_coro = ainput(prompt, maxwidth, insert)
+
+    if loop.is_running():
+        raise RuntimeError("In async contexts, use terminedia.ainput instead")
+    return loop.run_until_complete(input_coro)
+
+
 def _testkeys():
     """Debug function to print out keycodes as read by :any:`inkey`"""
     with keyboard():
