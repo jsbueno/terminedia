@@ -5,6 +5,7 @@ import terminedia
 from terminedia.events import QuitLoop, Subscription, KeyPress
 from terminedia.screen import Screen
 from terminedia.input import KeyCodes
+from terminedia.utils import contextkwords
 
 
 async def terminedia_main(screen=None, context=None):
@@ -60,6 +61,7 @@ def _refresh_line(text, pos, max_pos, backspace=0):
     terminedia.print(delete_back, text, clear, move_back, sep="", end="", flush=True)
 
 
+# @contextkwords
 async def ainput(prompt="", maxwidth=None, insert=True):
     result = []
     if prompt:

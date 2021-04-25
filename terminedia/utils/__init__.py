@@ -174,7 +174,9 @@ def combine_signatures(func, wrapper=None, include=None):
             *opt(var_keyword, f"**{var_keyword[0].name}" if var_keyword else ""),
         ]
     )
-    declaration = f"def {func.__name__}({param_spec}): pass"
+
+    coroutinedef = "async " if inspect.iscoroutinefunction(func) else ""
+    declaration = f"{coroutinedef}def {func.__name__}({param_spec}): pass"
 
     f_globals = func.__globals__
     f_locals = {}
