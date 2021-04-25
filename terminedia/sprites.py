@@ -9,7 +9,26 @@ tags = dict()
 
 
 class Sprite:
-    def __init__(self, shapes=None, pos=(0,0), active=False, tick_cycle=1, anchor="topleft", alpha=True):
+    """Sprites are meant to be associated with Shapes
+
+    They themselves contain a collection of shapes, a position relative to the
+    top-left or center location of the base shape on the host shape.
+
+    When the base shape is rendered (using blit or screen.update), if the sprite is active,
+    corresponding pixels  are picked from the sprite. Thus, a sprite can be moved around the
+    host shape by changes to its `.pos` attribute,  without interfering with the host's
+    contents.
+
+    If more than one shape is in the collection, there is always one
+    active shape selected by the current "tick" mod self.tick_cycle:
+    this provides a descomplicated way to have an animated shape;
+    ("tick" is a global value increased by one each time Screen.update() is called)
+
+    (Each shape on a sprite can, in turn, be host to text planes, and other
+    sprites as needed)
+
+    """
+    def __init__(self, shapes=None, pos=(0,0), active=True, tick_cycle=1, anchor="topleft", alpha=True):
         from terminedia.image import Shape
         self.shapes = shapes if isinstance(shapes, Sequence) and not isinstance(shapes, Shape) else [shapes]
         self.pos = pos

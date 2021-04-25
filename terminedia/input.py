@@ -523,5 +523,3 @@ else:
     keyboard = _WindowsKeyboard()
     inkey = keyboard.inkey
     KeyCodes = _win32_KeyCodes
-
-
