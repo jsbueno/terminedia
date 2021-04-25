@@ -1,3 +1,4 @@
+import copy
 import inspect
 import math
 from functools import partial
@@ -292,7 +293,18 @@ def contextkwords(func=None, context_path=None, text_attrs=False):
         if "context" in sig.parameters:
             kwargs["context"] = work_context
 
-        with work_context(**context_kw):
-            return func(*args, **kwargs)
+        with work_context(**context_kw) as workctx:
+            result = func(*args, **kwargs)
+            if inspect.iscoroutine(result):
+                ctx = copy.copy(workctx)
+                result = wrapcoro(ctx, result)
+            return result
 
     return wrapper
+
+
+async def wrapcoro(ctx, coro):
+    with ctx:
+        result = await coro
+        ...
+    return result

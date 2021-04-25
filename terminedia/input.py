@@ -382,7 +382,7 @@ def input(prompt="", maxwidth=None, insert=True):
     except RuntimeError:
         # when there is no loop and not on main thread:
         # for example, from within ipython
-        loop = asyncio.new_eventloop()
+        loop = asyncio.new_event_loop()
 
 
     input_coro = ainput(prompt, maxwidth, insert)

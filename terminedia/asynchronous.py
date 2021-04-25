@@ -61,7 +61,7 @@ def _refresh_line(text, pos, max_pos, backspace=0):
     terminedia.print(delete_back, text, clear, move_back, sep="", end="", flush=True)
 
 
-# @contextkwords
+@contextkwords
 async def ainput(prompt="", maxwidth=None, insert=True):
     result = []
     if prompt:
