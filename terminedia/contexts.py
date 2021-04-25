@@ -4,6 +4,8 @@ import threading
 from copy import copy
 from types import FunctionType
 
+import terminedia
+
 from terminedia.utils import Color, SpecialColor, V2
 from terminedia.transformers import TransformersContainer
 from terminedia.subpixels import BlockChars
@@ -46,6 +48,29 @@ class ContextVar:
 
 
 _EmptySentinel = object()
+
+class _ContextTracker(dict):
+    def push(self, ctx):
+        self.setdefault(hash(threading.current_thread()), []).append(ctx)
+
+    def _get(self, value, default=None):
+        return super().get(value, default)
+
+    def pop(self):
+        stack = self._get(hash(threading.current_thread()))
+        if stack:
+            stack.pop()
+
+    def get(self):
+        stack = self._get(hash(threading.current_thread()))
+        if stack:
+            return stack[-1]
+        # root context:
+        return terminedia.context
+
+#: Active context regitry, per thread: use "active_context.get()" in any
+#: function to retrieve the last Context object entered (even in an upstream context manager)
+active_context = _ContextTracker()
 
 
 class Context:
@@ -158,9 +183,10 @@ class Context:
             # Use this to signal that the stacked context should be popped on exit:
             self._locals._stack.append(_EmptySentinel)
         for sequence_attr in "transformers", "pretransformers":
-            if not sequence_attr in new_parameters:
+            if not sequence_attr in new_parameters and sequence_attr in data:
                 new_parameters[sequence_attr] = copy(data[sequence_attr])
         self._update(new_parameters)
+        active_context.push(self)
         return self
 
     def __exit__(self, exc_name, traceback, frame):
@@ -178,6 +204,7 @@ class Context:
                 continue
             delattr(self._locals, extra_key)
         self._update(data)
+        active_context.pop()
 
     def __repr__(self):
         return "Context[\n{}\n]".format(
@@ -212,6 +239,9 @@ class Context:
         if getattr(self._locals, "_context_stack", None):
             return dir(self._locals._context_stack[-1])
         return sorted(set(super().__dir__() + list(self._locals.__dict__.keys())))
+
+    def __copy__(self):
+        return Context(**dict([*self]))
 
 
 class _RootContext(Context):

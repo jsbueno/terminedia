@@ -6,6 +6,7 @@ from io import StringIO
 from threading import Lock
 
 from terminedia.backend_common import BackendColorContextMixin, JournalingCommandsMixin
+from terminedia.contexts import active_context
 from terminedia.unicode import char_width
 from terminedia.unicode_transforms import translate_chars
 from terminedia.utils import V2, Color, Rect
@@ -382,7 +383,7 @@ class ScreenCommands(BackendColorContextMixin):
         """
 
         if not context:
-            from terminedia import context
+            context = active_context.get()
 
         color = color or context.color
         background = background or context.background

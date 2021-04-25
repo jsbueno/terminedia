@@ -12,7 +12,7 @@ import typing as T
 from collections import defaultdict, deque, namedtuple
 from contextlib import contextmanager
 
-from terminedia.utils import mirror_dict, V2
+from terminedia.utils import mirror_dict, V2, contextkwords
 from terminedia.events import Event, EventTypes, list_subscriptions
 
 
@@ -372,6 +372,7 @@ def pause(timeout=0) -> None:
     getch(timeout)
 
 
+@contextkwords
 def input(prompt="", maxwidth=None, insert=True):
     import asyncio
     from terminedia.asynchronous import ainput
@@ -381,7 +382,7 @@ def input(prompt="", maxwidth=None, insert=True):
     except RuntimeError:
         # when there is no loop and not on main thread:
         # for example, from within ipython
-        loop = asyncio.new_eventloop()
+        loop = asyncio.new_event_loop()
 
 
     input_coro = ainput(prompt, maxwidth, insert)

@@ -1,3 +1,4 @@
+import copy
 import inspect
 import math
 from functools import partial
@@ -174,7 +175,9 @@ def combine_signatures(func, wrapper=None, include=None):
             *opt(var_keyword, f"**{var_keyword[0].name}" if var_keyword else ""),
         ]
     )
-    declaration = f"def {func.__name__}({param_spec}): pass"
+
+    coroutinedef = "async " if inspect.iscoroutinefunction(func) else ""
+    declaration = f"{coroutinedef}def {func.__name__}({param_spec}): pass"
 
     f_globals = func.__globals__
     f_locals = {}
@@ -290,7 +293,18 @@ def contextkwords(func=None, context_path=None, text_attrs=False):
         if "context" in sig.parameters:
             kwargs["context"] = work_context
 
-        with work_context(**context_kw):
-            return func(*args, **kwargs)
+        with work_context(**context_kw) as workctx:
+            result = func(*args, **kwargs)
+            if inspect.iscoroutine(result):
+                ctx = copy.copy(workctx)
+                result = wrapcoro(ctx, result)
+            return result
 
     return wrapper
+
+
+async def wrapcoro(ctx, coro):
+    with ctx:
+        result = await coro
+        ...
+    return result
