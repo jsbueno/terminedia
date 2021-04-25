@@ -17,6 +17,8 @@ version 0.4
 
  - Screen.data aliased to Screen.shape to indicate it _should_ be used directly, and it is no internal-state only.
  - Screen.accelerate to bypass legacy drawing mode when using the mainloop
+ - TM.contexts.active_context registry allow contexts entered with "with context()" to affect downstream functions, even
+        withotu passing "ctx" explictly.
 
 
 New Mouse and events:
@@ -33,8 +35,9 @@ New Mouse and events:
         - Dispatch a self.data.resize order upon screen resize event on Screen
     - terminedia_main Asynchronous mainloop
     - ainput asynchronous input function
-    - terminedia "input" function: synchronous version of ainput
+    - terminedia "sinput" function: synchronous version of ainput
         - inkey should error on posix if called outside of a "keyboard" context manager
+    - "sinput" and "ainput" can take context parameters
 
 New 'transformers library':
     - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters

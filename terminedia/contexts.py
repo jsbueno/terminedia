@@ -68,6 +68,8 @@ class _ContextTracker(dict):
         # root context:
         return terminedia.context
 
+#: Active context regitry, per thread: use "active_context.get()" in any
+#: function to retrieve the last Context object entered (even in an upstream context manager)
 active_context = _ContextTracker()
 
 
