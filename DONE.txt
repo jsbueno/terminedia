@@ -15,11 +15,26 @@ version 0.4
  - sextant (1/6 block) (depends on unicode 12 with vintage charset)(V)
  - ObservableProperty descriptor class enabling reactive programing patterns(V)
 
- - terminedia_main Asynchronous mainloop
- - ainput asynchronous input function
  - Screen.data aliased to Screen.shape to indicate it _should_ be used directly, and it is no internal-state only.
  - Screen.accelerate to bypass legacy drawing mode when using the mainloop
- - terminedia "input" function: synchronous version of ainput
+
+
+New Mouse and events:
+
+    - implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change:
+        - Create a signal handler
+        - Register the signal handler on Screen instantiation
+        - Unregister signal handler on Screen de-instantiation
+        - Handler should send Terminedia event
+        - decouple terminedia event "dispatch" from actually calling the callbacks; create an event "process" that does that; [V]
+                - add  a signl queue for holding all events. (deque).
+                - This will prevent screen.data Shape resizing in the mid of some processing and potential catastrohpic bugs
+        - Actually create "shape.resize" methods - (just truncate on reduce, fill with context attrs on enlarge)
+        - Dispatch a self.data.resize order upon screen resize event on Screen
+    - terminedia_main Asynchronous mainloop
+    - ainput asynchronous input function
+    - terminedia "input" function: synchronous version of ainput
+        - inkey should error on posix if called outside of a "keyboard" context manager
 
 New 'transformers library':
     - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters

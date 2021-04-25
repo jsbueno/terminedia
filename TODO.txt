@@ -28,19 +28,9 @@ Targeted for next release (0.4):
 
     - last frame events can be retrieved without the need to add callbacks.[?]
 
-    - simple async "input" API [v]
+
     - simple "cls" (have to take into acount the current cursor position)
 
-    - implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change: [v]
-        - Create a signal handler [v]
-        - Register the signal handler on Screen instantiation [v]
-        - Unregister signal handler on Screen de-instantiation [v]
-        - Handler should send Terminedia event [v]
-        - decouple terminedia event "dispatch" from actually calling the callbacks; create an event "process" that does that; [V]
-                - add  a signl queue for holding all events. (deque). [v]
-                - This will prevent screen.data Shape resizing in the mid of some processing and potential catastrohpic bugs
-        - Actually create "shape.resize" methods - (just truncate on reduce, fill with context attrs on enlarge) [v]
-        - Dispatch a self.data.resize order upon screen resize event on Screen [v]
 
         - check if there is a ms-windows equivalent - (yes - have to be hacked in: https://github.com/microsoft/terminal/issues/281)
 
@@ -49,9 +39,7 @@ Targeted for next release (0.4):
 
     - mouse handling on windows
 
-    - inkey should error on posix if called outside of a "keyboard" context manager [v]
-    - terminedia "input" function: synchronous version of ainput [WIP]
-    - make input accept context-parameters, like print does.
+    - make input accept context-parameters, like print does. [WIP]
 
 [Future - wiget and App branch]:
 
