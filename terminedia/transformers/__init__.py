@@ -14,7 +14,7 @@ class Transformer:
 
     def __init__(self, pixel=None, char=None, foreground=None, background=None, effects=None):
         """
-        Class implementing a generic filter to be applied on an shape's pixels when their value is read.
+        Class implementing a generic filter to be applied on a shape's pixels when their value is read.
 
         The parameters for __init__ are slots that will generate or transform the corresponding
         value on the final pixel
@@ -23,7 +23,7 @@ class Transformer:
 
         Each of these callables can have in the signature named parameters with any combination of
 
-            "self, value, char, foreground, background, effects, pixel, pos, source, context, tick"
+            "self, "value", "char", "foreground", "background", "effects", "pixel", "pos", "source", "context", "tick"
             Each of these named parameters will be injected as an argument when the
             it is called.
                 - "self": Transformer instance (it is, as the others, optional)

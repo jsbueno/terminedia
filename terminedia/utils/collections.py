@@ -1,8 +1,8 @@
 import threading
 
-from collections.abc import MutableSequence, MutableMapping, Iterable, Mapping
+from collections.abc import MutableSequence, MutableMapping, Iterable, Mapping, Sequence
 from copy import copy
-from enum import IntFlag
+from enum import IntFlag, EnumMeta
 
 
 def mirror_dict(dct):
@@ -307,3 +307,37 @@ class IterableFlag(IntFlag):
         cls = self.__class__
         other = max(self.__class__) * 2 - 1 - (other.value if isinstance(other, cls) else other)
         return self & other
+
+
+def _norm(string):
+    return string.strip().lower().replace(" ", "_")
+
+
+
+class OrableByNameEnumMixin:
+
+    def __or__(self, other):
+        if isinstance(other, (str, Sequence)) and not isinstance(other, type(self)):
+            other = type(self)(other)
+        return super().__or__(other)
+
+
+
+class RetrieveFromNameEnumMeta(EnumMeta):
+    def __call__(cls, val, *args, **kw):
+        if val and not args and not kw and isinstance(val, (str, Sequence)) and not isinstance(val, cls):
+            if isinstance(val, str) and "|" in val:
+                val = [v for v in val.split("|")]
+            elif isinstance(val, str):
+                val = [val]
+            val = [_norm(v) for v in val]
+            final_val = 0
+            for v in val:
+                if isinstance(v, cls):
+                    final_val |= v
+                    continue
+                final_val |= cls.__members__[v]
+            return final_val
+        return super().__call__(val, *args, **kw)
+
+

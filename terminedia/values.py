@@ -2,6 +2,7 @@ from copy import copy
 from enum import Enum, IntFlag, EnumMeta
 
 from terminedia.utils import mirror_dict, V2, NamedV2, Color, SpecialColor, IterableFlag
+from terminedia.utils.collections import RetrieveFromNameEnumMeta, OrableByNameEnumMixin
 
 ESC = "\x1b"
 
@@ -61,7 +62,7 @@ class Directions:
     LEFT = NamedV2(-1, 0)
 
 
-class Effects(IterableFlag):
+class Effects(OrableByNameEnumMixin, IterableFlag, metaclass=RetrieveFromNameEnumMeta):
     """Text effect Enums
 
     Some of these are implemented in most terminal programs -

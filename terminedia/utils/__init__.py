@@ -306,5 +306,4 @@ def contextkwords(func=None, context_path=None, text_attrs=False):
 async def wrapcoro(ctx, coro):
     with ctx:
         result = await coro
-        ...
     return result
