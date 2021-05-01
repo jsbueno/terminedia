@@ -39,7 +39,7 @@ Targeted for next release (0.4):
 
     - mouse handling on windows
 
-    - make input accept context-parameters, like print does. [WIP]
+    - make input accept context-parameters, like print does. [v]
 
 [Future - wiget and App branch]:
 

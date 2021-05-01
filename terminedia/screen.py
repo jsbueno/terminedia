@@ -379,7 +379,7 @@ class Screen:
 
         """
 
-        if len(value) > 1:
+        if isinstance(value, str) and len(value) > 1:
             # Redirect strings through the text machinery.
             # it will separate each char in a cell, take care
             # of double chars, embedded attributes and so on
