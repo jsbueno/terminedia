@@ -21,6 +21,10 @@ version 0.4
         withotu passing "ctx" explictly.
  - TM.Effects can be constructed from strings (which means one can assign a string with the effect name directly to TM.context.effects)
 
+ Bugfixes:
+
+     bug: (big issue): workaround stdout blocking and raising error when in input.keyboard reading mode.
+
 New Mouse and events:
 
     - implement SIGWINCH signal handler to enable auto-resize/reflowing on terminal window size change:

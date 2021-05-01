@@ -519,7 +519,7 @@ Bugs
     bug: when apple shows up over snake body, it is erased from screen (snake.py) (easy) (external) (hacktober)
     bug: Effects.super_script not working for letters 'n' and 'q' - check if there is a suitable custom glyph
     bug: Pallette shapes need to be overhauled - currently tests are broken due to reading from it back just yielding "True" and "False"
-    bug: (big issue): workaround stdout blocking and raising error when in input.keyboard reading mode.
+    bug: (big issue): workaround stdout blocking and raising error when in input.keyboard reading mode. [v]
     bug: TM.DEFAULT_FG always rendering as White when comming from blitted [transformed] source
     bug: terminedia-shapes example has stopped working properly, due to differences in how
     whitespace is blitted. To fix: refactor script to use Sprites instead of raw shapes.(V)

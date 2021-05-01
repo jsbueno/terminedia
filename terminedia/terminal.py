@@ -1,6 +1,10 @@
 import re
 import time
 import sys
+
+import fcntl
+import os
+
 from functools import lru_cache
 from io import StringIO
 from threading import Lock
@@ -70,6 +74,36 @@ effect_double_off = {
 
 unicode_effect_cache = {}
 
+
+
+class UnblockTTY:
+    """When changing the terminal to raw mode, stdin and stdout it become "unblocking"
+    meaning that a large amount of output might raise an IO Error
+    (BlockingIOError) when refreshing the output.
+
+    Any code using realtime keyboard reading (using "with terminedia.keyboard:", or
+    the main_loop) make this change to raw mode. (code for that is on the terminedia.input file)
+
+    This allows screen refreshing code to temporarily disable
+    the non-blocking nature of the files to avoid this error
+    """
+
+    def __enter__(self):
+        self.fd = sys.stdin.fileno()
+        # save old state
+        self.flags_save = fcntl.fcntl(self.fd, fcntl.F_GETFL)
+        #self.attrs_save = termios.tcgetattr(self.fd)
+        flags = self.flags_save & ~os.O_NONBLOCK
+        fcntl.fcntl(self.fd, fcntl.F_SETFL, flags)
+
+    def __exit__(self, *args):
+        #termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.attrs_save)
+        fcntl.fcntl(self.fd, fcntl.F_SETFL, self.flags_save)
+
+
+
+
+
 class ScreenCommands(BackendColorContextMixin):
     """Low level functions to execute ANSI-Sequence-related tasks on the terminal.
 
@@ -99,7 +133,7 @@ class ScreenCommands(BackendColorContextMixin):
             ]
         )
 
-    def _print(self, *args, sep="", end="", flush=True, file=None, count=0):
+    def _print(self, *args, sep="", end="", flush=True, file=None):
         """Inner print method
 
         Args:
@@ -112,41 +146,34 @@ class ScreenCommands(BackendColorContextMixin):
 
         Is used in place of normal Python's print, changing the defaults
         to values more suitable to the internal usage.
-        Also, takes care of eventual blocking in stdout due to excess data -
-        and implements a retry mechanism to mitigate that.
+
         """
         if file is None:
             file = sys.stdout
         if sys.platform == "win32":
             print(sep.join(args), end=end, flush=flush, file=file)
             return
-        try:
-            if len(args) == 1 and "\x1b" in args[0] and file is sys.stdout:
-                # Separate a long sequence in one write operation for each
-                # ANSI command
-                sep = end = ""
-                if use_re_split:
-                    # This is new in Python 3.7
-                    args = re.split("(?=\x1b)", args[0])
-                else:
-                    args = [
-                        ("\x1b" if i else "") + arg
-                        for i, arg in enumerate(args[0].split("\x1b"))
-                    ]
-            for i, arg in enumerate(args):
-                file.write(arg)
-                if sep and i < len(args) - 1:
-                    file.write(sep)
-            if end:
-                file.write(end)
+
+        with UnblockTTY():
+            if len(args) != 1:
+                file.write(sep.join(args))
+            else:
+                file.write(args[0])
+            file.write(end)
             if flush:
                 file.flush()
-        except BlockingIOError:
-            if count > 10:
-                print("arrrrghhhh - stdout clogged out!!!", file=sys.stderr)
-                raise
-            time.sleep(0.002 * 2 ** count)
-            self._print(*args, sep=sep, end=end, flush=flush, file=file, count=count + 1)
+        return
+
+
+        # FIXME: there was a previous code with retry attempts.
+        # and breaking the data into chunks.
+        # most of this code was written to avoid
+        # an "blocking error" when outputing too much data
+        # to a posix terminal converted to raw mode.
+        # The temporary change of the terminal back to blocking
+        # should have fixed it.
+        # TL;DR: cludge removed
+
 
     def fast_render(self, data, rects=None, file=None):
         key = getattr(file, "name", "<stdout>")
@@ -236,8 +263,14 @@ class ScreenCommands(BackendColorContextMixin):
 
                         last_pos = (x + 1, y)
 
-            # TODO: temporarily disable 'non-blocking' for stdout
-            file.write(outstr); file.flush()
+            if file is sys.stdout:
+                # temporarily disable 'non-blocking' for stdout
+                with UnblockTTY():
+                    file.write(outstr)
+                    file.flush()
+            else:
+                file.write(outstr)
+                file.flush()
 
             self.__class__.last_pos = last_pos
 

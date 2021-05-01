@@ -1,6 +1,6 @@
 import time
 
-
+import terminedia as TM
 from terminedia import Screen, keyboard, pause, inkey, terminedia_main, context, Rect
 
 import asyncio
@@ -28,7 +28,7 @@ def keys(event):
         return
     # char = event.key
 
-def draw(event):
+def draw2(event):
     global char
 
     sc = context.screen
@@ -40,10 +40,39 @@ def draw(event):
     sc.draw.rect(Rect((random.randint(0, width), random.randint(0,height)), width_height=(20, 10)), color=random.choice("red green yellow blue".split()), char=char, fill=True)
 
 
+def setup(sc):
+    global tr
+
+    class Tr(TM.Transformer):
+        current_color = TM.Color("yellow")
+        def foreground(self):
+            return self.current_color
+    tr = Tr()
+
+    shape = TM.shape((60,20))
+    sc.sprites.add(shape)
+    sc.sprites[0].transformers.append(tr)
+
+    shape.draw.fill(color="red")
+
+
+def draw(event):
+    colors = "red green blue white yellow".split()
+    tr.current_color = TM.Color(colors[event.tick // 5  % len(colors)])
+    sc.sprites[0].pos=10,10
+    if event.tick == 100:
+        sh = sc.sprites[0].shape
+        sh.clear()
+        sh.text[4].at((0,0),"terminedia")
+
+
 def main():
+    global sc
     s = Subscription(EventTypes.Tick, draw)
     Subscription(EventTypes.KeyPress, keys)
-    asyncio.run(terminedia_main())
+    sc = TM.Screen()
+    setup(sc)
+    asyncio.run(terminedia_main(screen=sc))
 
 if __name__ == "__main__":
     main()
