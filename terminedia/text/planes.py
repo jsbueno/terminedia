@@ -1,13 +1,14 @@
 import binascii
+from collections import namedtuple
 from copy import copy
 from pathlib import Path
 import threading
 
 from terminedia.image import Shape, PalettedShape, shape
 from terminedia.unicode import split_graphemes
-from terminedia.utils import contextkwords, V2, Rect, ObservableProperty
-from terminedia.values import Directions, EMPTY, TRANSPARENT
-# from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX
+from terminedia.utils import contextkwords, V2, Rect, ObservableProperty, get_current_tick
+from terminedia.values import Directions, EMPTY, TRANSPARENT, RETAIN_POS
+from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX
 
 from .fonts import render
 from ..text import style
@@ -19,7 +20,7 @@ class CharPlaneData(dict):
     Indices should be a V2 (or 2 sequence) within width and height ranges
     """
 
-    __slots__ = ("_parent", "width", "height", "size", "_dirty")
+    __slots__ = ("_parent", "width", "height", "size", "active", "_dirty")
 
     def __new__(cls, parent):
         instance = super().__new__(cls)
@@ -27,8 +28,7 @@ class CharPlaneData(dict):
         return instance
 
     def __init__(self, size):
-        pass
-
+        self.active = True
 
     def _update_size(self, *args):
         size = self.size = self._parent.size
@@ -43,6 +43,8 @@ class CharPlaneData(dict):
     def __setitem__(self, pos, value):
         if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):
             raise IndexError(f"Text position out of range - {self.size}")
+        if not self.active:
+            return
         super().__setitem__(pos, value)
 
 
@@ -54,6 +56,10 @@ plane_alias = {
     "braille": 2,
     "normal": 1,
 }
+
+
+plane_names = {**plane_alias, **{value:value for value in plane_alias.values()}}
+
 
 # Shift caused by each 1 unit of padding (always in character-blocks) on
 # the pixel resolution each text size uses:
@@ -78,7 +84,56 @@ relative_char_size = {
 
 _bordersentinel = object()
 
+class Layouts:
+    @staticmethod
+    def normal(text_plane):
+        mark_forward = style.Mark(moveto=(0, RETAIN_POS), rmoveto=(0,1))
+        mark_backward = style.Mark(moveto=(WIDTH_INDEX - 1, style.RETAIN_POS), rmoveto=(0,-1))
+        for y in range(0, int(text_plane.height)):
+            # This is the point where the 'RelativeMarkIndex' was supposed to be needed.
+            text_plane.marks[None, y] = mark_forward
+            # Writting directly to marks.data instead of marks is the way
+            # for MarkMap not to convert a negative index (-1) to a relative index
+            # counting from the width of the plane (i.e., it is a "hard" -1)
+            text_plane.marks.data[-1, y] = mark_backward
+        # self.marks[Rect((self.width, 0, self.width + 1, self.height))] = style.Mark(moveto=(0, style.RETAIN_POS), rmoveto=(0,1))
 
+
+class _RecordingControl:
+    """Simple class to keep track of where each character was printed in an
+    output burst.
+
+    A single instance of it is attached at a text_plane, and by using
+    text_plane.recording.__enter__ , all printed characters are
+    appended to a list, in the form of a (char, pos, tick, (ctx.fg, ctx.bg, ctx.effects)) tuple per char.
+    on __exit__ recording stops. A new recording list is returned by __enter__
+    each time its called, and results of the last-recording are available
+    as self.data.
+
+    This is used internally by widgets so they can track where rendered characters
+    are in order to position the cursor.
+    """
+
+    def __init__(self, parent):
+        self.active = False
+        self.data = []
+
+    def __bool__(self):
+        return self.active
+
+    def __enter__(self):
+        self.data = []
+        self.active = True
+        return self.data
+
+    def __exit__(self, *args):
+        self.active = False
+
+    def register(self, char, pos, tick, ctx_data):
+        self.data.append(RenderData(char, pos, tick, ctx_data))
+
+RenderData = namedtuple("RenderData", "char pos tick ctx")
+CtxData = namedtuple("CtxData", "foreground background effects")
 
 class TextPlane:
     """Text handling API
@@ -144,7 +199,7 @@ class TextPlane:
             #((self.padding if self.pad_top is None else self.pad_top) +
             #(self.padding if self.pad_bottom is None else self.pad_bottom))
         #)
-        size = size * (fx, fy)
+        size = (size * (fx, fy)).as_int
         return size
 
     @property
@@ -177,12 +232,13 @@ class TextPlane:
             char_width = char_height
         concretized_text = copy(self)
         self.planes[index] = concretized_text
-        plane = dict()
+        # plane = dict()
         if getattr(self, "current_plane", False):
             raise RuntimeError("Concrete instance of text - can't create further planes")
         # plane["width"] = width = self.owner.width // char_width
         # plane["height"] = height = int(self.owner.height // char_height)
         concretized_text.current_plane = index
+        concretized_text.char_size = (char_width, char_height)
         marks = style.MarkMap(parent=concretized_text)
         # plane["marks"] = marks = style.MarkMap(parent=concretized_text)
         data = CharPlaneData(concretized_text)
@@ -192,8 +248,9 @@ class TextPlane:
         concretized_text.font = ""
         concretized_text.ticks = 0
         concretized_text.writtings = {}
-        concretized_text._reset_marks()
+        concretized_text.reset_marks()
         concretized_text.last_pos = None
+        concretized_text.recording = _RecordingControl(concretized_text)
         for pad_attr in "padding pad_left pad_right pad_top pad_bottom".split():
             descriptor = getattr(type(self), pad_attr)
             descriptor.register(self, "set", lambda inst, v, attr=pad_attr: setattr(concretized_text, attr, v))
@@ -201,14 +258,27 @@ class TextPlane:
         data._update_size()
         # plane["text"] = concretized_text
 
-    def _reset_marks(self):
+    def reset_marks(self, layout=None):
+        """Clear all custom positional marks in the text plane
+        (attribute .marks) - and, applies the specified text-flow
+        layout.
+        The layout is a callback, which should take the text-plane
+        as sole parameter - it can them fill in Mark objects
+        (usually containing "moveto" and "rmoveto" tags) in specific positions
+        so that text will flow in the desired directions when reaching the mark
+        (the default "normal" layout places marks so that
+        at the end of a line the text flows in to the
+        beggining (absoulte move) of the next (relative move)
+        text line.
+
+        The "Layouts" class in this module is meant
+        to be a namespace for a library with popular layouts.
+        """
         self.marks.clear()
         self.marks.special.clear()
-        mark = style.Mark(moveto=(0, style.RETAIN_POS), rmoveto=(0,1))
-        for y in range(0, int(self.height)):
-            # This is the point where the 'RelativeMarkIndex' was supposed to be needed.
-            self.marks[None, y] = mark
-        # self.marks[Rect((self.width, 0, self.width + 1, self.height))] = style.Mark(moveto=(0, style.RETAIN_POS), rmoveto=(0,1))
+        if layout is None:
+            layout = Layouts.normal
+        layout(self)
 
     def _checkplane(self, index):
         if not isinstance(index, (int, tuple)):
@@ -275,7 +345,7 @@ class TextPlane:
         return self._at(pos, text)
 
     @contextkwords(context_path="owner.context", text_attrs=True)
-    def extents(self, pos, text):
+    def extents(self, pos, text, final_pos=True):
         """Return the last position where text would be printed -
 
         This is a "dry-run" call, equivalent to ".at" but doesn't
@@ -290,23 +360,29 @@ class TextPlane:
         Args:
           - pos (2-sequence): Coordinates at which to start the text
           - text (str): Text to render. May include special markup
+          - final_pos (bool): return position is the positin for the next insertion,
+                not of the last character inserted. (default: True)
           - "context-args" (color, background, effects, font, direction):
                 context values to be used to render passed text.
         Returns:
             V2: with the last printed position.
 
         """
+        if final_pos:
+            text += "a"
         with self.lock:
             try:
                 original_last_pos = self.last_pos
                 self.owner._raw_setitem = lambda self, *args, **kw: None
                 original_writtings = self.writtings
                 self.writtings = {}
+                self.plane.active = False
                 last_pos = self.at(pos, text)
             finally:
                 # restore method defined in the shape class:
                 self.writtings = original_writtings
                 self.last_pos = original_last_pos
+                self.plane.active = True
                 del self.owner._raw_setitem
         return last_pos
 
@@ -327,9 +403,20 @@ class TextPlane:
         ctx = self.owner.context
         direction = ctx.direction
         self.blit(pos)
+        if self.recording:
+            self.recording.register(char, pos, get_current_tick(), CtxData(ctx.foreground, ctx.background, ctx.effects))
+
         pos += (int(getattr(ctx, "text_lastchar_was_double", 0)) * direction[0], 0)
         self.owner.context.last_pos = pos
         self.last_pos = pos
+
+    def clear_recording(self):
+        """Clear recording of where each character was printed"""
+        self._pos_recording.clear()
+
+    def start_recording(self):
+        self.clear_recording()
+        self.recording = True
 
     def blit(self, index, target=None, clear=True):
         """Actual function that renders given character to
@@ -424,11 +511,11 @@ class TextPlane:
             #    continue
             self.render_styled_sequence(writting)
 
-    def clear(self):
+    def clear(self, layout=None):
         self.ticks = 0
         self.writtings.clear()
         self.plane.clear()
-        self._reset_marks()
+        self.reset_marks(layout=layout)
 
     def _render_styled_lock(self, context):
         with self.owner.context(context=context) as ctx, self._render_lock:
@@ -450,8 +537,10 @@ class TextPlane:
         try:
             self.owner.context.text_rendering_styled = self.current_plane
             styled.render()
+            self.last_rendered_writing = styled
         finally:
-            self.owner.context.text_rendering_styled
+
+            self.owner.context.text_rendering_styled = None
 
     def _clear_owner(self):
         # clear the inner contents of the owner when reflowing text, respecting padding

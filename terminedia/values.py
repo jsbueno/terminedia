@@ -126,6 +126,18 @@ TERMINAL_EFFECTS =  Effects((max(Effects) * 2 -1) - UNICODE_EFFECTS)
 # support for it was found at codification time.)
 
 
+
+
+class _TextStyleSentinels(Enum):
+    RETAIN_POS = "RETAIN_POS"
+
+    def __repr__(self):
+        return self.value
+
+
+RETAIN_POS = _TextStyleSentinels.RETAIN_POS
+
+
 class RelativeMarkIndex:
     '''
     These are used for creating Marks on terminedia.text.Text objects that
@@ -173,7 +185,16 @@ class RelativeMarkIndex:
         return hash((self.name, self.offset))
 
     def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
         return self.name == other.name and self.offset == other.offset
+
+    @classmethod
+    def evaluate_position(cls, pos, old_pos, size):
+        return V2(
+            pos[0].evaluate(size) if isinstance(pos[0], cls) else pos[0] if not pos[0] is RETAIN_POS else old_pos[0],
+            pos[1].evaluate(size) if isinstance(pos[1], cls) else pos[1] if not pos[1] is RETAIN_POS else old_pos[1]
+        )
 
     def __repr__(self):
         return self.name if self.offset == 0 else f"<{{{self.name} {self.offset:+d}}}>"

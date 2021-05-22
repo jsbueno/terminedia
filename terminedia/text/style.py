@@ -65,6 +65,8 @@ Markup description:
 """
 from collections.abc import Sequence, MutableMapping
 from copy import copy
+import ast
+import enum
 import re
 import typing as T
 import threading
@@ -72,10 +74,8 @@ import threading
 from terminedia.contexts import Context
 from terminedia.unicode import GraphemeIter
 from terminedia.utils import V2, Rect, get_current_tick, Color
-from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX, RelativeMarkIndex, Directions, Effects, TRANSPARENT
+from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX, RelativeMarkIndex, Directions, Effects, TRANSPARENT, RETAIN_POS
 
-
-RETAIN_POS = object()
 
 
 class StyledSequence:
@@ -163,9 +163,23 @@ class StyledSequence:
             if mark_here.moveto:
                 mtx = mark_here.moveto[0]
                 mty = mark_here.moveto[1]
-                mtx = mtx if mtx is not RETAIN_POS else self.current_position.x
-                mty = mty if mty is not RETAIN_POS else self.current_position.y
+                mtx = (
+                    self.current_position.x
+                        if mtx is RETAIN_POS else
+                    mtx.evaluate(self.text_plane.size)
+                        if isinstance(mtx, RelativeMarkIndex) else
+                    mtx
+                )
+                mty = (
+                    self.current_position.y
+                        if mty is RETAIN_POS else
+                    mty.evaluate(self.text_plane.size)
+                        if isinstance(mty, RelativeMarkIndex) else
+                    mty
+                )
                 self.current_position = V2(mtx, mty)
+            if mark_here.attributes.get("new_line", None):
+                self.current_position, self.context.direction = self.marks.new_line_start(self.current_position, self.context.direction)
             if mark_here.rmoveto:
                 self.current_position += V2(mark_here.rmoveto)
         self._last_index_processed = index
@@ -344,7 +358,8 @@ def _merge_as_lists(*args):
 
 
 def index_is_relative(index):
-     return index[0] is None or index[1] is None or isinstance(index[0], RelativeMarkIndex) or index[0] < 0 or isinstance(index[1], RelativeMarkIndex) or index[1] < 0
+     #return index[0] is None or index[1] is None or isinstance(index[0], RelativeMarkIndex) or index[0] < 0 or isinstance(index[1], RelativeMarkIndex) or index[1] < 0
+     return index[0] is None or index[1] is None or isinstance(index[0], RelativeMarkIndex) or isinstance(index[1], RelativeMarkIndex)
 
 def _normalize_component(comp, name):
     if isinstance(comp, RelativeMarkIndex):
@@ -370,7 +385,7 @@ def get_relative_variants(pos, size=None):
     elif pos[0] < 0:
         pos[0] = size[0] + pos[0]
     if pos[1] is None:
-        pos[1] = WIDTH_INDEX
+        pos[1] = HEIGHT_INDEX
     if isinstance(pos[1], RelativeMarkIndex):
         pos[1] = pos[1].evaluate(size)
     elif pos[1] < 0:
@@ -405,8 +420,8 @@ class MarkMap(MutableMapping):
 
     In plain code, that means doing:
     ```
-    myshape.text[1].marks[3,0] = TM.Mark(attributes{"color": "red"})
-    myshape.text[1] = "123456"
+    myshape.text[1].marks[3,0] = TM.Mark(attributes={"color": "red"})
+    myshape.text[1][0,0] = "123456"
     ```
     will render '123' in the current context color, and '456' in red.
 
@@ -425,8 +440,10 @@ class MarkMap(MutableMapping):
     used as a location on the grid.
 
     The instances of MarkMap are consumed by StyledSequence objects when rendering,
-    and those will set a 1D positional-mark mapping (this creates a shallow copy
-    of a MarkMap instance). The StyledSequence then consumes marks when iterating
+    and those will set the 1D positional-mark mapping embedded in the text-stream
+    into a shallow copy of a MarkMap instance, combining both 2D fixed Marks bound
+    to the text plane with the marks embedded n the sequence. The StyledSequence
+    instance then consumes marks when iterating
     itself for rendering, retrieving both marks in the text stream (1D positional
     marking), Marks fixed on the text plane, and special marks with time-variant
     position. When retrieving the Marks at a given position, the location on the
@@ -434,14 +451,19 @@ class MarkMap(MutableMapping):
     special Mark objects
 
     A caracteristic of the contents of MarkMap cells is that
-    a cell may conten eiter a Mark object, or a list of MarkObjects
-     - Lists can be created freely and marks can be created
-     freely in instances of MarkMap. Marks that are placed
+    a cell may contain either a Mark object, or a list of MarkObjects
+     - Lists and Marks can be created freely and assigned
+     to indexes in MarkMap instances. Marks that are placed
      in absolute cell addresses are merged with ones stored
      in relative cell address upon reading (addressing from the left or from the
      bottom of a text plane). The mechanism for that is too complicated
      to be something to be proud off - but seems to work when a text-area changes
      size in a nice way.
+
+     (Relative indices are numbers added (or rather, subtracted from),
+     the special enumeration values in the RelativeMarkIndex class -
+     so that when the underlying text-plane change size, the negative indices
+     are translated along with it.)
 
 
     """
@@ -534,6 +556,54 @@ class MarkMap(MutableMapping):
         else:
             self.data[index] = value
 
+    def move_along_marks(self, pos, direction):
+        """Used to track flow of text in a plane, without
+        needing a concrete sequence to be rendered.
+
+        Given a plane position and direction, will check
+        all Marks that can modify the text flow, and return
+        the position for the next character.
+
+
+        Is used in order to compute distances to the next
+        and previous breaks on the flow - these
+        are used as line boundaries for printing
+        and editing text.
+
+        Not Implemented: handling of "special" marks or
+        marks embedded in a text string.
+        """
+        flow_changed = False
+        position_is_used = True
+        pos += direction
+        for mark in _force_iter(self.abs_get(pos, (EmptyMark,))):
+            if not mark.affects_text_flow:
+                continue
+            flow_changed = True
+            if "direction" in mark.attributes:
+                direction = mark.attributes["direction"]
+                continue
+            if mark.moveto:
+                pos = RelativeMarkIndex.evaluate_position(mark.moveto, pos, self.text_plane.size)
+            if mark.rmoveto:
+                pos += mark.rmoveto
+            position_is_used = False
+        return pos, direction, flow_changed, position_is_used
+
+    def new_line_start(self, index, direction):
+        pos = V2(index)
+        direction = V2(direction)
+        r = Rect(self.text_plane.size )
+        while True:
+            pos, direction, flow_changed, position_is_used = self.move_along_marks(pos, direction)
+            if flow_changed:
+                return pos, direction
+            if not pos in r:
+                return pos, direction
+                #if pos in r: # FIXME: will fail if teleporting marks are chained
+                #else:
+                    ## Flow slipped outside of area - there is no new line
+                    #return None, None
     def __getitem__(self, index):
         # TODO retrieve MagicMarks and virtual marks
         # is_relative, index, absolute_index, relative_index = self._convert_to_relative(index)
@@ -546,7 +616,7 @@ class MarkMap(MutableMapping):
         all_marks = []
         for i, r_index in enumerate(get_relative_variants(index, self.text_plane.size)):
             if i == 0:
-                # first index is normalizes with positive integer coordinates
+                # first index is normalized with positive integer coordinates
                 all_marks.append(self.data.get(r_index))
             all_marks.append(self.relative_data.get(r_index))
         result = _merge_as_lists(*all_marks)
@@ -554,6 +624,27 @@ class MarkMap(MutableMapping):
         if not result:
             raise KeyError(index)
         return result
+
+    def abs_get(self, index, default=None):
+        """Usually negative values for indexes coordinates will subtract those
+        values from the width or height of the textplane, so "-1" is actually
+        at "WIDTH - 1" == last column.
+
+        But sometimes actually need to get the mark
+        at the [-1] hard index. When that is needed, the mark should
+        be retrieved through here, rather than through __getitem__ directly.
+
+        For setting, since negative indexes will not depend on the
+        width and height of the text plane (they are on the opposite
+        side of these dynamic indexes: column -1 is the equivalent on the left-side
+        of column WIDTH + 1 on the right side), assignment of marks
+        can be done directly on the "self.data" attribute
+        """
+        if index[0] < 0:
+            index = V2(index[0] - self.text_plane.width, index[1])
+        if index[1] < 0:
+            index = V2(index[0], index[1] - self.text_plane.height)
+        return self.get(index, default)
 
 
     def __delitem__(self, index):
@@ -583,7 +674,7 @@ class MarkMap(MutableMapping):
         self.__init__(parent=self.text_plane)
 
     def __repr__(self):
-        return "MarkMap < >"
+        return f"MarkMap <{', '.join(str(tuple(m)) for m in self.keys())}>"
 
 
 class Mark:
@@ -606,21 +697,21 @@ class Mark:
     # 'context' and 'pos' attributes are set on the instance
     # prior to reading the other property values.
 
-    __slots__ = "attributes pop_attributes moveto rmoveto context pos".split()
+    __slots__ = "attributes pop_attributes moveto rmoveto context pos affects_text_flow".split()
     attributes: T.Mapping
     pop_attributes: T.Mapping
     moveto: V2
     rmoveto: V2
 
-    def __init__(self, attributes=None, pop_attributes=None, moveto=None, rmoveto=None, color=None, foreground=None, background=None, effects=None, direction=None, transformer=None):
+    def __init__(self, attributes=None, pop_attributes=None, moveto=None, rmoveto=None, color=None, foreground=None, background=None, effects=None, direction=None, transformer=None, new_line=None):
         self.attributes = attributes or {}
         if isinstance(pop_attributes, (set, Sequence)):
             pop_attributes = {name: None for name in pop_attributes}
         self.pop_attributes = pop_attributes
         self.moveto = moveto
         self.rmoveto = rmoveto
-        for parameter in "color foreground background effects direction transformer".split():
-            if not locals()[parameter]:
+        for parameter in "color foreground background effects direction transformer new_line".split():
+            if locals()[parameter] is None:
                 continue
             value = locals()[parameter]
             if parameter == "color": parameter = "foreground"
@@ -634,9 +725,10 @@ class Mark:
                 for effect in effects:
                     value |= Effects.__members__[effect.lower()]
             if parameter == "direction" and isinstance(value, str):
-                value = Directions.__dict__[value.upper()]
+                value = V2(value)
 
             self.attributes[parameter] = value
+        self.affects_text_flow = bool(self.moveto or self.rmoveto or self.attributes.get("direction") or new_line)
 
     @classmethod
     def merge(cls, m1, m2):
@@ -702,16 +794,24 @@ class MLTokenizer(Tokenizer):
         # Imitates Python's hashlib interface
         self.raw_text += text
 
-    def parse(self):
-        """Parses the raw_text in  the instance, and sets
+    def _old_regexp_based_parse(self):
+        """
+        # not used - the complexity to handle escaped brackets interleaved with
+        # real ones using regexps would go through the roof.
+
+        Parses the raw_text in  the instance, and sets
         setting a stripped "parsed_text" attribute along a ".mark_sequence" attribute
         containing the described marks embedded in the text as Mark instances.
         """
         raw_tokens = []
         offset = 0
-
+        # FIXME: "[[" and "]]" escaped sequences have to be matched, and replaced
+        # by "[" "]" post-parsing.
         def annotate_and_strip_tokens(match):
             nonlocal offset
+            #st1, st2 = match.span()
+            #m = match.group()
+            #print(m)
             token = match.group()
             raw_tokens.append((match.start() - offset, token.strip("[]")))
             offset += match.end() - match.start()
@@ -719,6 +819,67 @@ class MLTokenizer(Tokenizer):
 
         self.parsed_text = self._parser.sub(annotate_and_strip_tokens, self.raw_text)
         self._tokens_to_marks(raw_tokens)
+
+    def expand(self):
+        """Transform special control characters into full tokens, so that
+        parsing is uniform
+        """
+        self.raw_text = self.raw_text.replace("\n", "[new_line]")
+
+    def parse(self):
+        """
+        Parses the raw_text in  the instance, and sets
+        setting a stripped "parsed_text" attribute along a ".mark_sequence" attribute
+        containing the described marks embedded in the text as Mark instances.
+        """
+        self.expand()
+
+        raw_tokens = []
+        offset = 0
+
+        last_token_start = None
+        last_token_start_real = None
+        last_escaped_token_start = None
+        closing_escaped_token_counter = 0
+        parsed_text = token_text = ""
+        bracket_stack = []
+        for i, char in enumerate(self.raw_text):
+            if char == "]" and last_token_start is None and last_escaped_token_start is not None:
+                if closing_escaped_token_counter == 0:
+                    closing_escaped_token_counter += 1
+                else:
+                    parsed_text += "]"
+                    closing_escaped_token_counter = 0
+                    last_escaped_token_start = bracket_stack.pop() if bracket_stack else None
+            elif char != "]" and last_token_start is None and last_escaped_token_start is not None and closing_escaped_token_counter != 0:
+                raise ValueError(f"Spurious ']' inside escaped '[[ ]]' text in tagged string: {self.raw_text!r}")
+
+            elif char != "[" and last_token_start is None:
+                parsed_text += char
+            elif char == "[" and last_token_start is None:
+                last_token_start = i
+                last_token_start_real = len(parsed_text)
+                token_text = ""
+            elif char == "[" and last_token_start is not None and i == last_token_start + 1:
+                parsed_text += "["
+                last_escaped_token_start = last_token_start
+                bracket_stack.append(last_token_start_real)
+                last_token_start = None
+            elif char == "[" and last_token_start is not None and i > last_token_start + 1:
+                raise ValueError(f"Spurious '[' inside tag in tagged string: {self.raw_text!r}")
+            elif char != "]" and last_token_start is not None:
+                token_text += char
+            elif char == "]" and last_token_start is not None:
+                raw_tokens.append((last_token_start_real, token_text))
+                last_token_start = None
+                token_text = ""
+        if token_text or last_token_start is not None:
+            parsed_text += "[" + token_text
+        elif closing_escaped_token_counter:
+            parsed_text += "]"
+        self.parsed_text = parsed_text
+        self._tokens_to_marks(raw_tokens)
+
 
     def _tokens_to_marks(self, raw_tokens):
         from terminedia.transformers import library as transformers_library
@@ -740,7 +901,7 @@ class MLTokenizer(Tokenizer):
             rmoveto = None
             moveto = None
 
-            token = token.strip()
+            token = token.lower().strip() if not "transformer" in token else token.strip()
             if token.startswith("/"):
                 starting_tag= False
                 token = token[1:]
@@ -770,7 +931,7 @@ class MLTokenizer(Tokenizer):
                 value = DEFAULT_BG
             if value == "transparent" and action in {"effects", "color", "foreground", "background"}:
                 value = TRANSPARENT
-            if value and value.startswith("(") and action in {"color", "foreground", "background"}:
+            if value and isinstance(value, str) and value.count(",") == 2 and action in {"color", "foreground", "background"}:
                 value = ast.literal_eval(value)
             if action == "transformer":
                 action = "pretransformer"
@@ -803,6 +964,9 @@ class MLTokenizer(Tokenizer):
                 else:
                     pop_attributes = {action: None}
 
+            if action == "new_line":
+                attributes = {"new_line": True}
+
             if "," in action and attributes is None and pop_attributes is None:
                 nx, ny = [v.strip() for v in action.split(",")]
                 nnx, nny = int(nx), int(ny)
@@ -833,6 +997,10 @@ class MLTokenizer(Tokenizer):
         )
         return self.styled_sequence
 
+    @classmethod
+    def escape(cls, text):
+        text = text.replace("[", "[[").replace("]", "]]")
+        return text
 
 class ANSITokenizer(Tokenizer):
     # TODO....

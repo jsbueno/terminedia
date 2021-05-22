@@ -16,7 +16,7 @@ class Gradient:
 
     BASE_TYPE = float
 
-    def __init__(self, stops: T.Sequence[T.Tuple[float, Color]]):
+    def __init__(self, stops: T.Sequence[T.Tuple[float, T.Any]]):
         """Define a gradient.
         Args:
            stops: list where each component is a 2-tuple - the first item
@@ -107,3 +107,23 @@ class ColorGradient(Gradient):
             ) for i in (0, 1, 2)
         ))
 
+
+class RangeMap:
+    """Helper class -
+
+    given a number on getitem, define the imediate lower number
+    set in "stops".
+    """
+    def __init__(self, stops: T.List[int]):
+        self.stops = stops
+
+    def __getitem__(self, item):
+        prev_s = self.stops[0]
+        for s in self.stops:
+            if item < s:
+                return prev_s, s
+            prev_s = s
+        return prev_s, s
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.stops})"

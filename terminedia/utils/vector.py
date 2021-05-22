@@ -20,6 +20,9 @@ class V2(tuple):
     def __new__(cls, x=0, y=0):
         """Accepts two coordinates as two parameters for x and y"""
         # Enable working with values defined in Enums
+        if isinstance(x, str) and x.upper() in {"RIGHT", "LEFT", "UP", "DOWN"}:
+            from terminedia import Directions
+            return getattr(Directions, x.upper())
         if hasattr(x, "value"):
             x = x.value
         if hasattr(x, "__len__") or hasattr(x, "__iter__"):
@@ -95,13 +98,23 @@ class V2(tuple):
     def min(self, other):
         return V2(min(self.x, other[0]), min(self.y, other[1]))
 
+    @property
+    def area(self):
+        return self.x * self.y
+
 
 class NamedV2(V2):
     """Vector meant to be used as constant, with a string-repr name"""
 
+    name = None
+
     def __init__(self, *args, name=None, **kw):
         """Optional name - if used as a descriptor, name is auto-set"""
-        self.name = name
+
+        # this method is called more than once when
+        # recreating a direction from a string-name
+        if not self.name:
+            self.name = name
         super().__init__(*args, **kw)
 
     def __set_name__(self, owner, name):

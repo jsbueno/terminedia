@@ -113,7 +113,7 @@ def test_styled_sequence_pops_attributes(pos1, attrname, value, pos2, default):
         else:
             assert getattr(sc.data[i, 0], attrname) == default
 
-
+# from terminedia.values import WIDTH_INDEX as WIDTH, HEIGHT_INDEX as HEIGHT
 @pytest.mark.parametrize(("method",),[("merged",),("sequence",)])
 @pytest.mark.parametrize(
     ("moveto", "rmoveto", "expected_pos"), [
@@ -290,6 +290,8 @@ def test_styled_sequence_retrieves_transformers_from_text_plane_transformers_map
         assert sc.data[i,5].value == "*"
     assert sc.data[6,5].value == "6"
 
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
 def test_styled_text_anotates_writtings():
     sc, sh, text_plane = styled_text()
     msg = "Hello World!"
@@ -306,6 +308,8 @@ def test_styled_text_anotates_writtings():
         starting_point=(0, 5)
     )
     text_plane.render_styled_sequence(aa)
+    sc.update()
+    yield None
 
     # text_plane[0, 5] = msg
 
@@ -555,8 +559,8 @@ def test_markmap_indepent_in_different_resolutions():
     sh = TM.shape((10,10))
     assert sh.text[1].marks is not sh.text[4].marks
     assert sh.text[1].marks is sh.text[1].marks
-    # Line-break marks inserted with text_plane[1] creation
-    assert len(sh.text[1].marks) == 10
+    # Line-break marks (and line-up) inserted with text_plane[1] creation
+    assert len(sh.text[1].marks) == 20
     assert len(sh.text[1].marks.relative_data) == 10
 
 
@@ -569,7 +573,7 @@ def test_markmap_works_with_negative_index():
     mm[-1, 0] = m
     assert mm[-1, 0] is m
 
-    assert not mm.data
+    assert len(mm.data) == 10  # "line-up" marks are not relative
     assert len(mm.relative_data) == 1
     assert isinstance(first(mm.relative_data.keys())[0], RelativeMarkIndex)
     assert isinstance(first(mm.relative_data.keys())[1], int)
@@ -614,7 +618,7 @@ def test_markmap_mark_retrieved_as_absolute_mark_when_rendering():
     mm[-1, 0] = m
     prepared = mm.prepare("")
     assert prepared.is_rendering_copy
-    assert len(mm.data) == 0 and len(prepared.data) == 1
+    assert len(prepared.data) == len(mm.data) + 1
     assert prepared.data[9, 0] is m
 
     mm[-1, -10] = m
@@ -659,3 +663,17 @@ def test_markmap_several_marks_at_same_position_retrieved_as_list():
 
     mm[-1, -10] = m
     assert mm[9, 0] == [m, m, m]
+
+
+# Tokenizer escaping tests
+
+def test_mltokenizer_convert_escaped_string_to_single_bracketed():
+    xx = MLTokenizer("[[color: blue]]")
+    xx.parse()
+    assert xx.parsed_text == "[color: blue]"
+
+def test_mltokenizer_convert_escaped_string_with_inner_token():
+    xx = MLTokenizer("[[f[up]]]")
+    xx.parse()
+    assert xx.parsed_text == "[f]"
+    assert list(xx.mark_sequence.keys()) == [2]

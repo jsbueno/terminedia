@@ -1,7 +1,120 @@
 Targeted for next release (0.4):
 =================================
     - [bug] None ended-slices of shapes should work (i.e. screen.data[10:, :]) should work: bug in Rect class
-    - [bug]
+    - [bug] StyledText: multiple "moveto" Marks pointing one to another do not chain: only the first one take effect
+    - [bug] "new_line" marks not working for text-resolutions other than 1. [v]
+
+
+[Widgets]
+    - Widget System:
+        - Base Widget, with sub-event system
+            - Use custom events with "subtype" attribute [v]
+            - Widgets have an associated Sprite class and a Shape parent to work [v]
+            - Base widget should take care of "focus" and "active" machinnery:
+                - Focused widget getting keyboard or mouse event should stop event
+                    from propagating to other subscriptions of th same event:
+                        - event subscription priority mechanism
+                - .focus property can work as:
+                    - all widgets register to a parent group, Screen if there is no subgroup
+                    - setting the focus to True on a widget automatically sets the focus all other widgets
+                        (and groups) to False: an "exclusiv property".
+            - masks and guards for event subscriptions:
+                - subscription only for certain keys
+                - subscription only for certain Regions of interest
+        - widgets with text-typing capability have an associated  Editable [v]
+            - Editable uses a text plane on the widget'sprites shape for controling input [v]
+            - Editable emulates a text cursor by using a custom Transformers [v]:
+                - CursorTransformer [v]:
+                    - Bug: effect transform of Cursor is "leaking" to th remainder of the text
+                    - Bug: Transform cursor not displayed on the "leading edge" of typing, just
+                        when the entry point moves left [v]
+                        - both bugs are related with "transparency" features of sprited combined
+                            on how transparency is handled in terminal fast_render.
+                            The functionality was mitigated by not using  a transparent sprite -
+                            but fast_render is possibly still buggy.
+
+            - Editable is able to handle overwritting text[v]
+            - Editable is able to insert text in middle of an entry [v]
+            - Editable can toggle insert/overwritte with the "ins" key. [v]
+            - Editable can startout with some text already filled in
+            - Editable can handle right-left entry-point movement via keyboard arrows [v]
+            - Editable can handle up-down entry-point movement via keyboard arrows: [wip]
+                - multi-line editing have to take care of "teleporting" marks in the associated text objcts (with moveto and rmoveto) [v]
+                        - this was acomplished by regenerating the whole widget text, which flows thugh the marks
+                - default text-plane layout should place teleporting marks to go up one line when flowing from the left side [v]
+                    (just as they work to go down one line when flowing into the right side)
+                    - de-hardcode left-to-right-and-down text layout from text planes, and offer other layout options. examples: [wip]
+                        - left-to-right and down [v]
+                        - S shaped
+                        - up-to-down and right
+                        - spiral shaped
+                - have a way to know in what position each character in the text being edited falls in the text-plane, [v]
+                    - Created a _RecordingControl context manager which exists as "recording" attribute on text_planes [v]
+                        - When entered, all characters printed in the text plane are also appended, along with
+                            position, tick and context data to a list. [v]
+
+                    - mouse-clicks on the text area can properly position the cursor
+                    - can keep track of softlines and hard lines when moving up and down [wip]
+                        (since "lines" are not a hardcoded layout, this is tricky)
+                        - can know how do flowing text _get_to_ (from which direction, and distance
+                            from the last text with content) [wip]
+                            - map dictionary with each cell and from where one can get there (map_text) [wip]
+                                (this is done, but slugish = > 10seconds for a 200x50 text area)
+                                - rewrite this inside TextPlane (in parallel to '.extents') [x]:
+                                    - rewriten inside "widgets" - text_map reduced from 10s to under 1s[v]
+                                        - new version interprets Marks with teleporting capabilities on its own [v]
+                                        - this version supports chain-teleporting.[v]
+
+
+                            - return current-direction and last occupied char [wip]
+                            - find out in the widget value stream where which is the char at the given position:
+                                (done inside _get_line_at_pos, but have to factor out)
+                        - have "virtual spaces" to fill up the current line up to the current position if a key is pressed where there is nothing
+                            - introduce a line break, and fill virtual spaces if there is a teleporting mark between the last filled char and current position
+
+                - rendering a "\n" in a text plane have to forward-the-entry-pos up to the next
+                    teleporting mark. With this behavior one gets both a line change, and
+                    a consistent behavior in vertical and "cartoon" layouts.
+                    - implement \n behavior in TM.text.style.StyledSequence
+
+            - Editable operates on the low level of its text-plane object
+                to avoid explosion of "writting" objects in text,writtings attribute [v]:
+                    - when regenerating the text on the entry, text.writtings is reset,
+                    and Editable value is set as a single writting [v]
+                    - Escape markup on entries when writting [wip]
+                    - Correctly handle escaped tokens in TM.text.styles.MLTokenizer.parse
+            - [future] handle copy-paste
+        - pointer dependent widgets:
+            - translate mouse position to in-widget positions
+        - Widgets:
+            - Entry: one line text editing
+            - Text: multiline text editing
+            - List selection
+            - Radio box/check box
+            - Drop down selection
+            - Button
+        - Advanced Widgets:
+            - color selection
+            - Gradient editor
+            - date picker
+            - "Windows" and "tabs":
+                - widget grouping and selective display
+        - Widget tools:
+            - scrollbar
+            - label
+            - styling:
+                - widget framing
+                - styling with context [wip]
+                - styling with transformers (vary likely will work out of the box)
+        - Layout management:
+            - absolute positioning [v]
+            - HBox/VBox filling
+        - Widgets have to be renderable and work in other text resolutions than 1:1 [v]
+            - Emulated cursor must scale up to character size [v]
+
+
+
+
 
 [mouse-and-events]
     - create a reliable way to read information back from stdin with ANSI events
@@ -170,9 +283,11 @@ smaller features:
     - Fix in-function imports in place to avoid circular imports so that they only run once per process
     - Alias context.foreground to context.color
 
+
     - bug: html rendering not respecting context colors, on starting empty space characters
     - bug: with terminal in relative movement, snake-game is faulty,, suggesting terminal-context bugs
     - bug: (may be postponed) - shape.render does not respect shapesviews (slices): the parent shape is rendered instead
+
 
     Transformers:
         - include a variety of ready-to-use and easy to parametrize transformers for:

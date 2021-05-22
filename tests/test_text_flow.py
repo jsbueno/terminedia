@@ -117,8 +117,7 @@ def test_composite_grapheme_ends_in_same_cell():
 def test_extents_work(in_text, final_pos):
 
     sc, sh, text_plane = styled_text()
-
-    pos = sh.text[1].extents((0, 0), in_text)
+    pos = sh.text[1].extents((0, 0), in_text, final_pos=False)
 
     assert pos == final_pos
     assert not sh.text[1].writtings
