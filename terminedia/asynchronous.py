@@ -44,7 +44,7 @@ async def terminedia_main(screen=None, context=None):
 
     screen.accelerate()
 
-    with terminedia.keyboard, screen:
+    with terminedia.keyboard, terminedia.mouse, screen:
         while not break_loop:
 
             frame_start = time.time()

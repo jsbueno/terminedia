@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+import weakref
 
 from terminedia.transformers import TransformersContainer
 from terminedia.utils import  HookList, Rect, V2, get_current_tick
@@ -38,8 +39,9 @@ class Sprite:
         self._check_and_promote()
         self.transformers = TransformersContainer()
         self.dirty_previous_rect = self.rect
-        if alpha:
-            for shape in self.shapes:
+        for shape in self.shapes:
+            shape._owner_sprite = weakref.ref(self)
+            if alpha:
                 shape.spaces_to_transparency()
 
     def _check_and_promote(self):
@@ -77,6 +79,22 @@ class Sprite:
         elif self.anchor == "center":
             r.center = self.pos
         return r
+
+    @property
+    def absrect(self):
+        rect = self.rect
+        shape = self.owner
+        while shape:
+            if hasattr(shape, "_owner_sprite"):
+                sp = shape._owner_sprite()
+                if sp is None:
+                    break
+                rect += sp.pos
+                shape = sp.owner if hasattr(shape, "owner") else None
+            else:
+                break
+        return rect
+
 
     @property
     def dirty_rects(self):

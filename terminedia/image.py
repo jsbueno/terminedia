@@ -445,6 +445,8 @@ class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
     PixelCls = pixel_factory(bool)
     _default_bg = False
 
+    isroot = False
+
     @classmethod
     def new(cls, size, **kwargs):
         """Creates an empty shape of this class.
@@ -722,6 +724,8 @@ class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
 class ShapeView(ShapeApiMixin):
     __slots__ = ("roi", "original", "_draw", "_high", "_text")
 
+    isroot = False
+
     def __init__(self, original, roi):
         self.original = original
         self.roi = Rect(roi)
@@ -764,6 +768,7 @@ class ShapeView(ShapeApiMixin):
             "draw",
             "high",
             "text",
+            "isroot",
             "_draw",
             "_high",
             "_text",

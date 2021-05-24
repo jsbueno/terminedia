@@ -2,6 +2,7 @@ import asyncio
 import time
 
 from collections import deque
+from copy import copy
 from weakref import WeakSet
 import os
 import signal
@@ -61,6 +62,11 @@ class Event:
         if dispatch:
             _event_dispatch(self)
 
+    def copy(self, **kwargs):
+        ev = copy(self)
+        ev.__dict__.update(kwargs)
+        return ev
+
     def __repr__(self):
         return f"Event <{self.type}> {self.__dict__}"
 
@@ -68,9 +74,10 @@ class Event:
 class Subscription:
     subscriptions = {}
 
-    def __init__(self, event_types, callback=None):
+    def __init__(self, event_types, callback=None, guard=None):
         cls = self.__class__
         self.callback = self.queue = None
+        self.guard = guard
         if callback:
             self.callback = callback
         else:
@@ -149,6 +156,8 @@ def process():
     while  events:
         for event in events:
             for subscription in list_subscriptions(event.type):
+                if subscription.guard and not subscription.guard(event):
+                    continue
                 if subscription.callback:
                     subscription.callback(event)
                 else:

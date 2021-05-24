@@ -37,30 +37,23 @@ _ENTER = "#"
 MarkCell = namedtuple("MarkCell", "from_pos to_pos flow_changed is_used direction")
 BackTrack = namedtuple("BackTrack", "position direction distance_to_closest_mark mark_count")
 
-# future
-#@dataclass
-class EditCell:
-    __slots__ = ("char", "mask", "line_start")
-    def __init__(self, char=" ", mask=_USED, line_start=False):
-        self.char = char
-        self.mask = mask
-        self.line_start = line_start
-
-    def __repr__(self):
-        return repr((self.char, {"*": "_UNUSED", " ": "_USED", "#": "_ENTER"}[self.mask], self.line_start))
 
 class CursorTransformer(terminedia.Transformer):
     blink_cycle = 5
 
-    def __init__(self, parent, effect="reverse"):
+    def __init__(self, parent, insert_effect="reverse", overwrite_effect="underline"):
         self.parent = parent
-        self.effect = terminedia.Effects(effect)
+        self.effect_table = {
+            False: terminedia.Effects(overwrite_effect),
+            True: terminedia.Effects(insert_effect)
+        }
+
         super().__init__()
 
     # FIXME: cursor effects are leaking for the sprite -
     # possible problem in handling the context in text.plane
     def effects(self, value, pos, tick):
-        if not tick % self.blink_cycle:
+        if not self.parent.parent.focus or not tick % self.blink_cycle:
             return value
         size = self.parent.text.char_size
         if size == (1,1):
@@ -70,7 +63,7 @@ class CursorTransformer(terminedia.Transformer):
             rect = Rect(self.parent.pos * size, width_height = size)
             if pos not in rect :
                 return value
-        return (value if isinstance(value, terminedia.Effects) else 0)| self.effect
+        return (value if isinstance(value, terminedia.Effects) else 0)| self.effect_table[self.parent.insertion]
 
 
     #def background(self, value, pos, tick):
@@ -431,8 +424,10 @@ class Lines:
 
         if backspace:
             hard_index -= 1
-
-        self._hard_load_from_soft_lines()
+        try:
+            self._hard_load_from_soft_lines()
+        except TextDoesNotFit:
+            pass
         self._last_event = (None, None, None, None)
 
         return hard_index
@@ -442,6 +437,9 @@ class Editable:
     """Internal class to widgets -
     responsible for managing a keyboard-event-echo-in-text-plane
     pattern. Use text-editing subclasses of Widget instead of this.
+
+    You may re-initialize the widget.editable instance if you make layout changes
+    to the underlying shape (text-flow Marks) after the widget is instantiated.
     """
     def __init__(self, text_plane, parent=None, value="", pos=None, line_sep="\n", enter_callback=None, esc_callback=None):
         self.focus = True
@@ -455,7 +453,7 @@ class Editable:
         self.context = self.text.owner.context
         self.initial_direction = self.context.direction
 
-        self.subs = events.Subscription(events.KeyPress, self.change)
+        self.subs = events.Subscription(events.KeyPress, self.change, guard=lambda e: self.parent.focus)
 
         if parent:
             self.parent.sprite.transformers.append(CursorTransformer(self))
@@ -598,10 +596,40 @@ class Editable:
         terminedia.events.Event(terminedia.events.Custom, subtype=type, owner=self, info=args)
 
 
+class WidgetEventReactor:
+    def __init__(self):
+        self.registry = {} #weakref.WeakKeyDictionary()
+        self.focus = None
+        self.main_mouse_subscription = events.Subscription(events.MouseClick, self.screen_click)
+
+
+    def register(self, widget):
+        #self.rect_registry[widget.sprite.absrect] = widget
+        self.registry[widget] = widget.sprite
+        self.focus = widget
+
+    def screen_click(self, event):
+        for widget, sprite in self.registry.items():
+            if not widget.active:
+                continue
+            rect = sprite.absrect
+            if event.pos in rect:
+                if self.focus is not widget:
+                    widget.focus = True
+                if widget.click_callback:
+                    local_event = event.copy(pos=event.pos - rect.c1)
+                    widget.click_callback(local_event)
+                break
+
+
+# singleton
+WidgetEventReactor = WidgetEventReactor()
+
 
 class Widget:
     @contextkwords
-    def __init__(self, parent, size, pos=None, text_plane=1, sprite=None):
+    def __init__(self, parent, size, pos=None, text_plane=1, sprite=None, click_callback=None):
+        self.infocus = False
         if isinstance(parent, terminedia.Screen):
             parent = parent.shape
 
@@ -623,10 +651,33 @@ class Widget:
             size = self.shape.text[text_plane].size
 
         self.parent = parent
+        self.click_callback = click_callback
 
         self.text_plane = text_plane
-        parent.sprites.append(self.sprite)
+        if sprite not in parent.sprites:
+            parent.sprites.append(self.sprite)
 
+        WidgetEventReactor.register(self)
+
+    @property
+    def active(self):
+        return self.sprite.active
+
+    @property
+    def focus(self):
+        return WidgetEventReactor.focus is self
+
+    @focus.setter
+    def focus(self, value):
+        if value:
+            WidgetEventReactor.focus = self
+        else:
+            if WidgetEventReactor.focus is self:
+                WidgetEventReactor.focus = None
+
+    def kill(self):
+        del WidgetEventReactor.registry[self]
+        self.sprite.owner.sprites.remove(self.sprite)
 
 class Text(Widget):
 
@@ -642,6 +693,20 @@ class Text(Widget):
 class Entry(Text):
     def __init__(self, parent, width, label="", value="", enter_callback=None, pos=None, text_plane=1, **kwargs):
         super().__init__(parent, (width, 1), label=label, value=value, pos=pos, text_plane=text_plane, enter_callback=enter_callback, **kwargs)
+
+
+class Button(Widget):
+    def __init__(self, parent, text="", command=None, pos=None, text_plane=1, padding=0, y_padding=None, sprite=None, **kwargs):
+        if not command and "click_callback" in kwargs:
+            command = kwargs.pop("click_callback")
+        if y_padding is None:
+            y_padding = padding
+        if not sprite:
+            size = len(text) + padding * 2, 1 + y_padding * 2
+        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, click_callback=command, **kwargs)
+        if not sprite and text:
+            self.shape.text[self.text_plane][padding, y_padding] = text
+
 
 
 
