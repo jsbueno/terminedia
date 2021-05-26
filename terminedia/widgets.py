@@ -6,12 +6,13 @@ from functools import wraps
 
 import terminedia
 
-from terminedia import shape, Mark
+from terminedia import shape, Mark, Transformer
 
 from terminedia.sprites import Sprite
 from terminedia.utils import contextkwords
 from terminedia import events, V2, Rect
 
+from terminedia.events import EventSuppressFurtherProcessing
 from terminedia.input import KeyCodes
 from terminedia.utils.gradient import RangeMap
 from terminedia.text import escape, plane_names
@@ -71,6 +72,31 @@ class CursorTransformer(terminedia.Transformer):
             #return value
         #return (127, 127, 0)
         #return (value if isinstance(value, terminedia.Effects) else 0)| self.effect
+
+
+class SelectorTransformer(terminedia.Transformer):
+
+    def __init__(self, parent, effect="reverse"):
+        self.parent = parent
+        self.effect = terminedia.Effects(effect)
+
+        super().__init__()
+
+    def effects(self, value, pos, tick):
+        size = self.parent.text.char_size
+        row = self.parent.selected_row
+        if size == (1,1):
+            if pos[1] != row + self.parent.has_border:
+                return value
+        else:
+            row_size = size[1]
+            size1_row = row * row_size + self.parent.has_border
+            if not(size1_row <= pos[1] < size1_row + row_size):
+                return value
+        if self.parent.has_border and (pos[0] == 0 or pos[0] == self.parent.shape.width - 1):
+            return value
+        return self.effect
+
 
 
 def _ensure_sequence(mark):
@@ -453,7 +479,7 @@ class Editable:
         self.context = self.text.owner.context
         self.initial_direction = self.context.direction
 
-        self.subs = events.Subscription(events.KeyPress, self.change, guard=lambda e: self.parent.focus)
+        self.subs = events.Subscription(events.KeyPress, self.keypress, guard=lambda e: self.parent.focus)
 
         if parent:
             self.parent.sprite.transformers.append(CursorTransformer(self))
@@ -512,6 +538,13 @@ class Editable:
     @property
     def shaped_value(self):
         return self.raw_value
+
+    def keypress(self, event):
+        try:
+            self.change(event)
+        finally:
+            # do not allow keypress to be processed further
+            raise EventSuppressFurtherProcessing()
 
     def change(self, event):
         """Called on each keypress when the widget is active. Take 2"""
@@ -671,6 +704,8 @@ class Widget:
     def focus(self, value):
         if value:
             WidgetEventReactor.focus = self
+            if hasattr(self, "subs"):
+                self.subs.prioritize()
         else:
             if WidgetEventReactor.focus is self:
                 WidgetEventReactor.focus = None
@@ -685,6 +720,7 @@ class Text(Widget):
 
         super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, **kwargs)
         self.editable = Editable(self.sprite.shape.text[self.text_plane], parent=self, value=value, enter_callback=enter_callback, esc_callback=esc_callback)
+        self.subs = self.editable.subs
 
     def get(self):
         return self.editable.value
@@ -696,16 +732,86 @@ class Entry(Text):
 
 
 class Button(Widget):
-    def __init__(self, parent, text="", command=None, pos=None, text_plane=1, padding=0, y_padding=None, sprite=None, **kwargs):
+    def __init__(self, parent, text="", command=None, pos=None, text_plane=1, padding=0, y_padding=None, sprite=None, border=None, **kwargs):
         if not command and "click_callback" in kwargs:
             command = kwargs.pop("click_callback")
         if y_padding is None:
             y_padding = padding
         if not sprite:
             size = len(text) + padding * 2, 1 + y_padding * 2
+
         super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, click_callback=command, **kwargs)
+        if border:
+            if not isinstance(border, Transformer):
+                border = terminedia.transformers.library.box_transformers["LIGHT_ARC"]
+            self.shape.text[self.text_plane].add_border(border)
         if not sprite and text:
-            self.shape.text[self.text_plane][padding, y_padding] = text
+            self.shape.text[self.text_plane][padding - 1 if border else 0, y_padding - 1 if border else 0] = text
+
+Label = Button
+
+
+class Selector(Widget):
+    def __init__(self, parent, options, select=None, pos=None, text_plane=1, sprite=None, border=None, align="^", selected_row=0, **kwargs):
+
+        if isinstance(options, dict):
+            str_options = list(options.keys)
+            options_values = options
+        else:
+            str_options = [opt[0] if isinstance(opt, tuple) else opt for opt in options]
+            options_values = {str_opt:(opt[1] if isinstance(opt, tuple) else opt) for str_opt, opt in zip(str_options, options)}
+        max_width = max(len(opt) for opt in str_options)
+
+        size = V2(max_width, len(options))
+        self.has_border = 0
+        if border:
+            size += V2(2,2)
+            if not isinstance(border, Transformer):
+                border = terminedia.transformers.library.box_transformers["LIGHT_ARC"]
+            self.has_border = 1
+
+        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, **kwargs)
+        text = self.shape.text[self.text_plane]
+        if border:
+            text.add_border(border)
+
+
+        for row, opt in enumerate(str_options):
+            text[0, row] = f"{opt:{align}{max_width}s}"
+
+        self.text = text
+        self.selected_row = selected_row
+        self.str_options = str_options
+        self.options = options_values
+        self.num_options = {num: opt for num, opt in enumerate(options_values.values())}
+        self.selected_row = selected_row
+        self.transformer = SelectorTransformer(self)
+        self.callback = select
+
+        self.sprite.transformers.append(self.transformer)
+        self.subs = events.Subscription(events.KeyPress, self.change, guard=lambda e: self.focus)
+
+    def change(self, event):
+        key = event.key
+        if key == KeyCodes.UP and self.selected_row > 0:
+            self.selected_row -= 1
+        elif key == KeyCodes.DOWN and self.selected_row < len(self.options) - 1:
+            self.selected_row += 1
+        elif key == KeyCodes.ENTER and self.callback:
+            self.callback(self)
+
+    @property
+    def value(self):
+        return self.num_options[self.selected_row]
+
+
+    def kill(self):
+        self.subs.kill()
+        super().kill()
+
+
+
+
 
 
 

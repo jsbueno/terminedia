@@ -22,6 +22,12 @@ _sigwinch_counter = 0
 _original_sigwinch = None
 
 
+class EventMessage(Exception):
+    pass
+
+class EventSuppressFurtherProcessing(EventMessage):
+    pass
+
 
 class EventTypes(IterableFlag):
     Tick = 1
@@ -116,6 +122,18 @@ class Subscription:
             self.__class__.subscriptions[type].remove(self)
         self.terminated = True
 
+    def prioritize(self):
+        """move this subscription so that it receives the event first
+
+        So that widgets that have focus can process keyboard touch or mouse events
+        and supress the event for other subscribers.
+
+        """
+        cls = self.__class__
+        for type_ in self.types:
+            cls.subscriptions[type_].remove(self)
+            cls.subscriptions[type_].append(self)
+
     def __repr__(self):
         return f"Subscription {self.types}{', callback: ' + repr(self.callback) if self.callback else '' }"
 
@@ -137,7 +155,7 @@ _event_dispatch = dispatch
 
 def list_subscriptions(type_: EventTypes) -> set():
     """Returns a set with all active subscriptions for the given event type"""
-    return Subscription.subscriptions.get(type_, set())
+    return reversed(Subscription.subscriptions.get(type_, []))
 
 
 def process():
@@ -159,7 +177,10 @@ def process():
                 if subscription.guard and not subscription.guard(event):
                     continue
                 if subscription.callback:
-                    subscription.callback(event)
+                    try:
+                        subscription.callback(event)
+                    except EventSuppressFurtherProcessing:
+                        break
                 else:
                     subscription.queue.append(event)
         events = deque(_event_queue)
