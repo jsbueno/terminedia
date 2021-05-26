@@ -132,6 +132,7 @@ class SpriteContainer(HookList):
     def __init__(self, owner):
         super().__init__()
         self.owner = owner
+        self.killed_sprites = []
 
     def insert_hook(self, item):
         if not isinstance(item, Sprite):
@@ -158,3 +159,8 @@ class SpriteContainer(HookList):
             item = Sprite(item, pos, active, tick_cycle, anchor, alpha=alpha)
         self.append(item)
         return item
+
+    def remove(self, sprite):
+        rect = sprite.rect
+        self.killed_sprites.append(sprite.owner_coords(rect))
+        super().remove(sprite)

@@ -400,6 +400,10 @@ class ShapeDirtyMixin:
 
                 for rect in sprite.dirty_rects:
                     self.dirty_registry.push((tick, sprite.owner_coords(rect), sprite.shape))
+            if self.sprites.killed_sprites:
+                for rect in self.sprites.killed_sprites:
+                    self.dirty_registry.push((tick, rect, None))
+                self.sprites.killed_sprites.clear()
 
         # mark dirty pixels
 

@@ -755,7 +755,7 @@ class Selector(Widget):
     def __init__(self, parent, options, select=None, pos=None, text_plane=1, sprite=None, border=None, align="^", selected_row=0, **kwargs):
 
         if isinstance(options, dict):
-            str_options = list(options.keys)
+            str_options = list(options.keys())
             options_values = options
         else:
             str_options = [opt[0] if isinstance(opt, tuple) else opt for opt in options]
