@@ -791,7 +791,8 @@ class Selector(Widget):
                 border = terminedia.transformers.library.box_transformers["LIGHT_ARC"]
             self.has_border = 1
 
-        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, **kwargs)
+        # FIXME: make event callbacks lists - so that user can pass extra click_callbacks
+        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, click_callback=self.click_callback, **kwargs)
         text = self.shape.text[self.text_plane]
         if border:
             text.add_border(border)
@@ -821,6 +822,9 @@ class Selector(Widget):
         elif key == KeyCodes.ENTER and self.callback:
             self.callback(self)
         raise EventSuppressFurtherProcessing()
+
+    def click_callback(self, event):
+        self.selected_row = event.pos.y - self.text.pad_top
 
     @property
     def value(self):
