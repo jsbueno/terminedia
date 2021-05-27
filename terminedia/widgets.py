@@ -467,19 +467,17 @@ class Editable:
     You may re-initialize the widget.editable instance if you make layout changes
     to the underlying shape (text-flow Marks) after the widget is instantiated.
     """
-    def __init__(self, text_plane, parent=None, value="", pos=None, line_sep="\n", enter_callback=None, esc_callback=None):
+    def __init__(self, text_plane, parent=None, value="", pos=None, line_sep="\n"):
         self.focus = True
         self.initial_pos = self.pos = pos or V2(0, 0)
         self.text = text_plane
         self.parent = parent
         self.line_sep = line_sep
-        self.enter_callback = enter_callback
-        self.esc_callback = esc_callback
+        #self.enter_callback = enter_callback
+        #self.esc_callback = esc_callback
         self.insertion = True
         self.context = self.text.owner.context
         self.initial_direction = self.context.direction
-
-        self.subs = events.Subscription(events.KeyPress, self.keypress, guard=lambda e: self.parent.focus)
 
         if parent:
             self.parent.sprite.transformers.append(CursorTransformer(self))
@@ -539,22 +537,15 @@ class Editable:
     def shaped_value(self):
         return self.raw_value
 
-    def keypress(self, event):
-        try:
-            self.change(event)
-        finally:
-            # do not allow keypress to be processed further
-            raise EventSuppressFurtherProcessing()
-
     def change(self, event):
         """Called on each keypress when the widget is active. Take 2"""
 
         self.tick += 1
 
-        if event.key == KeyCodes.ENTER and self.enter_callback:
-            self.enter_callback(self)
-        if event.key == KeyCodes.ESC and self.esc_callback:
-            self.esc_callback(self)
+        #if event.key == KeyCodes.ENTER and self.enter_callback:
+            #self.enter_callback(self)
+        #if event.key == KeyCodes.ESC and self.esc_callback:
+            #self.esc_callback(self)
 
         key = event.key
         valid_symbol = True
@@ -622,7 +613,6 @@ class Editable:
         self.last_text_data = text_data
 
     def kill(self):
-        self.subs.kill()
         self.focus = False
 
     def events(self, type, *args):
@@ -711,18 +701,49 @@ class Widget:
                 WidgetEventReactor.focus = None
 
     def kill(self):
-        del WidgetEventReactor.registry[self]
-        self.sprite.owner.sprites.remove(self.sprite)
+        self.sprite.kill()
+        try:
+            del WidgetEventReactor.registry[self]
+        except KeyError:
+            pass
+        self.focus = False
+        if hasattr(self, "subs") and self.subs:
+            if not self.subs.terminated:
+                self.subs.kill()
+            del self.subs
 
 class Text(Widget):
 
     def __init__(self, parent, size=None, label="", value="", enter_callback=None, pos=None, text_plane=1, esc_callback=None, sprite=None, **kwargs):
 
         super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, **kwargs)
-        self.editable = Editable(self.sprite.shape.text[self.text_plane], parent=self, value=value, enter_callback=enter_callback, esc_callback=esc_callback)
-        self.subs = self.editable.subs
+        self.editable = Editable(self.sprite.shape.text[self.text_plane], parent=self, value=value)
+        self.enter_callback = enter_callback
+        self.esc_callback = esc_callback
+        self.subs = events.Subscription(events.KeyPress, self.keypress, guard=lambda e: self.focus)
 
     def get(self):
+        return self.editable.value
+
+    def kill(self):
+        self.editable.kill()
+        super().kill()
+
+    def keypress(self, event):
+        key = event.key
+        if key == KeyCodes.ENTER and self.enter_callback:
+            self.enter_callback(self)
+        if key == KeyCodes.ESC and self.esc_callback:
+            self.esc_callback(self)
+
+        try:
+            self.editable.change(event)
+        finally:
+            # do not allow keypress to be processed further
+            raise EventSuppressFurtherProcessing()
+
+    @property
+    def value(self):
         return self.editable.value
 
 
@@ -799,15 +820,12 @@ class Selector(Widget):
             self.selected_row += 1
         elif key == KeyCodes.ENTER and self.callback:
             self.callback(self)
+        raise EventSuppressFurtherProcessing()
 
     @property
     def value(self):
         return self.num_options[self.selected_row]
 
-
-    def kill(self):
-        self.subs.kill()
-        super().kill()
 
 
 

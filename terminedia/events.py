@@ -4,6 +4,7 @@ import time
 from collections import deque
 from copy import copy
 from weakref import WeakSet
+import inspect
 import os
 import signal
 
@@ -131,7 +132,10 @@ class Subscription:
         """
         cls = self.__class__
         for type_ in self.types:
-            cls.subscriptions[type_].remove(self)
+            try:
+                cls.subscriptions[type_].remove(self)
+            except ValueError:
+                pass
             cls.subscriptions[type_].append(self)
 
     def __repr__(self):
@@ -158,6 +162,18 @@ def list_subscriptions(type_: EventTypes) -> set():
     return reversed(Subscription.subscriptions.get(type_, []))
 
 
+def _event_process_handle_coro(coro):
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        raise RuntimeError("An event subscription is being run in a co-routine, but the event" \
+            "system is not running in an asyncio loop. Use terminedia.terminedia_main to run an asyncio event loop")
+
+    loop.create_task(coro)
+
+    # TODO: add the task to a collection, and at some point collect the results of done tasks.
+
+
 def process():
     """Sends any created events since the last call to their subscribers.
 
@@ -178,7 +194,9 @@ def process():
                     continue
                 if subscription.callback:
                     try:
-                        subscription.callback(event)
+                        result = subscription.callback(event)
+                        if inspect.isawaitable(result):
+                            _event_process_handle_coro(result)
                     except EventSuppressFurtherProcessing:
                         break
                 else:

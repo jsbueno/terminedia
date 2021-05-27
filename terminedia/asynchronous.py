@@ -50,7 +50,8 @@ async def terminedia_main(screen=None, context=None):
             frame_start = time.time()
             await asyncio.sleep(0)
             screen.update()
-            await asyncio.sleep(1 / context.fps)
+            frame_wait = max(0, (1 / context.fps) - (time.time() - frame_start))
+            await asyncio.sleep(frame_wait)
 
 
 def _refresh_line(text, pos, max_pos, backspace=0):

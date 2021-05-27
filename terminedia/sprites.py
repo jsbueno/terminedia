@@ -95,6 +95,9 @@ class Sprite:
                 break
         return rect
 
+    @property
+    def owner_rect(self):
+        return self.rect + self.pos
 
     @property
     def dirty_rects(self):
@@ -126,6 +129,10 @@ class Sprite:
         if self.transformers:
             pixel = self.transformers.process(self.shape, pos, pixel)
         return pixel
+
+    def kill(self):
+        if getattr(self, "owner", None):
+            self.owner.sprites.remove(self)
 
 
 class SpriteContainer(HookList):
@@ -161,6 +168,7 @@ class SpriteContainer(HookList):
         return item
 
     def remove(self, sprite):
-        rect = sprite.rect
-        self.killed_sprites.append(sprite.owner_coords(rect))
+        sprite.owner.dirty_set()
+        #self.killed_sprites.append(sprite.owner_rect)
         super().remove(sprite)
+        sprite.owner = None
