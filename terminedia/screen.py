@@ -57,6 +57,8 @@ class Screen:
         This does not resize the actual terminal - a smaller area is available to the methods instead.
         If given size is larger than the actual terminal, mayhen ensues.
       - clear_screen (bool): Whether to clear the terminal and hide cursor when entering the screen. Defaults to True.
+      - interactive (bool): if False, do not create binding for events, or change keyboard and mouse behaviors (used by rendering to file).
+            Default: True
 
     """
 
@@ -75,7 +77,7 @@ class Screen:
     #: Internal: tracks last used effects attribute to avoid mangling and enable optimizations
     last_effects = None
 
-    def __init__(self, size=(), clear_screen=True, backend="ansi"):
+    def __init__(self, size=(), clear_screen=True, backend="ansi", interactive=True):
         from terminedia import context as root_context
 
         if not size:
@@ -100,6 +102,7 @@ class Screen:
         self.context = Context()
 
         self.width, self.height = self.size = size
+        self.interactive = interactive
 
         #: Namespace to allow high-resolution drawing using a :any:`HighRes` instance
         #: One should either use the public methods in HighRes or the methods on the
@@ -169,6 +172,8 @@ class Screen:
 
 
     def _init_event_system(self):
+        if not self.interactive:
+            return
         self._event_subscriptions = []
         terminedia.events._register_sigwinch()
         self._event_subscriptions.extend([
@@ -293,6 +298,8 @@ class Screen:
     def line_at(self, pos, length, sequence=FULL_BLOCK):
         """Renders a repeating character sequence of given length respecting the context.direction
 
+        This is an antique method from a time when there was no drawing API. Prefer
+        screen.draw.line for mor control.
         Args:
           - pos (2-sequence):  coordinates where to start drawing
           - length (int): length of character sequence to render
@@ -449,7 +456,7 @@ class Screen:
         """
         tick_forward()
 
-        if terminedia.input.keyboard.enabled and not self._inkey_called_since_last_update:
+        if self.interactive and terminedia.input.keyboard.enabled and not self._inkey_called_since_last_update:
             # Ensure the dispatch of keypress events:
             terminedia.inkey(consume=False)
 
@@ -474,6 +481,8 @@ class Screen:
                 self.commands.up()
 
     def __del__(self):
+        if not self.interactive:
+            return
         for subscription in self._event_subscriptions:
             subscription.kill()
         terminedia.events._unregister_sigwinch()

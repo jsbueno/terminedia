@@ -659,7 +659,7 @@ class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
             file = StringIO()
         else:
             file = output
-        sc = Screen(size=V2(self.width, self.height), backend=backend)
+        sc = Screen(size=V2(self.width, self.height), backend=backend, interactive=False)
         if backend=="ANSI":
             # generate a relocatable image
             sc.commands.__class__.last_pos = V2(0, 0)
@@ -672,6 +672,7 @@ class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
         sc.commands.stop_journal()
         # Renders all graphic ops as ANSI sequences + unicode into file:
         sc.commands.replay(output)
+        output.write("\x1b[0m")  # reset all ansi attributes
 
     def __repr__(self):
         cap = self.PixelCls.capabilities

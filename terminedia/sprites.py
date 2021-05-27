@@ -63,6 +63,8 @@ class Sprite:
 
     @pos.setter
     def pos(self, value):
+        if getattr(self, "owner", None):
+            self.owner.dirty_registry.push((get_current_tick(), self.rect, None))
         self._pos = V2(value)
 
     @property

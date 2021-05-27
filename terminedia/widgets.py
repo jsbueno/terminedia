@@ -797,7 +797,6 @@ class Selector(Widget):
         if border:
             text.add_border(border)
 
-
         for row, opt in enumerate(str_options):
             text[0, row] = f"{opt:{align}{max_width}s}"
 
