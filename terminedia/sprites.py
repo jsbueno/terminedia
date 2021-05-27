@@ -96,10 +96,6 @@ class Sprite:
         return rect
 
     @property
-    def owner_rect(self):
-        return self.rect + self.pos
-
-    @property
     def dirty_rects(self):
         changed_rect = self.rect != self.dirty_previous_rect
         transformer_using_tick = any("tick" in transformer.signatures for transformer in self.transformers)
@@ -168,7 +164,6 @@ class SpriteContainer(HookList):
         return item
 
     def remove(self, sprite):
-        sprite.owner.dirty_set()
-        #self.killed_sprites.append(sprite.owner_rect)
+        self.killed_sprites.append(sprite.rect)
         super().remove(sprite)
         sprite.owner = None
