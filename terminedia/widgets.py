@@ -1,6 +1,7 @@
 import enum
 import weakref
 from collections import namedtuple
+from collections.abc import Iterable
 from copy import deepcopy
 from functools import wraps
 
@@ -37,6 +38,10 @@ _ENTER = "#"
 
 MarkCell = namedtuple("MarkCell", "from_pos to_pos flow_changed is_used direction")
 BackTrack = namedtuple("BackTrack", "position direction distance_to_closest_mark mark_count")
+
+
+class WidgetCancelled(Exception):
+    pass
 
 
 class CursorTransformer(terminedia.Transformer):
@@ -637,25 +642,44 @@ class WidgetEventReactor:
                 continue
             rect = sprite.absrect
             if event.pos in rect:
-                if self.focus is not widget:
-                    widget.focus = True
-                if widget.click_callback:
+
+                if widget.click_callbacks:
                     local_event = event.copy(pos=event.pos - rect.c1)
-                    widget.click_callback(local_event)
+                    for callback in reversed(widget.click_callbacks):
+                        try:
+                            callback(local_event)
+                        except EventSuppressFurtherProcessing:
+                            break
                 break
 
 
 # singleton
 WidgetEventReactor = WidgetEventReactor()
 
+def _ensure_extend(seq, value):
+    if isinstance(value, Iterable):
+        seq.extend(value)
+    elif value is not None:
+        seq.append(value)
 
 class Widget:
     @contextkwords
-    def __init__(self, parent, size, pos=None, text_plane=1, sprite=None, click_callback=None):
+    def __init__(self, parent, size, pos=None, text_plane=1, sprite=None, click_callback=None, esc_callback=None, enter_callback=None, keypress_callback=None, cancelable=False, notify_cancel=False):
+        """Widget base
+
+        Under development. More docs added as examples/functionality is written.
+
+        By default, an widget looses focus when "ESC" is pressed.
+        if "cancellable" is True, this will kill the widget and raise a WidgetCancelled execption.
+
+        To avoid cancelation, pass an "esc_callback" which raises an EventSuppressFurtherProcessing.
+        """
         self.infocus = False
         if isinstance(parent, terminedia.Screen):
             parent = parent.shape
 
+        self.cancelable = cancelable
+        self.notify_cancel = notify_cancel
         if not any((size, sprite)):
             raise TypeError("Either a size or a sprite should be given for text editing")
         if sprite and size:
@@ -674,13 +698,29 @@ class Widget:
             size = self.shape.text[text_plane].size
 
         self.parent = parent
-        self.click_callback = click_callback
+        self.click_callbacks = [self._default_click]
+        _ensure_extend(self.click_callbacks, click_callback)
+
+        self.esc_callbacks = [self.__class__._default_escape]
+        _ensure_extend(self.esc_callbacks, esc_callback)
+
+        self.enter_callbacks = [self.__class__._default_enter]
+        _ensure_extend(self.enter_callbacks, enter_callback)
+
+        self.keypress_callbacks = []
+        _ensure_extend(self.keypress_callbacks, keypress_callback)
 
         self.text_plane = text_plane
         if sprite not in parent.sprites:
             parent.sprites.append(self.sprite)
 
+        self.subscriptions = [events.Subscription(events.KeyPress, self.keypress, guard=lambda e: self.focus)]
+
         WidgetEventReactor.register(self)
+
+    def _default_click(self, event):
+        if not self.focus:
+            self.focus = True
 
     @property
     def active(self):
@@ -707,20 +747,44 @@ class Widget:
         except KeyError:
             pass
         self.focus = False
-        if hasattr(self, "subs") and self.subs:
-            if not self.subs.terminated:
-                self.subs.kill()
-            del self.subs
+        if getattr(self, "subscriptions", None):
+            for subs in self.subscriptions:
+                if not subs.terminated:
+                    subs.kill()
+            self.subscriptions.clear()
+
+    def _default_escape(self, event):
+        if self.cancelable:
+            self.kill()
+            if self.notify_cancel:
+                raise WidgetCancelled()
+        self.focus = False
+
+    def _default_enter(self, event):
+        pass
+
+    def keypress(self, event):
+        key = event.key
+        for target_key, callback_list in (
+            (KeyCodes.ENTER, self.enter_callbacks),
+            (KeyCodes.ESC, self.esc_callbacks),
+            ("all", self.keypress_callbacks)
+        ):
+            if key == target_key or target_key=="all" and callback_list:
+                for callback in reversed(callback_list):
+                    try:
+                        callback(self, event)
+                    except EventSuppressFurtherProcessing:
+                        if target_key == "all":
+                            raise
+                        break
 
 class Text(Widget):
 
-    def __init__(self, parent, size=None, label="", value="", enter_callback=None, pos=None, text_plane=1, esc_callback=None, sprite=None, **kwargs):
+    def __init__(self, parent, size=None, label="", value="", pos=None, text_plane=1, sprite=None, **kwargs):
 
-        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, **kwargs)
+        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, keypress_callback=self.__class__.handle_key, **kwargs)
         self.editable = Editable(self.sprite.shape.text[self.text_plane], parent=self, value=value)
-        self.enter_callback = enter_callback
-        self.esc_callback = esc_callback
-        self.subs = events.Subscription(events.KeyPress, self.keypress, guard=lambda e: self.focus)
 
     def get(self):
         return self.editable.value
@@ -729,12 +793,7 @@ class Text(Widget):
         self.editable.kill()
         super().kill()
 
-    def keypress(self, event):
-        key = event.key
-        if key == KeyCodes.ENTER and self.enter_callback:
-            self.enter_callback(self)
-        if key == KeyCodes.ESC and self.esc_callback:
-            self.esc_callback(self)
+    def handle_key(self, event):
 
         try:
             self.editable.change(event)
@@ -750,6 +809,11 @@ class Text(Widget):
 class Entry(Text):
     def __init__(self, parent, width, label="", value="", enter_callback=None, pos=None, text_plane=1, **kwargs):
         super().__init__(parent, (width, 1), label=label, value=value, pos=pos, text_plane=text_plane, enter_callback=enter_callback, **kwargs)
+        self.done = False
+
+    def _default_enter(self, event):
+        self.done = True
+
 
 
 class Button(Widget):
@@ -773,7 +837,7 @@ Label = Button
 
 
 class Selector(Widget):
-    def __init__(self, parent, options, select=None, pos=None, text_plane=1, sprite=None, border=None, align="^", selected_row=0, **kwargs):
+    def __init__(self, parent, options, select=None, pos=None, text_plane=1, sprite=None, border=None, align="^", selected_row=0, click_callback=None, **kwargs):
 
         if isinstance(options, dict):
             str_options = list(options.keys())
@@ -791,8 +855,9 @@ class Selector(Widget):
                 border = terminedia.transformers.library.box_transformers["LIGHT_ARC"]
             self.has_border = 1
 
-        # FIXME: make event callbacks lists - so that user can pass extra click_callbacks
-        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, click_callback=self.click_callback, **kwargs)
+        click_callbacks = [self._select_click]
+        _ensure_extend(click_callbacks, click_callback)
+        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, click_callback=click_callbacks, **kwargs)
         text = self.shape.text[self.text_plane]
         if border:
             text.add_border(border)
@@ -822,8 +887,9 @@ class Selector(Widget):
             self.callback(self)
         raise EventSuppressFurtherProcessing()
 
-    def click_callback(self, event):
+    def _select_click(self, event):
         self.selected_row = event.pos.y - self.text.pad_top
+        super()._default_click(event)
 
     @property
     def value(self):

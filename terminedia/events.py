@@ -169,8 +169,9 @@ def _event_process_handle_coro(coro):
         raise RuntimeError("An event subscription is being run in a co-routine, but the event" \
             "system is not running in an asyncio loop. Use terminedia.terminedia_main to run an asyncio event loop")
 
-    loop.create_task(coro)
-
+    task = loop.create_task(coro)
+    # FIXME: add a proper callback which can handle eventual exceptions
+    # task.add_done_callback(task.result)
     # TODO: add the task to a collection, and at some point collect the results of done tasks.
 
 

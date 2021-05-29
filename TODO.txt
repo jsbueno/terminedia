@@ -19,7 +19,7 @@ Targeted for next release (0.4):
                     - all widgets register to a parent group, Screen if there is no subgroup
                     - setting the focus to True on a widget automatically sets the focus all other widgets
                         (and groups) to False: an "exclusiv property".
-            - masks and guards for event subscriptions:
+            - masks and guards for event subscriptions [wip]:
                 - subscription only for certain keys
                 - subscription only for certain Regions of interest
         - widgets with text-typing capability have an associated  Editable [v]
@@ -84,13 +84,14 @@ Targeted for next release (0.4):
                     and Editable value is set as a single writting [v]
                     - Escape markup on entries when writting [wip]
                     - Correctly handle escaped tokens in TM.text.styles.MLTokenizer.parse
+            - Editable: should position cursor correctly on click
             - [future] handle copy-paste
         - pointer dependent widgets:
-            - translate mouse position to in-widget positions
+            - translate mouse position to in-widget positions [v]
         - Widgets:
-            - Entry: one line text editing
-            - Text: multiline text editing
-            - List selection
+            - Entry: one line text editing [v]
+            - Text: multiline text editing [v]
+            - List selection [v]
             - Radio box/check box
             - Drop down selection
             - Button
@@ -113,7 +114,17 @@ Targeted for next release (0.4):
         - Widgets have to be renderable and work in other text resolutions than 1:1 [v]
             - Emulated cursor must scale up to character size [v]
 
+        - Widgets should have the concept of focus [v]
+        - Widget should get focus on click [v]
+        - Widget should loose focus on "ESC" [wip]:
+            - optionally, widget should be cancelled on "ESC". [WIP]
+        - Focus should traverse widgets on "TAB"
 
+        - Make Widgets awaitable [wip]
+        - Rewrite in-widget events to handle list of callbacks instead of single callback
+            - click [v]
+            - enter [wip]
+            - esc [wip]
 
 
 
