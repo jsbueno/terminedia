@@ -664,7 +664,7 @@ def _ensure_extend(seq, value):
 
 class Widget:
     @contextkwords
-    def __init__(self, parent, size, pos=None, text_plane=1, sprite=None, click_callback=None, esc_callback=None, enter_callback=None, keypress_callback=None, cancelable=False, notify_cancel=False):
+    def __init__(self, parent, size, pos=None, text_plane=1, sprite=None, click_callback=None, esc_callback=None, enter_callback=None, keypress_callback=None, cancellable=False):
         """Widget base
 
         Under development. More docs added as examples/functionality is written.
@@ -678,8 +678,7 @@ class Widget:
         if isinstance(parent, terminedia.Screen):
             parent = parent.shape
 
-        self.cancelable = cancelable
-        self.notify_cancel = notify_cancel
+        self.cancellable = cancellable
         if not any((size, sprite)):
             raise TypeError("Either a size or a sprite should be given for text editing")
         if sprite and size:
@@ -715,6 +714,7 @@ class Widget:
             parent.sprites.append(self.sprite)
 
         self.subscriptions = [events.Subscription(events.KeyPress, self.keypress, guard=lambda e: self.focus)]
+        self.terminated = False
 
         WidgetEventReactor.register(self)
 
@@ -753,12 +753,12 @@ class Widget:
                 if not subs.terminated:
                     subs.kill()
             self.subscriptions.clear()
+        self.terminated = True
 
     def _default_escape(self, event):
-        if self.cancelable:
+        if self.cancellable:
             self.kill()
-            if self.notify_cancel:
-                raise WidgetCancelled()
+            self.cancelled = True
         self.focus = False
 
     def _default_enter(self, event):
@@ -786,7 +786,10 @@ class Widget:
         """
         while not getattr(self, "done", False):
             yield None
-        self.kill()
+        if not self.terminated:
+            self.kill()
+        if getattr(self, "cancelled", False):
+            raise WidgetCancelled()
         return getattr(self, "value", None)
 
 class Text(Widget):
