@@ -747,6 +747,7 @@ class Widget:
         except KeyError:
             pass
         self.focus = False
+        self.done = True
         if getattr(self, "subscriptions", None):
             for subs in self.subscriptions:
                 if not subs.terminated:
@@ -778,6 +779,15 @@ class Widget:
                         if target_key == "all":
                             raise
                         break
+
+    def __await__(self):
+        """Before awaiting: not all widgets have a default condition to be considered 'done':
+        A custom callback must set widget.done=True, or the widget might await forever.
+        """
+        while not getattr(self, "done", False):
+            yield None
+        self.kill()
+        return getattr(self, "value", None)
 
 class Text(Widget):
 
@@ -857,7 +867,7 @@ class Selector(Widget):
 
         click_callbacks = [self._select_click]
         _ensure_extend(click_callbacks, click_callback)
-        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, click_callback=click_callbacks, **kwargs)
+        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, click_callback=click_callbacks, keypress_callback=self.__class__.change, **kwargs)
         text = self.shape.text[self.text_plane]
         if border:
             text.add_border(border)
@@ -875,7 +885,6 @@ class Selector(Widget):
         self.callback = select
 
         self.sprite.transformers.append(self.transformer)
-        self.subs = events.Subscription(events.KeyPress, self.change, guard=lambda e: self.focus)
 
     def change(self, event):
         key = event.key
@@ -883,13 +892,14 @@ class Selector(Widget):
             self.selected_row -= 1
         elif key == KeyCodes.DOWN and self.selected_row < len(self.options) - 1:
             self.selected_row += 1
-        elif key == KeyCodes.ENTER and self.callback:
-            self.callback(self)
+        elif key == KeyCodes.ENTER:
+            if self.callback:
+                self.callback(self)
+            self.done = True
         raise EventSuppressFurtherProcessing()
 
     def _select_click(self, event):
         self.selected_row = event.pos.y - self.text.pad_top
-        super()._default_click(event)
 
     @property
     def value(self):
