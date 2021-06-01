@@ -1,4 +1,6 @@
 from collections.abc import Sequence
+from numbers import Real
+from pathlib import Path
 import weakref
 
 from terminedia.transformers import TransformersContainer
@@ -29,14 +31,13 @@ class Sprite:
     sprites as needed)
 
     """
-    def __init__(self, shapes=None, pos=(0,0), active=True, tick_cycle=1, anchor="topleft", alpha=True):
+    def __init__(self, shapes, pos=(0,0), active=True, tick_cycle=1, anchor="topleft", alpha=True):
         from terminedia.image import Shape
-        self.shapes = shapes if isinstance(shapes, Sequence) and not isinstance(shapes, Shape) else [shapes]
+        self.shapes = self._check_and_promote(shapes)
         self.pos = pos
         self.active = active
         self.tick_cycle = tick_cycle
         self.anchor = anchor
-        self._check_and_promote()
         self.transformers = TransformersContainer()
         self.dirty_previous_rect = self.rect
         for shape in self.shapes:
@@ -44,18 +45,22 @@ class Sprite:
             if alpha:
                 shape.spaces_to_transparency()
 
-    def _check_and_promote(self):
+    def _check_and_promote(self, shape_specs):
         """called at initialization to try to promote any object that is not a Shape
         to a Shape.
 
         """
         from terminedia.image import shape, Shape, FullShape
-        for index, item in enumerate(self.shapes):
+        if isinstance(shape_specs, (str, Path, Shape, V2)) or (isinstance(shape_specs, Sequence) and len(shape_specs) == 2 and isinstance(shape_specs[0], Real)):
+            shape_specs = [shape_specs]
+        shapes = []
+        for index, item in enumerate(shape_specs):
             if not isinstance(item, Shape):
                 item = shape(item)
             if not isinstance(item, FullShape):
                 item = FullShape.promote(item)
-                self.shapes[index] = shape(item)
+            shapes.append(item)
+        return shapes
 
     @property
     def pos(self):
