@@ -627,14 +627,14 @@ class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
         original_output = output
         if isinstance(output, (str, Path)):
             output = open(
-                output, "wt"
-            )  # FIXME: for some backends a binary file will be needed.
+                output, "w" + ("t" if backend in ("ANSI", "HTML") else "b")
+            )
         if not original_output:
             output = StringIO()
 
         if backend == "ANSI":
-            return self._render_using_screen(output, backend)
-        if backend == "HTML":
+            self._render_using_screen(output, backend)
+        elif backend == "HTML":
             # FIXME: this somewhat violates some "this module should not know about
             # specific backend stuff (HTML template)."
             # However, the rendering machinnery only knows
@@ -647,6 +647,10 @@ class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
             output.write(preamble)
             self._render_using_screen(output, backend)
             output.write(post_amble)
+        elif backend == "SNAPSHOT":
+            import pickle
+            tmp = ShalowShapeRepr(self)
+            pickle.dump(tmp, output)
         else:
             raise ValueError(f"Output type {backend!r} not implemented")
         if not original_output:
@@ -1263,6 +1267,31 @@ class FullShape(Shape):
 
         return new_shape
 
+class ShalowShapeRepr:
+    def __init__(self, original: Shape):
+        """The final visible pixel data of a shape as a simple pickleable object
+
+        This can be pickled into disk, and later restored into a new shape.
+
+        Warning: This class applies the visible effects and otherwise ignore text-plane information,
+        marks, sprites and any Transformers. A simple Python object is written to disk,
+        which can be retrieved.
+        """
+        self.size = original.size
+        self.data = []
+        self.cls = original.__class__
+        for pos in Rect(self.size).iter_cells():
+            self.data.append(tuple(original[pos]))
+
+    def restore(self):
+        """Recreates a Shape of the original class with the flattened data"""
+        # FIXME: Palleted shapes do not save Palette information
+        shape = self.cls.new(self.size)
+        for pos, value in zip(Rect(self.size).iter_cells(), self.data):
+            shape[pos] = value
+        return shape
+
+
 
 def shape(data, color_map=None, promote=False, resolution=None, **kwargs):
     """Factory for shape objects
@@ -1298,8 +1327,15 @@ def shape(data, color_map=None, promote=False, resolution=None, **kwargs):
             name = Path(getattr(data, "name", "stream"))
         else:
             name = Path(data)
-        if not PILImage or name.suffix.strip(".").lower() in "pnm ppm pgm":
+        suffix = name.suffix.strip(".").lower()
+        if suffix in "pnm ppm pgm".split():
             cls = PGMShape
+        elif suffix == "snapshot": # FIXME: find a better way to detect a pickle-file
+            import pickle
+            obj = pickle.load(open(data, "rb"))
+            # FIXME:  the future full shapes may be pickled, and no need to call  "restore" method
+            return obj.restore()
+
         else:
             cls = ImageShape
     elif PILImage and isinstance(data, PILImage.Image):
