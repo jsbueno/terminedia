@@ -245,6 +245,7 @@ class SpecialColor(Color):
         self.special = value
         self.name = value
         self.component_source = component_source
+        _colors_cache[value] = self
         # no super call.
 
     def __eq__(self, other):
@@ -257,6 +258,13 @@ class SpecialColor(Color):
         if callable(self.component_source):
             return self.component_source(self)
         return self.component_source
+
+    # ensure pickle-a-bility:
+    def __getstate__(self):
+        return None
+
+    def __getnewargs_ex__(self):
+        return ((self.name,), {})
 
 
 class Gradient:
