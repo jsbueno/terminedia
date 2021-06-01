@@ -116,15 +116,16 @@ Targeted for next release (0.4):
 
         - Widgets should have the concept of focus [v]
         - Widget should get focus on click [v]
-        - Widget should loose focus on "ESC" [wip]:
-            - optionally, widget should be cancelled on "ESC". [WIP]
+        - Widget should loose focus on "ESC" [v]:
+            - optionally, widget should be cancelled on "ESC". [v]
         - Focus should traverse widgets on "TAB"
 
-        - Make Widgets awaitable [wip]
+        - Make Widgets awaitable [v]:
+            - works by default on selector and entries.[v]
         - Rewrite in-widget events to handle list of callbacks instead of single callback
             - click [v]
-            - enter [wip]
-            - esc [wip]
+            - enter [v]
+            - esc [v]
 
 
 
