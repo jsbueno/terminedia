@@ -90,6 +90,8 @@ for variant in (
         pre_kernel_table_unicode_square, ("LIGHT", variant)
     )
 
+box_transformers["ASCII"] = ascii_table_transformer
+
 class ThresholdTransformer(Transformer):
 
     def __init__(self, threshold=0.5, invert=True, foreground=values.DEFAULT_FG, **kwargs):

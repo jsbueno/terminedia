@@ -32,6 +32,7 @@ from terminedia.subpixels import BlockChars
 from terminedia.text import render
 from terminedia.text.style import Mark
 from terminedia.transformers import Transformer, TransformersContainer, GradientTransformer
+from terminedia.transformers.library import box_transformers as borders
 # Import otherwise unused modules, so that they are
 # always available after importing the main library:
 import terminedia.transformers.library

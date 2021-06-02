@@ -13,15 +13,15 @@ Targeted for next release (0.4):
             - Widgets have an associated Sprite class and a Shape parent to work [v]
             - Base widget should take care of "focus" and "active" machinnery:
                 - Focused widget getting keyboard or mouse event should stop event
-                    from propagating to other subscriptions of th same event:
-                        - event subscription priority mechanism
+                    from propagating to other subscriptions of th same event: [v]
+                        - event subscription priority mechanism [v]
                 - .focus property can work as:
                     - all widgets register to a parent group, Screen if there is no subgroup
                     - setting the focus to True on a widget automatically sets the focus all other widgets
-                        (and groups) to False: an "exclusiv property".
-            - masks and guards for event subscriptions [wip]:
-                - subscription only for certain keys
-                - subscription only for certain Regions of interest
+                        (and groups) to False: an "exclusive property". [v]
+            - masks and guards for event subscriptions [v]:
+                - subscription only for certain keys (works through guards) [v]
+                - subscription only for certain Regions of interest (works through guards) [v]
         - widgets with text-typing capability have an associated  Editable [v]
             - Editable uses a text plane on the widget'sprites shape for controling input [v]
             - Editable emulates a text cursor by using a custom Transformers [v]:
@@ -94,7 +94,8 @@ Targeted for next release (0.4):
             - List selection [v]
             - Radio box/check box
             - Drop down selection
-            - Button
+            - Button [v]
+            - Menu
         - Advanced Widgets:
             - color selection
             - Gradient editor
