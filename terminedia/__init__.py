@@ -35,7 +35,6 @@ from terminedia.transformers import Transformer, TransformersContainer, Gradient
 from terminedia.transformers.library import box_transformers as borders
 # Import otherwise unused modules, so that they are
 # always available after importing the main library:
-import terminedia.transformers.library
 import terminedia.unicode
 from terminedia.events import EventTypes
 from terminedia.asynchronous import terminedia_main, ainput

@@ -63,6 +63,17 @@ class Sprite:
         return shapes
 
     @property
+    def active(self):
+        return self.__dict__["active"]
+
+    @active.setter
+    def active(self, value):
+        self.__dict__["active"] = value
+        # self.dirty_previous_rect = None
+        if getattr(self, "owner", None):
+            self.owner.dirty_registry.push((get_current_tick(), self.rect, None))
+
+    @property
     def pos(self):
         return self._pos
 

@@ -1,9 +1,11 @@
 import enum
 import weakref
 from collections import namedtuple
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from copy import deepcopy
 from functools import wraps
+from inspect import isawaitable
+from math import ceil
 
 import terminedia
 
@@ -542,6 +544,13 @@ class Editable:
     def shaped_value(self):
         return self.raw_value
 
+    def keypress(self, event):
+        try:
+            self.change(event)
+        finally:
+            # do not allow keypress to be processed further
+            raise EventSuppressFurtherProcessing()
+
     def change(self, event):
         """Called on each keypress when the widget is active. Take 2"""
 
@@ -664,7 +673,7 @@ def _ensure_extend(seq, value):
 
 class Widget:
     @contextkwords
-    def __init__(self, parent, size, pos=None, text_plane=1, sprite=None, click_callback=None, esc_callback=None, enter_callback=None, keypress_callback=None, cancellable=False):
+    def __init__(self, parent, size=None, pos=None, text_plane=1, sprite=None, click_callback=None, esc_callback=None, enter_callback=None, keypress_callback=None, cancellable=False):
         """Widget base
 
         Under development. More docs added as examples/functionality is written.
@@ -909,10 +918,91 @@ class Selector(Widget):
         return self.num_options[self.selected_row]
 
 
+class ScreenMenu(Widget):
+    """Designed as a complete-navigation solution for an app
+
+    The main idea is get a multilevel dictionary  mapping
+    shortcuts to app actions, or submenus, or simply labels.
+
+    Each key in the dictionary shoul dmap to a two-tuple, where the first
+    element is an optional callable action - if given as None, the command is
+    ignored and non clickable: other parts of the app should handle that shortcut.
+    The second element of the tuple is the description for the action
+
+    If the key maps to a dictionary, that is used as another menu-level.
+
+    The menu visibility is optional toggable  if an action in the current level is the string "toggle":
+    shortcuts remain active when the menu is toggled off.
+
+    Example dictionary derived from the one used on the 0th version of terminedia-paint:
+
+        self.global_shortcuts = {
+            "<space>": (None, "Paint pixel"),
+            "←↑→↓": (None, "Move cursor"),
+            "x": (None, "Toggle drawing"),
+            "v": (None, "Line to last point"),
+            "s": (self.save, "Save"),
+            "c": (self.pick_color, "Choose Color"),
+            "b": (self.pick_background, "Background Color"),
+            "l": (self.pick_character, "Pick Char"),
+            "i": (self.insert_image, "Paste Image"),
+            "e": ((lambda e: setattr(self, "active_tool", self.tools["erase"])), "Erase"),
+            "p": ((lambda e: setattr(self, "active_tool", self.tools["paint"])), "Paint"),
+            "h": ("toggle", "Toggle help"),
+            "q": (self.quit, "Quit"),
+        }
 
 
+    """
+    def __init__(self, parent, mapping, columns=1, width=None, max_col_width=25, **kwargs):
+        self.mapping = mapping
 
 
+        self.width = width or parent.size.x
+
+        rows = ceil(len(mapping) // columns) + 1
+        sh = terminedia.shape((self.width,  rows + 2))
+        sh.text[1].add_border(transform=terminedia.borders["DOUBLE"])
+        col_width = (sh.size.x - 2) // columns
+        current_row = 0
+        sh.context.foreground = terminedia.DEFAULT_FG
+        current_col = 0
+        actual_width = min(col_width, max_col_width)
+        for shortcut, (callback, text) in self.mapping.items():
+            sh.text[1][current_col * col_width + 1, current_row] = f"[effects: bold|underline]{shortcut}[/effects]{text:>{actual_width - len(shortcut) - 3}s}"
+            current_row += 1
+            if current_row >= rows:
+                current_col += 1
+                current_row = 0
+
+        sprite = terminedia.Sprite(sh, alpha=False)
+        sprite.pos = (0, parent.size.y - sprite.rect.height)
+        super().__init__(parent, sprite=sprite, keypress_callback=self.__class__.handle_key, **kwargs)
+            #self.sc.sprites.add(self.help_sprite)
+
+    def handle_key(self, event):
+        key = event.key
+        if key in self.mapping:
+            command = self.mapping[key][0]
+            if callable(command):
+                result = command()
+                if isawaitable(result):
+                    events._event_process_handle_coro(result)
+                raise EventSuppressFurtherProcessing()
+            elif command == "toggle":
+                self.sprite.active = not self.sprite.active
+                raise EventSuppressFurtherProcessing()
+            elif isinstance(command, Mapping):
+                # TODO: activate sub-menu
+                pass
+            elif command == None:
+                pass # Allow key to be further processed
 
 
+    @property
+    def focus(self):
+        # receive shortcuts when no other widget is in focus
+        return WidgetEventReactor.focus is self or WidgetEventReactor.focus is None
 
+    # use same setter as in the superclass:
+    focus = focus.setter(Widget.focus.fset)
