@@ -91,7 +91,9 @@ Targeted for next release (0.4):
         - Widgets:
             - Entry: one line text editing [v]
             - Text: multiline text editing [v]
-            - List selection [v]
+            - List Selection: (Selector) options-selector [v]
+                - Make selector highlit option under mouse click
+                - Make selector pick option under mouse double-click
             - Radio box/check box
             - Drop down selection
             - Button [v]
@@ -183,16 +185,17 @@ Targeted for next release (0.4):
     - mouse handling on windows
 
     - make input accept context-parameters, like print does. [v]
+    - Create a 'double-click' event [V]
 
 [Future - wiget and App branch]:
 
-    - add early widgets: (#NB: can be done in another branch than "mouse and events")
-        - base (evolve from Sprite - or even add as mixin to sprite)
-        - button
-        - text entry
-        - text area
+    - add early widgets: (#NB: can be done in another branch than "mouse and events") [wip]
+        - base (evolve from Sprite - or even add as mixin to sprite) [v]
+        - button      [v]
+        - text entry [v]
+        - text area  [v]
         - radio/checkbox
-        - menus
+        - menus [wi]
     - tab/shift tab based widget focus
 
     - add way for "text" objects to be larger than their parent shapes

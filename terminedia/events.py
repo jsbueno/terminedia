@@ -2,7 +2,9 @@ import asyncio
 import time
 
 from collections import deque
+from collections.abc import Iterator
 from copy import copy
+from itertools import chain
 from weakref import WeakSet
 import inspect
 import os
@@ -38,12 +40,14 @@ class EventTypes(IterableFlag):
     MousePress = 16
     MouseRelease = 32
     MouseClick = 64
-    TerminalSizeChange = 128
-    Custom = 256
-    QuitLoop = 512
+    MouseDoubleClick = 128
+    TerminalSizeChange = 256
+    Custom = 512
+    QuitLoop = 1024
 
 
-# Get rid of the "EventTypes namespace":
+
+# Get rid of the "EventTypes" namespaces:
 # make names above avaliable from TM.events.NAME
 for event in EventTypes:
     globals()[event.name] = event
@@ -141,6 +145,16 @@ class Subscription:
     def __repr__(self):
         return f"Subscription {self.types}{', callback: ' + repr(self.callback) if self.callback else '' }"
 
+class _SystemSubscription(Subscription):
+    """Used internally for low level event handling
+    (for example: convert two-close clicks into a double-click)
+
+    Works just like subscriptions, but have a separate registry.
+    Also, these are always processed first than "User" subscriptions, so that
+    an EventSuppressFurtherProcessing exception will not prevent the lower level handling
+    """
+    subscriptions = {}
+
 
 def dispatch(event):
     """Queues any event to be dispatchd latter, when "process" is called.
@@ -157,9 +171,13 @@ def dispatch(event):
 _event_dispatch = dispatch
 
 
-def list_subscriptions(type_: EventTypes) -> set():
+def list_subscriptions(type_: EventTypes, _system=False) -> Iterator:
     """Returns a set with all active subscriptions for the given event type"""
-    return reversed(Subscription.subscriptions.get(type_, []))
+    if _system:
+        system_events = reversed(SystemSubscription.subscriptions.get(type_, []))
+    else:
+        system_events = []
+    return chain(system_events, reversed(Subscription.subscriptions.get(type_, [])))
 
 
 def _event_process_handle_coro(coro):
@@ -184,7 +202,7 @@ def process():
 
     # Event processing in callbacks is synchronous, and as the callbacks
     # can create other events, we have to copy the queue on each interaction
-    # to avoid the queue is changed during interaction.
+    # to prevent the queue from being changed during interaction.
 
     events = deque(_event_queue)
     _event_queue.clear()

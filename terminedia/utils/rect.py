@@ -266,7 +266,7 @@ class Rect:
         raise NotImplementedError()
 
     def __len__(self):
-        return 4
+        return 2
 
     def __repr__(self):
         return f"{self.__class__.__name__}({tuple(self.c1)}, {tuple(self.c2)})"

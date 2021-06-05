@@ -251,6 +251,8 @@ class _PosixKeyboard(KeyboardBase):
             old_keycode = keycode
         if not consume:
             self.not_consumed.append(keycode)
+        if mouse.enabled and mouse.on_hold_clicks:
+            mouse.flush_clicks()
         return keycode
 
     keycodes = _posix_KeyCodes
@@ -453,11 +455,13 @@ _button_map = {
 class _Mouse:
 
     CLICK_THRESHOLD = 0.3
+    DOUBLE_CLICK_THRESHOLD = 0.3
 
     def __init__(self):
         # TBD: check for re-entering?
         self.enabled = False
-        self.last_click = (0, 0)
+        self.last_click = self.last_press = (0, 0)
+        self.on_hold_clicks = []
 
     def __enter__(self):
         self.keyboard = keyboard()
@@ -493,14 +497,29 @@ class _Mouse:
         if moving:
             event = Event(EventTypes.MouseMove, pos=V2(col, row), buttons=button)
         elif pressed:
-            event = Event(EventTypes.MousePress, pos=V2(col, row), buttons=button)
-            self.last_click = (time.time(), button)
+            ts = time.time()
+            event = Event(EventTypes.MousePress, pos=V2(col, row), buttons=button, time=ts)
+            self.last_press = (ts, button,)
         else:
+            ts = time.time()
             event = Event(EventTypes.MouseRelease, pos=V2(col, row), buttons=button)
-            if time.time() - self.last_click[0] < self.CLICK_THRESHOLD and button == self.last_click[1]:
-                click_event = Event(EventTypes.MouseClick, pos=V2(col, row), buttons=button)
+            if ts - self.last_press[0] < self.CLICK_THRESHOLD and button == self.last_press[1]:
+                Event(EventTypes.MouseClick, pos=V2(col, row), buttons=button, time=ts)
+                if ts - self.last_click[0] < self.DOUBLE_CLICK_THRESHOLD and button == self.last_click[1]:
+                    Event(EventTypes.MouseDoubleClick, pos=V2(col, row), buttons=button, time=ts)
+                self.last_click = (ts, button,)
 
         return event
+
+    def flush_clicks(self):
+        to_kill = []
+        for i, click in enumerate(self.on_hold_clicks):
+            if click["time"] - time.time() > 0.1:
+                Event(EventTypes.MouseClick, **click)
+                to_kill.append(i)
+        for index in reversed(to_kill):
+            self.on_hold_clicks.pop(index)
+
 
     def __call__(self):
         # Keeps symmetry with "keyboard" which must be called for use as with context management
