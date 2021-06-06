@@ -92,7 +92,7 @@ Targeted for next release (0.4):
             - Entry: one line text editing [v]
             - Text: multiline text editing [v]
             - List Selection: (Selector) options-selector [v]
-                - Make selector highlit option under mouse click
+                - Make selector highlight option under mouse click [wip]
                 - Make selector pick option under mouse double-click
             - Radio box/check box
             - Drop down selection

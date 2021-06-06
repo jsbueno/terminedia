@@ -53,6 +53,15 @@ for event in EventTypes:
     globals()[event.name] = event
 
 
+def event_nuke(guard):
+    to_kill = []
+    for index, event in enumerate(_event_queue):
+        if guard(event):
+            to_kill.append(index)
+    for index in reversed(to_kill):
+        _event_queue.pop(index)
+
+
 class Event:
     def __init__(self, type, dispatch=True, **kwargs):
         """Event object - used to deliver messages across various
@@ -174,7 +183,7 @@ _event_dispatch = dispatch
 def list_subscriptions(type_: EventTypes, _system=False) -> Iterator:
     """Returns a set with all active subscriptions for the given event type"""
     if _system:
-        system_events = reversed(SystemSubscription.subscriptions.get(type_, []))
+        system_events = reversed(_SystemSubscription.subscriptions.get(type_, []))
     else:
         system_events = []
     return chain(system_events, reversed(Subscription.subscriptions.get(type_, [])))
@@ -208,7 +217,7 @@ def process():
     _event_queue.clear()
     while  events:
         for event in events:
-            for subscription in list_subscriptions(event.type):
+            for subscription in list_subscriptions(event.type, _system=True):
                 if subscription.guard and not subscription.guard(event):
                     continue
                 if subscription.callback:

@@ -637,7 +637,8 @@ class WidgetEventReactor:
     def __init__(self):
         self.registry = {} #weakref.WeakKeyDictionary()
         self.focus = None
-        self.main_mouse_subscription = events.Subscription(events.MouseClick, self.screen_click)
+        self.main_mouse_subscription = events._SystemSubscription(events.MouseClick, self.screen_click)
+        self.main_mouse_subscription = events._SystemSubscription(events.MouseDoubleClick, self.screen_double_click)
 
 
     def register(self, widget):
@@ -646,20 +647,26 @@ class WidgetEventReactor:
         self.focus = widget
 
     def screen_click(self, event):
+        return self.inner_click(event, "click_callbacks")
+
+    def screen_double_click(self, event):
+        return self.inner_click(event, "double_click_callbacks")
+
+    def inner_click(self, event, callback_type):
         for widget, sprite in self.registry.items():
             if not widget.active:
                 continue
             rect = sprite.absrect
             if event.pos in rect:
-
-                if widget.click_callbacks:
+                callbacks = getattr(widget, callback_type, None)
+                if callbacks:
                     local_event = event.copy(pos=event.pos - rect.c1)
-                    for callback in reversed(widget.click_callbacks):
+                    for callback in reversed(callbacks):
                         try:
                             callback(local_event)
                         except EventSuppressFurtherProcessing:
                             break
-                break
+                raise EventSuppressFurtherProcessing()
 
 
 # singleton
@@ -673,7 +680,7 @@ def _ensure_extend(seq, value):
 
 class Widget:
     @contextkwords
-    def __init__(self, parent, size=None, pos=None, text_plane=1, sprite=None, click_callback=None, esc_callback=None, enter_callback=None, keypress_callback=None, cancellable=False):
+    def __init__(self, parent, size=None, pos=None, text_plane=1, sprite=None, *, click_callback=None, esc_callback=None, enter_callback=None, keypress_callback=None,  double_click_callback=None, cancellable=False):
         """Widget base
 
         Under development. More docs added as examples/functionality is written.
@@ -708,6 +715,11 @@ class Widget:
         self.parent = parent
         self.click_callbacks = [self._default_click]
         _ensure_extend(self.click_callbacks, click_callback)
+
+
+        self.double_click_callbacks = []
+        if double_click_callback:
+            _ensure_extend(self.double_click_callbacks, double_click_callback)
 
         self.esc_callbacks = [self.__class__._default_escape]
         _ensure_extend(self.esc_callbacks, esc_callback)
@@ -879,7 +891,7 @@ class Selector(Widget):
 
         click_callbacks = [self._select_click]
         _ensure_extend(click_callbacks, click_callback)
-        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, click_callback=click_callbacks, keypress_callback=self.__class__.change, **kwargs)
+        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, click_callback=click_callbacks, keypress_callback=self.__class__.change, double_click_callback=self._select_double_click, **kwargs)
         text = self.shape.text[self.text_plane]
         if border:
             text.add_border(border)
@@ -912,6 +924,15 @@ class Selector(Widget):
 
     def _select_click(self, event):
         self.selected_row = event.pos.y - self.text.pad_top
+
+    def _select_double_click(self, event):
+        if self.callback:
+            self.callback(self)
+        self.done = True
+        # there might be 1 or 2 mouseclicks pending as part of the double-click:
+        # removing then so they don't triggr side-effects once the widget is done.
+        events.event_nuke(lambda e: e.type == events.MouseClick and e.tick == event.tick)
+        raise EventSuppressFurtherProcessing()
 
     @property
     def value(self):
