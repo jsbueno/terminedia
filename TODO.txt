@@ -5,6 +5,9 @@ Targeted for next release (0.4):
     - [bug] "new_line" marks not working for text-resolutions other than 1. [v]
     - [bug] 'add_border' in text planes only working for plane[1]
 
+[Draw]
+    - Drawing API fill (floodfill) [WIP]
+
 
 [Widgets]
     - Widget System:

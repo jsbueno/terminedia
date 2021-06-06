@@ -138,7 +138,7 @@ class Screen:
         self.shape.isroot = True
 
         #: Namespace for drawing methods, containing an instance of the :any:`Drawing` class
-        self.draw = Drawing(self.set_at, self.reset_at, self.get_size, self.context)
+        self.draw = Drawing(self.set_at, self.reset_at, self.get_at, self.get_size, self.context)
 
         # Synchronize context for data and screen painting.
         self.data.context = self.context
@@ -279,6 +279,9 @@ class Screen:
             self[pos] = pixel
         else:
             self[pos] = self.context.char
+
+    def get_at(self, pos):
+        return self[pos]
 
     def reset_at(self, pos):
         """Resets pixel at given coordinate

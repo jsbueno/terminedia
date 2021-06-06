@@ -225,6 +225,7 @@ class ShapeApiMixin:
                 self, pos, pixel if pixel else self.context.char
             ),
             reset_fn=lambda pos: type(self).__setitem__(self, pos, EMPTY),
+            get_fn=lambda pos: type(self).__getitem__(self, pos),
             size_fn=self.get_size,
             context=self.context,
         )

@@ -48,11 +48,16 @@ EMPTY = "\x20"
 FULL_BLOCK = "\u2588"
 
 
-class Directions:
+class IterableNS(type):
+    def __iter__(cls):
+        return (v for k, v in cls.__dict__.items() if k[0] != "_")
+
+
+class Directions(metaclass=IterableNS):
     """Direction vector constants.
 
     These are used directly as text-printing direction on
-    a :any:`Screen` context, and are free to general use
+    a :any:`Screen` context, and are free for general use
     in user applications
     """
 
@@ -60,6 +65,9 @@ class Directions:
     RIGHT = NamedV2(1, 0)
     DOWN = NamedV2(0, 1)
     LEFT = NamedV2(-1, 0)
+
+    def __iter__(self):
+        return iter((self.UP, self.RIGHT, self.DOWN, self.LEFT))
 
 
 class Effects(OrableByNameEnumMixin, IterableFlag, metaclass=RetrieveFromNameEnumMeta):

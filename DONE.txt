@@ -20,6 +20,7 @@ version 0.4
  - TM.contexts.active_context registry allow contexts entered with "with context()" to affect downstream functions, even
         withotu passing "ctx" explictly.
  - TM.Effects can be constructed from strings (which means one can assign a string with the effect name directly to TM.context.effects)
+ - 'floodfill' method in drawing API.
 
  Bugfixes:
 

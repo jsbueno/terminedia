@@ -1,7 +1,7 @@
 import inspect
 
 from terminedia.subpixels import BlockChars, HalfChars
-from terminedia.values import CONTEXT_COLORS, EMPTY, TRANSPARENT, DEFAULT_BG, DEFAULT_FG
+from terminedia.values import CONTEXT_COLORS, EMPTY, TRANSPARENT, DEFAULT_BG, DEFAULT_FG, Directions
 from terminedia.utils import V2, Rect, contextkwords
 
 
@@ -18,7 +18,7 @@ class Drawing:
     That is - the typical usage for methods here will be ``screen.draw.line((0,0)-(50,20))``
     """
 
-    def __init__(self, set_fn, reset_fn, size_fn, context):
+    def __init__(self, set_fn, reset_fn, get_fn, size_fn, context):
         """Not intented to be instanced directly -
 
         Args:
@@ -38,6 +38,7 @@ class Drawing:
         and decide how to render it.
         """
         self.set = set_fn
+        self.get = get_fn
         self.reset = reset_fn
         self._size = size_fn
         self.context = context
@@ -114,12 +115,53 @@ class Drawing:
 
     @contextkwords
     def fill(self):
-        """Fills the associated target with a solid color.
+        """Fills the associated target with current context values
         Args:
 
         The context attributes are used to fill the target area.
         """
         self.rect((0, 0), self.size, fill=True)
+
+    @contextkwords
+    def floodfill(self, pos, threshold=None):
+        """Fills the associated target with context values, starting at seed "pos".
+
+        Any different parameters for target pixels are considered boundaries
+        "threshold" may be passed a guard callable which will take each target
+        pixel, and should return "False" if it should be painted and "True"
+        if it is a boundary.
+        Args:
+            - pos (V2|Sequence[2]): initial position
+            - threshold (Optional[Callable[Pixel, Pixel, Pos]): callable - takes initial value at origin, and target pixel value.
+                    Should return 'True' for boundary pixels, False if pixel is to be painted.
+        The context attributes are used to fill the target area.
+        """
+        seed = self.get(pos)
+        if threshold is None:
+            threshold = lambda seed, target, pos: seed != target
+
+        rect = Rect(self.size)
+
+        fillable = set()
+        visited = set()
+
+        to_check = {pos,}
+
+        while to_check:
+            pos = to_check.pop()
+            if pos in visited:
+                continue
+            visited.add(pos)
+            if threshold(seed, self.get(pos), pos):
+                continue
+            fillable.add(pos)
+            for direction in Directions:
+                target = pos + direction
+                if target in rect:
+                    to_check.add(target)
+        for pos in fillable:
+            self.set(pos)
+
 
     def _link_prev(self, pos, i, limits, mask):
         if i < limits[0] - 1:
@@ -385,7 +427,7 @@ class HighResBase:
 
         self.parent = parent
         self.draw = Drawing(
-            self.set_at, self.reset_at, self.get_size, self.parent.context
+            self.set_at, self.reset_at, self.get_at, self.get_size, self.parent.context
         )
         self.context = parent.context
 
