@@ -102,13 +102,10 @@ class KernelTransformer(Transformer):
         super().__init__(**kwargs)
 
     def kernel_match(self, source, pos):
-        from terminedia.image import ImageShape
-        source_is_image = False
-        if  hasattr(source, "value_data"):
-            data = source.value_data
-            ...
-            # TODO: 'fastpath' made faster for fullshapes
-            value = ...
+        from terminedia.image import ImageShape, FullShape
+        source_is_fullshape = source_is_image = False
+        if isinstance(source, FullShape):
+            source_is_fullshape = True
         elif isinstance(source, ImageShape):
             source_is_image = True
         else:
@@ -119,8 +116,7 @@ class KernelTransformer(Transformer):
         for y in -1, 0, 1:
             for x in -1, 0, 1:
                 compare_pos = pos + (x, y)
-                offset = source.get_data_offset(compare_pos)
-                if offset is None:
+                if pos not in source.rect:
                     if self.policy == "abyss":
                         value += " "
                     else:
@@ -132,8 +128,11 @@ class KernelTransformer(Transformer):
 
                 if source_is_image:
                     value += "#" if source.get_raw(pos) != source.context.background else " "
-                    continue
-                value += "#" if data[offset] not in (EMPTY, TRANSPARENT) else " "
+                elif source_is_fullshape:
+                    value += "#" if source.get_raw(pos)[0] not in (EMPTY, TRANSPARENT) else " "
+                else:
+                    offset = source.get_data_offset(compare_pos)
+                    value += "#" if data[offset] not in (EMPTY, TRANSPARENT) else " "
 
         return self.kernel.get(value, self.kernel.get("default", " "))
 

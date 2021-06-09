@@ -1076,6 +1076,10 @@ class PalettedShape(Shape):
         self.data[pos[1] * self.width + pos[0]] = type_(value)
 
 
+PixelDict = dict
+from itertools import chain
+
+
 class FullShape(Shape):
     """Shape class carrying all possible data plus kitchen sink
 
@@ -1097,34 +1101,47 @@ class FullShape(Shape):
     _default_bg = EMPTY
 
     @staticmethod
-    def _data_func(size):
+    def _data_func(size, context=None):
+        if context is None:
+            import terminedia
+            context = terminedia.context
         return [
             [EMPTY * size.x] * size.y,
-            [DEFAULT_FG] * size.x * size.y,
-            [DEFAULT_BG] * size.x * size.y,
-            [Effects.none] * size.x * size.y,
+            [context.foreground] * size.x * size.y,
+            [context.background] * size.x * size.y,
+            [context.effects] * size.x * size.y,
         ]
 
     def __init__(self, data):
         self.width = w = len(data[0][0])
         self.height = h = len(data[0])
-        self.value_data, self.fg_data, self.bg_data, self.eff_data = (
-            self.load_data(plane, (w, h)) for plane in data
-        )
+        self.rect = Rect((w,h))
+        self.load_data(data, (w,h))
+        #self.value_data, self.fg_data, self.bg_data, self.eff_data = (
+            #self.load_data(plane, (w, h)) for plane in data
+        #)
         # self.data is created as a side-effect in load_data
-        del self.data
+        #del self.data
         super().__init__()
 
+    def load_data(self, data_planes, size):
+        w, h = size
+        self.data = PixelDict()
+        data_planes[0] = chain(*data_planes[0])
+        iter_data = zip(*data_planes)
+        for y in range(h):
+            for x in range(w):
+                self._raw_setitem((x, y), next(iter_data))
+
     def get_raw(self, pos):
-        offset = self.get_data_offset(pos)
-        if offset is None:
-            return (EMPTY, self.context.color, self.context.background, Effects.none)
-        return (
-            self.value_data[offset],
-            self.fg_data[offset],
-            self.bg_data[offset],
-            self.eff_data[offset],
-        )
+        if isinstance(pos, list):
+            pos = V2(pos)
+        value = self.data.get(pos, None) if pos in self.rect else None
+
+        if value is None:
+            value = [EMPTY, self.context.color, self.context.background, Effects.none]
+            self.data[pos] = value
+        return value
 
     def __getitem__(self, pos):
         """Values for each pixel are: character, fg_color, bg_color, effects.
@@ -1151,8 +1168,8 @@ class FullShape(Shape):
 
         force_transparent_ink = getattr(self.context, "force_transparent_ink", False)
 
-        offset = self.get_data_offset(pos)
-        if offset is None:
+        #offset = self.get_data_offset(pos)
+        if pos not in self.rect:
             return
         if isinstance(value, Pixel):
             value = value.get_values(self.context, self.PixelCls.capabilities)
@@ -1174,17 +1191,18 @@ class FullShape(Shape):
             value = self.context.pretransformers.process(self, pos, self.PixelCls(*value))
 
         ############
-        # Check final width (have to apply transformation effect)
+        # Check final width (after have to apply transformation effect)
         ###########
         offset2 = None
 
-        effects = value[3] if (value[3] != TRANSPARENT or force_transparent_ink) else self.eff_data[offset]
+        effects = value[3] if (value[3] != TRANSPARENT or force_transparent_ink) else self.get_raw(pos)[3]
         transform_effects = (effects & UNICODE_EFFECTS) if effects != TRANSPARENT else Effects.none
+        # FIXME: check for unicode combining gliphs
         final_char = value[0]
-        if isinstance(final_char, bool):
+        if isinstance(final_char, (bool, int)):
             final_char = self.context.char if final_char else EMPTY
         if final_char == CONTINUATION:
-            if self.value_data[offset] == CONTINUATION:
+            if self.get_raw(pos)[0] == CONTINUATION:
                 # we are likely being blitted from a source with matching parameters.
                 # attributes are already set in this cell from
                 # previous character setting
@@ -1197,10 +1215,9 @@ class FullShape(Shape):
             if double_width:
                 if not getattr(self.context, "text_rendering_styled", None) == 1:
                     if pos[0] == self.width - 1:  # Right shape edge
-                        width = 1
                         double_width = False
                     else:
-                        offset2 = offset + 1
+                        offset2 = pos[0] + 1
                 else:
                     # a character sequence of styled-text is being rendered.
                     if pos[0] == 0:
@@ -1211,32 +1228,46 @@ class FullShape(Shape):
                         # EXPERIMENTAL: change actual target in this
                         # situation (rendering_text and going left)
                         # and leave a CONTINUATION marker on the target position.
-                        offset2 = offset
-                        offset = offset - 1
+                        offset2 = pos[0]
+                        pos = list(pos)
+                        pos[0] -= 1
                     else:
                         if pos[0] == self.width - 1:  # Right shape edge
-                            width = 1
                             double_width = False
-                        offset2 = offset + 1
+                        offset2 = pos[0] + 1
         else:
             double_width = False
         self.context.shape_lastchar_was_double = double_width
-        # /check width
-        self._raw_setitem(value, offset, force_transparent_ink, double_width, offset2)
+        self._raw_setitem(pos, value, force_transparent_ink, double_width, offset2)
 
-    def _raw_setitem(self, value, offset, force_transparent_ink, double_width=False, offset2=None):
-        for component, plane in zip(
-            value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)
-        ):
+    def _raw_setitem(self, pos, value, force_transparent_ink=False, double_width=False, offset2=None):
+        pixel = self.get_raw(pos)
+        if offset2:
+            pixel2 = self.get_raw((offset2, pos[1]))
+        for i, component in enumerate(value):
+            # the idea is that "TRANSPARENT" won't affect the corresponding component.
+            # but "force_transparent_ink" can set the value of the component itself to
+            # be the "transparent" special marker
             if component is not TRANSPARENT or force_transparent_ink:
-                plane[offset] = component
-            if double_width:
-                plane[offset2] = (
-                    component if plane is not self.value_data else CONTINUATION
-                )
-        # set information so higher level users can partake char width (text, blit)
+                pixel[i] = component
+                if double_width:
+                    pixel2[i] = component if i != 0 else CONTINUATION
+
+
+    #def _raw_setitem(self, value, offset, force_transparent_ink, double_width=False, offset2=None):
+        #for component, plane in zip(
+            #value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)
+        #):
+            #if component is not TRANSPARENT or force_transparent_ink:
+                #plane[offset] = component
+            #if double_width:
+                #plane[offset2] = (
+                    #component if plane is not self.value_data else CONTINUATION
+                #)
+        ## set information so higher level users can partake char width (text, blit)
 
     def _resize_data(self, new_size):
+        return
         for data_comp, fill in zip("value_data fg_data bg_data eff_data".split(), "background_char foreground background effects".split()):
             data = getattr(self, data_comp)
             setattr(
