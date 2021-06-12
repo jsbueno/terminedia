@@ -125,11 +125,10 @@ class KernelTransformer(Transformer):
                 if self.mask_diags and (x and y):
                     value += " "
                     continue
-
                 if source_is_image:
-                    value += "#" if source.get_raw(pos) != source.context.background else " "
+                    value += "#" if source.get_raw(compare_pos) != source.context.background else " "
                 elif source_is_fullshape:
-                    value += "#" if source.get_raw(pos)[0] not in (EMPTY, TRANSPARENT) else " "
+                    value += "#" if source.get_raw(compare_pos)[0] not in (EMPTY, TRANSPARENT) else " "
                 else:
                     offset = source.get_data_offset(compare_pos)
                     value += "#" if data[offset] not in (EMPTY, TRANSPARENT) else " "
