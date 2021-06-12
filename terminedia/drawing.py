@@ -1,5 +1,6 @@
 import inspect
 
+from terminedia.image import RasterUndo
 from terminedia.subpixels import BlockChars, HalfChars
 from terminedia.values import CONTEXT_COLORS, EMPTY, TRANSPARENT, DEFAULT_BG, DEFAULT_FG, Directions
 from terminedia.utils import V2, Rect, contextkwords
@@ -48,6 +49,7 @@ class Drawing:
         return self._size()
 
     @contextkwords
+    @RasterUndo.undoable
     def line(self, pos1, pos2, erase=False):
         """Draws a straight line connecting both coordinates.
 
@@ -79,6 +81,7 @@ class Drawing:
             op(pos1.as_int)
 
     @contextkwords
+    @RasterUndo.undoable
     def rect(self, pos1, pos2=(), *, rel=(), erase=False):
         """Draws a rectangle
 
@@ -123,6 +126,7 @@ class Drawing:
         self.rect((0, 0), self.size, fill=True)
 
     @contextkwords
+    @RasterUndo.undoable
     def floodfill(self, pos, threshold=None):
         """Fills the associated target with context values, starting at seed "pos".
 
@@ -174,6 +178,7 @@ class Drawing:
                 mask[j] = True
 
     @contextkwords
+    @RasterUndo.undoable
     def ellipse(self, pos1, pos2=(), *, rel=()):
         """Draws an ellipse
 
@@ -258,6 +263,7 @@ class Drawing:
             ox, oy = x, y
 
     @contextkwords
+    @RasterUndo.undoable
     def bezier(self, pos1, pos2, pos3, pos4, *extra):
         """Draws a bezier curve given the control points
 
@@ -292,6 +298,7 @@ class Drawing:
             self.bezier(pos4, extra[0], extra[1], extra[2], *extra[3:])
 
 
+    @RasterUndo.undoable
     def blit(self, pos, data, *, roi=None, color_map=None, erase=False):
         """Blits a blocky image in the associated screen at POS
 

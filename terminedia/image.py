@@ -2,10 +2,13 @@ import heapq
 import logging
 import math
 import sys
+import threading
 from abc import ABC, abstractmethod
-from collections import namedtuple
+from collections import namedtuple, ChainMap, deque
 from collections.abc import Sequence
+from functools import wraps
 from inspect import signature
+from itertools import chain
 from io import StringIO
 from pathlib import Path
 from weakref import ref, ReferenceType
@@ -1076,11 +1079,131 @@ class PalettedShape(Shape):
         self.data[pos[1] * self.width + pos[0]] = type_(value)
 
 
-PixelDict = dict
-from itertools import chain
+class PixelDict(ChainMap):
+    def __init__(self, maps=None):
+        # Chainmap uses a plain list, still, maps are pilld top-most on the left-side.
+        # go figure!
+        super().__init__(maps or {})
+        self.maps = deque(self.maps)
 
 
-class FullShape(Shape):
+class _UNDO_START_MARK:
+    pass # sentinel
+
+class _UNDO_IN_PROGRESS_MARK:
+    pass # sentinel
+
+
+class RasterUndo:
+    """Controls and offer the API for raster undo-capability
+
+    """
+    # FIXME: possibly we will need extracontext.context instead of threading.local
+    # (maybe even contextvars.ContextVar could work)
+    _undo_registry = threading.local()
+
+    def __init__(self, *args, max_undo_steps=100, **kw):
+        # self.__lock = threading.Lock()
+        self.max_undo_steps = max_undo_steps
+        self.redo_data = []
+        self.undo_active = True
+        super().__init__(*args, **kw)
+
+    def __undo_exit(self): #, ext_type, exc_value, tb):
+        with self.__lock:
+            self.__undo_deph -= 1
+            # we don't pop or merge undo-groups: that is up to the app do by calling other functions;
+
+    def undo(self, n=1):
+        for i in range(n):
+            if len(self.data.maps) <= 1:
+                break
+            self.redo_data.append(self.data.maps.popleft())
+
+    def redo(self, n=1):
+        for i in range(n):
+            if not self.redo_data:
+                break
+            self.data.maps.appendleft(self.redo_data.pop())
+
+    def undo_clear(self, n=1):
+        """Merge all pixel data into base, and clear undo history"""
+        base = self.data.maps[-1]
+        for step in self.data.maps[-2::-1]:
+            base.update(step)
+        self.data.maps.clear()
+        self.data.maps.append(base)
+
+    @classmethod
+    def undoable(cls, func):
+        """Decorator - apply on functions and methods that will use Raster functions so that
+        they automatically start an undo_group.
+
+        '@FullShape.undoable'
+        """
+        @wraps(func)
+        def undo_wrapper(*args, **kwargs):
+            class_markers = getattr(cls._undo_registry, "class_markers", None)
+            if class_markers is None:
+                class_markers = cls._undo_registry.class_markers = {}
+            outter_level = False
+            if cls not in class_markers:
+                class_markers[cls] = _UNDO_START_MARK
+                outter_level = True
+            try:
+                result = func(*args, **kwargs)
+            finally:
+                if outter_level:
+                    del class_markers[cls]
+            return result
+        return undo_wrapper
+
+    @classmethod
+    def _inner_undoable(cls, func):
+        """Undo marker, but for 'final' methods inside the undoable-shape class itself:
+        this will finally know the actual instance where undoing is expected,
+        and will interact with tokens set-up in the outher function/methods
+        (decorated with 'undoable') to actually create the undo-group dictionary to
+        be stacked.
+        """
+        @wraps(func)
+        def undo_wrapper(self, *args, **kwargs):
+            class_markers = getattr(cls._undo_registry, "class_markers", None)
+            if class_markers is None:
+                class_markers = cls._undo_registry.class_markers = {}
+            outter_level = False
+            if cls not in class_markers:
+                class_markers[cls] = _UNDO_START_MARK
+                outter_level = True
+            if class_markers[cls] is _UNDO_START_MARK:
+                # new undo group
+                if self.undo_active:
+                    self.data.maps.appendleft({})
+                # FIXME: maybe think of a non-linear redo strategy?
+                self.redo_data.clear()
+                class_markers[cls] = _UNDO_IN_PROGRESS_MARK
+                self.verify_and_merge_max_undo_groups()
+            try:
+                result = func(self, *args, **kwargs)
+            finally:
+                if outter_level:
+                    del class_markers[cls]
+            return result
+
+        return undo_wrapper
+
+    def verify_and_merge_max_undo_groups(self):
+        while len(self.data.maps) > self.max_undo_steps + 1:
+            # merge the third-to-last and second-to-last groups:
+            if self.max_undo_steps >= 2:
+                self.data.maps[-2].update(self.data.maps[-3])
+                del self.data.maps[-3]
+            else:
+                self.data.maps[-1].update(self.data.maps[-2])
+                del self.data.maps[-2]
+
+
+class FullShape(RasterUndo, Shape):
     """Shape class carrying all possible data plus kitchen sink
 
     Args:
@@ -1112,7 +1235,7 @@ class FullShape(Shape):
             [context.effects] * size.x * size.y,
         ]
 
-    def __init__(self, data):
+    def __init__(self, data, **kw):
         self.width = w = len(data[0][0])
         self.height = h = len(data[0])
         self.rect = Rect((w,h))
@@ -1122,9 +1245,11 @@ class FullShape(Shape):
         #)
         # self.data is created as a side-effect in load_data
         #del self.data
-        super().__init__()
+        super().__init__(**kw)
 
     def load_data(self, data_planes, size):
+        original_undo = getattr(self, "undo_active", False)
+        self.undo_active = False
         w, h = size
         self.data = PixelDict()
         data_planes[0] = chain(*data_planes[0])
@@ -1132,6 +1257,7 @@ class FullShape(Shape):
         for y in range(h):
             for x in range(w):
                 self._raw_setitem((x, y), next(iter_data))
+        self.undo_active = original_undo
 
     def get_raw(self, pos):
         if isinstance(pos, list):
@@ -1139,8 +1265,11 @@ class FullShape(Shape):
         value = self.data.get(pos, None) if pos in self.rect else None
 
         if value is None:
-            value = [EMPTY, self.context.color, self.context.background, Effects.none]
+            value = [EMPTY, self.context.color, self.context.background, self.context.effects]
             self.data[pos] = value
+        if self.undo_active:
+            # mutations have to be written back, so they are placed in to the chainned undo_group
+            value = value[:]
         return value
 
     def __getitem__(self, pos):
@@ -1158,6 +1287,7 @@ class FullShape(Shape):
             pixel = self.sprites.get_at(pos, pixel)
         return pixel
 
+    @RasterUndo._inner_undoable
     def __setitem__(self, pos, value):
         """
         Values set for each pixel are: character - only spaces (0x20) or "non-spaces" are
@@ -1252,19 +1382,11 @@ class FullShape(Shape):
                 pixel[i] = component
                 if double_width:
                     pixel2[i] = component if i != 0 else CONTINUATION
+        if self.undo_active:
+            self.data[pos] = pixel
 
-
-    #def _raw_setitem(self, value, offset, force_transparent_ink, double_width=False, offset2=None):
-        #for component, plane in zip(
-            #value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)
-        #):
-            #if component is not TRANSPARENT or force_transparent_ink:
-                #plane[offset] = component
-            #if double_width:
-                #plane[offset2] = (
-                    #component if plane is not self.value_data else CONTINUATION
-                #)
-        ## set information so higher level users can partake char width (text, blit)
+            if offset2:
+                self.data[offset2, pos[1]] = pixel2
 
     def _resize_data(self, new_size):
         return

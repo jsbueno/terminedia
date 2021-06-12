@@ -27,10 +27,10 @@ from terminedia.values import (
     NOP,
 )
 from terminedia.image import shape, ValueShape, ImageShape, PalettedShape, FullShape
-from terminedia.screen import Screen
 from terminedia.subpixels import BlockChars
 from terminedia.text import render
 from terminedia.text.style import Mark
+from terminedia.screen import Screen
 from terminedia.transformers import Transformer, TransformersContainer, GradientTransformer
 from terminedia.transformers.library import box_transformers as borders
 # Import otherwise unused modules, so that they are
