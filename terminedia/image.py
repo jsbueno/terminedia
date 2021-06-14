@@ -1102,11 +1102,11 @@ class RasterUndo:
     # (maybe even contextvars.ContextVar could work)
     _undo_registry = threading.local()
 
-    def __init__(self, *args, max_undo_steps=100, **kw):
+    def __init__(self, *args, undo_active=False, max_undo_steps=100, **kw):
         # self.__lock = threading.Lock()
         self.max_undo_steps = max_undo_steps
         self.redo_data = []
-        self.undo_active = True
+        self.undo_active = undo_active
         super().__init__(*args, **kw)
 
     def __undo_exit(self): #, ext_type, exc_value, tb):
@@ -1141,6 +1141,16 @@ class RasterUndo:
 
         '@FullShape.undoable'
         """
+        return cls._inner_undoable(func, _inner_func=False)
+
+    @classmethod
+    def _inner_undoable(cls, func, *, _inner_func=True):
+        """Undo marker, but for 'final' methods inside the undoable-shape class itself:
+        this will finally know the actual instance where undoing is expected,
+        and will interact with tokens set-up in the outher function/methods
+        (decorated with 'undoable') to actually create the undo-group dictionary to
+        be stacked.
+        """
         @wraps(func)
         def undo_wrapper(*args, **kwargs):
             class_markers = getattr(cls._undo_registry, "class_markers", None)
@@ -1150,41 +1160,17 @@ class RasterUndo:
             if cls not in class_markers:
                 class_markers[cls] = _UNDO_START_MARK
                 outter_level = True
-            try:
-                result = func(*args, **kwargs)
-            finally:
-                if outter_level:
-                    del class_markers[cls]
-            return result
-        return undo_wrapper
-
-    @classmethod
-    def _inner_undoable(cls, func):
-        """Undo marker, but for 'final' methods inside the undoable-shape class itself:
-        this will finally know the actual instance where undoing is expected,
-        and will interact with tokens set-up in the outher function/methods
-        (decorated with 'undoable') to actually create the undo-group dictionary to
-        be stacked.
-        """
-        @wraps(func)
-        def undo_wrapper(self, *args, **kwargs):
-            class_markers = getattr(cls._undo_registry, "class_markers", None)
-            if class_markers is None:
-                class_markers = cls._undo_registry.class_markers = {}
-            outter_level = False
-            if cls not in class_markers:
-                class_markers[cls] = _UNDO_START_MARK
-                outter_level = True
-            if class_markers[cls] is _UNDO_START_MARK:
+            if _inner_func and class_markers[cls] is _UNDO_START_MARK:
+                self = args[0]
                 # new undo group
                 if self.undo_active:
                     self.data.maps.appendleft({})
+                    class_markers[cls] = _UNDO_IN_PROGRESS_MARK
+                    self.verify_and_merge_max_undo_groups()
                 # FIXME: maybe think of a non-linear redo strategy?
                 self.redo_data.clear()
-                class_markers[cls] = _UNDO_IN_PROGRESS_MARK
-                self.verify_and_merge_max_undo_groups()
             try:
-                result = func(self, *args, **kwargs)
+                result = func(*args, **kwargs)
             finally:
                 if outter_level:
                     del class_markers[cls]
