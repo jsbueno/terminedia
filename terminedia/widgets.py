@@ -976,7 +976,7 @@ class ScreenMenu(Widget):
 
     """
     def __init__(self, parent, mapping, columns=1, width=None, max_col_width=25, **kwargs):
-        self.mapping = mapping
+        self.mapping = mapping.copy()
 
 
         self.width = width or parent.size.x
@@ -990,11 +990,18 @@ class ScreenMenu(Widget):
         current_col = 0
         actual_width = min(col_width, max_col_width)
         for shortcut, (callback, text) in self.mapping.items():
+
             sh.text[1][current_col * col_width + 1, current_row] = f"[effects: bold|underline]{shortcut}[/effects]{text:>{actual_width - len(shortcut) - 3}s}"
             current_row += 1
             if current_row >= rows:
                 current_col += 1
                 current_row = 0
+
+        # support for control-characters as shortcut:
+        for shortcut in list(self.mapping.keys()):
+            if len(shortcut) == 2 and shortcut[0] == "^":
+                self.mapping[chr(ord(shortcut[1].upper()) - ord("@"))] = self.mapping[shortcut]
+                del self.mapping[shortcut]
 
         sprite = terminedia.Sprite(sh, alpha=False)
         sprite.pos = (0, parent.size.y - sprite.rect.height)
