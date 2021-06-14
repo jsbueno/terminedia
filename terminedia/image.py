@@ -1161,15 +1161,19 @@ class RasterUndo:
             if class_markers is None:
                 class_markers = cls._undo_registry.class_markers = {}
             outter_level = False
-            if cls not in class_markers:
-                class_markers[cls] = _UNDO_START_MARK
+            if "state" not in class_markers:
+                # FIXME: the 'key' here would be a unique 'chain-call-lineage'
+                # starting on the outermost undoable function, and that
+                # would not be mixed across threads/asyncio_tasks
+                # meanwhile, the fixed key "state" will do
+                class_markers["state"] = _UNDO_START_MARK
                 outter_level = True
-            if _inner_func and class_markers[cls] is _UNDO_START_MARK:
+            if _inner_func and class_markers["state"] is _UNDO_START_MARK:
                 self = args[0]
                 # new undo group
                 if self.undo_active:
                     self.data.maps.appendleft({})
-                    class_markers[cls] = _UNDO_IN_PROGRESS_MARK
+                    class_markers["state"] = _UNDO_IN_PROGRESS_MARK
                     self.verify_and_merge_max_undo_groups()
                 # FIXME: maybe think of a non-linear redo strategy?
                 self.redo_data.clear()
@@ -1177,10 +1181,22 @@ class RasterUndo:
                 result = func(*args, **kwargs)
             finally:
                 if outter_level:
-                    del class_markers[cls]
+                    del class_markers["state"]
             return result
 
         return undo_wrapper
+
+    def undo_group_start(self):
+        if self.undo_active:
+            class_markers = getattr(self.__class__._undo_registry, "class_markers", None)
+            #  self.data.maps.appendleft({})
+            class_markers["state"] = _UNDO_START_MARK
+            self.verify_and_merge_max_undo_groups()
+
+    def undo_group_end(self):
+        class_markers = getattr(self.__class__._undo_registry, "class_markers", None)
+        if class_markers.get("state") is not None:
+            del class_markers["state"]
 
     def verify_and_merge_max_undo_groups(self):
         while len(self.data.maps) > self.max_undo_steps + 1:
