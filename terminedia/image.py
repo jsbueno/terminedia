@@ -1119,12 +1119,16 @@ class RasterUndo:
             if len(self.data.maps) <= 1:
                 break
             self.redo_data.append(self.data.maps.popleft())
+        if isinstance(self, ShapeDirtyMixin):
+            self.dirty_set()
 
     def redo(self, n=1):
         for i in range(n):
             if not self.redo_data:
                 break
             self.data.maps.appendleft(self.redo_data.pop())
+        if isinstance(self, ShapeDirtyMixin):
+            self.dirty_set()
 
     def undo_clear(self, n=1):
         """Merge all pixel data into base, and clear undo history"""
