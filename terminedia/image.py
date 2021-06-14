@@ -2,10 +2,13 @@ import heapq
 import logging
 import math
 import sys
+import threading
 from abc import ABC, abstractmethod
-from collections import namedtuple
+from collections import namedtuple, ChainMap, deque
 from collections.abc import Sequence
+from functools import wraps
 from inspect import signature
+from itertools import chain
 from io import StringIO
 from pathlib import Path
 from weakref import ref, ReferenceType
@@ -1076,7 +1079,137 @@ class PalettedShape(Shape):
         self.data[pos[1] * self.width + pos[0]] = type_(value)
 
 
-class FullShape(Shape):
+class PixelDict(ChainMap):
+    def __init__(self, maps=None):
+        # Chainmap uses a plain list, still, maps are pilld top-most on the left-side.
+        # go figure!
+        super().__init__(maps or {})
+        self.maps = deque(self.maps)
+
+
+class _UNDO_START_MARK:
+    pass # sentinel
+
+class _UNDO_IN_PROGRESS_MARK:
+    pass # sentinel
+
+
+class RasterUndo:
+    """Controls and offer the API for raster undo-capability
+
+    """
+    # FIXME: possibly we will need extracontext.context instead of threading.local
+    # (maybe even contextvars.ContextVar could work)
+    _undo_registry = threading.local()
+
+    def __init__(self, *args, undo_active=False, max_undo_steps=100, **kw):
+        # self.__lock = threading.Lock()
+        self.max_undo_steps = max_undo_steps
+        self.redo_data = []
+        self.undo_active = undo_active
+        super().__init__(*args, **kw)
+
+    def __undo_exit(self): #, ext_type, exc_value, tb):
+        with self.__lock:
+            self.__undo_deph -= 1
+            # we don't pop or merge undo-groups: that is up to the app do by calling other functions;
+
+    def undo(self, n=1):
+        for i in range(n):
+            if len(self.data.maps) <= 1:
+                break
+            self.redo_data.append(self.data.maps.popleft())
+        if isinstance(self, ShapeDirtyMixin):
+            self.dirty_set()
+
+    def redo(self, n=1):
+        for i in range(n):
+            if not self.redo_data:
+                break
+            self.data.maps.appendleft(self.redo_data.pop())
+        if isinstance(self, ShapeDirtyMixin):
+            self.dirty_set()
+
+    def undo_clear(self, n=1):
+        """Merge all pixel data into base, and clear undo history"""
+        base = self.data.maps[-1]
+        for step in self.data.maps[-2::-1]:
+            base.update(step)
+        self.data.maps.clear()
+        self.data.maps.append(base)
+
+    @classmethod
+    def undoable(cls, func):
+        """Decorator - apply on functions and methods that will use Raster functions so that
+        they automatically start an undo_group.
+
+        '@FullShape.undoable'
+        """
+        return cls._inner_undoable(func, _inner_func=False)
+
+    @classmethod
+    def _inner_undoable(cls, func, *, _inner_func=True):
+        """Undo marker, but for 'final' methods inside the undoable-shape class itself:
+        this will finally know the actual instance where undoing is expected,
+        and will interact with tokens set-up in the outher function/methods
+        (decorated with 'undoable') to actually create the undo-group dictionary to
+        be stacked.
+        """
+        @wraps(func)
+        def undo_wrapper(*args, **kwargs):
+            class_markers = getattr(cls._undo_registry, "class_markers", None)
+            if class_markers is None:
+                class_markers = cls._undo_registry.class_markers = {}
+            outter_level = False
+            if "state" not in class_markers:
+                # FIXME: the 'key' here would be a unique 'chain-call-lineage'
+                # starting on the outermost undoable function, and that
+                # would not be mixed across threads/asyncio_tasks
+                # meanwhile, the fixed key "state" will do
+                class_markers["state"] = _UNDO_START_MARK
+                outter_level = True
+            if _inner_func and class_markers["state"] is _UNDO_START_MARK:
+                self = args[0]
+                # new undo group
+                if self.undo_active:
+                    self.data.maps.appendleft({})
+                    class_markers["state"] = _UNDO_IN_PROGRESS_MARK
+                    self.verify_and_merge_max_undo_groups()
+                # FIXME: maybe think of a non-linear redo strategy?
+                self.redo_data.clear()
+            try:
+                result = func(*args, **kwargs)
+            finally:
+                if outter_level:
+                    del class_markers["state"]
+            return result
+
+        return undo_wrapper
+
+    def undo_group_start(self):
+        if self.undo_active:
+            class_markers = getattr(self.__class__._undo_registry, "class_markers", None)
+            #  self.data.maps.appendleft({})
+            class_markers["state"] = _UNDO_START_MARK
+            self.verify_and_merge_max_undo_groups()
+
+    def undo_group_end(self):
+        class_markers = getattr(self.__class__._undo_registry, "class_markers", None)
+        if class_markers.get("state") is not None:
+            del class_markers["state"]
+
+    def verify_and_merge_max_undo_groups(self):
+        while len(self.data.maps) > self.max_undo_steps + 1:
+            # merge the third-to-last and second-to-last groups:
+            if self.max_undo_steps >= 2:
+                self.data.maps[-2].update(self.data.maps[-3])
+                del self.data.maps[-3]
+            else:
+                self.data.maps[-1].update(self.data.maps[-2])
+                del self.data.maps[-2]
+
+
+class FullShape(RasterUndo, Shape):
     """Shape class carrying all possible data plus kitchen sink
 
     Args:
@@ -1097,34 +1230,53 @@ class FullShape(Shape):
     _default_bg = EMPTY
 
     @staticmethod
-    def _data_func(size):
+    def _data_func(size, context=None):
+        if context is None:
+            import terminedia
+            context = terminedia.context
         return [
             [EMPTY * size.x] * size.y,
-            [DEFAULT_FG] * size.x * size.y,
-            [DEFAULT_BG] * size.x * size.y,
-            [Effects.none] * size.x * size.y,
+            [context.foreground] * size.x * size.y,
+            [context.background] * size.x * size.y,
+            [context.effects] * size.x * size.y,
         ]
 
-    def __init__(self, data):
+    def __init__(self, data, **kw):
         self.width = w = len(data[0][0])
         self.height = h = len(data[0])
-        self.value_data, self.fg_data, self.bg_data, self.eff_data = (
-            self.load_data(plane, (w, h)) for plane in data
-        )
+        self.rect = Rect((w,h))
+        self.load_data(data, (w,h))
+        #self.value_data, self.fg_data, self.bg_data, self.eff_data = (
+            #self.load_data(plane, (w, h)) for plane in data
+        #)
         # self.data is created as a side-effect in load_data
-        del self.data
-        super().__init__()
+        #del self.data
+        super().__init__(**kw)
+
+    def load_data(self, data_planes, size):
+        original_undo = getattr(self, "undo_active", False)
+        self.undo_active = False
+        w, h = size
+        self.data = PixelDict()
+        data_planes[0] = chain(*data_planes[0])
+        iter_data = zip(*data_planes)
+        for y in range(h):
+            for x in range(w):
+                self._raw_setitem((x, y), next(iter_data))
+        self.undo_active = original_undo
 
     def get_raw(self, pos):
-        offset = self.get_data_offset(pos)
-        if offset is None:
-            return (EMPTY, self.context.color, self.context.background, Effects.none)
-        return (
-            self.value_data[offset],
-            self.fg_data[offset],
-            self.bg_data[offset],
-            self.eff_data[offset],
-        )
+        if isinstance(pos, list):
+            pos = V2(pos)
+        value = self.data.get(pos, None) if pos in self.rect else None
+
+        if value is None:
+            value = [EMPTY, self.context.color, self.context.background, self.context.effects]
+            self.data[pos] = value
+        if self.undo_active:
+            # mutations have to be written back, so they are placed in to the chainned undo_group
+            value = value[:]
+        return value
 
     def __getitem__(self, pos):
         """Values for each pixel are: character, fg_color, bg_color, effects.
@@ -1141,6 +1293,7 @@ class FullShape(Shape):
             pixel = self.sprites.get_at(pos, pixel)
         return pixel
 
+    @RasterUndo._inner_undoable
     def __setitem__(self, pos, value):
         """
         Values set for each pixel are: character - only spaces (0x20) or "non-spaces" are
@@ -1151,8 +1304,8 @@ class FullShape(Shape):
 
         force_transparent_ink = getattr(self.context, "force_transparent_ink", False)
 
-        offset = self.get_data_offset(pos)
-        if offset is None:
+        #offset = self.get_data_offset(pos)
+        if pos not in self.rect:
             return
         if isinstance(value, Pixel):
             value = value.get_values(self.context, self.PixelCls.capabilities)
@@ -1174,17 +1327,18 @@ class FullShape(Shape):
             value = self.context.pretransformers.process(self, pos, self.PixelCls(*value))
 
         ############
-        # Check final width (have to apply transformation effect)
+        # Check final width (after have to apply transformation effect)
         ###########
         offset2 = None
 
-        effects = value[3] if (value[3] != TRANSPARENT or force_transparent_ink) else self.eff_data[offset]
+        effects = value[3] if (value[3] != TRANSPARENT or force_transparent_ink) else self.get_raw(pos)[3]
         transform_effects = (effects & UNICODE_EFFECTS) if effects != TRANSPARENT else Effects.none
+        # FIXME: check for unicode combining gliphs
         final_char = value[0]
-        if isinstance(final_char, bool):
+        if isinstance(final_char, (bool, int)):
             final_char = self.context.char if final_char else EMPTY
         if final_char == CONTINUATION:
-            if self.value_data[offset] == CONTINUATION:
+            if self.get_raw(pos)[0] == CONTINUATION:
                 # we are likely being blitted from a source with matching parameters.
                 # attributes are already set in this cell from
                 # previous character setting
@@ -1197,10 +1351,9 @@ class FullShape(Shape):
             if double_width:
                 if not getattr(self.context, "text_rendering_styled", None) == 1:
                     if pos[0] == self.width - 1:  # Right shape edge
-                        width = 1
                         double_width = False
                     else:
-                        offset2 = offset + 1
+                        offset2 = pos[0] + 1
                 else:
                     # a character sequence of styled-text is being rendered.
                     if pos[0] == 0:
@@ -1211,32 +1364,38 @@ class FullShape(Shape):
                         # EXPERIMENTAL: change actual target in this
                         # situation (rendering_text and going left)
                         # and leave a CONTINUATION marker on the target position.
-                        offset2 = offset
-                        offset = offset - 1
+                        offset2 = pos[0]
+                        pos = list(pos)
+                        pos[0] -= 1
                     else:
                         if pos[0] == self.width - 1:  # Right shape edge
-                            width = 1
                             double_width = False
-                        offset2 = offset + 1
+                        offset2 = pos[0] + 1
         else:
             double_width = False
         self.context.shape_lastchar_was_double = double_width
-        # /check width
-        self._raw_setitem(value, offset, force_transparent_ink, double_width, offset2)
+        self._raw_setitem(pos, value, force_transparent_ink, double_width, offset2)
 
-    def _raw_setitem(self, value, offset, force_transparent_ink, double_width=False, offset2=None):
-        for component, plane in zip(
-            value, (self.value_data, self.fg_data, self.bg_data, self.eff_data)
-        ):
+    def _raw_setitem(self, pos, value, force_transparent_ink=False, double_width=False, offset2=None):
+        pixel = self.get_raw(pos)
+        if offset2:
+            pixel2 = self.get_raw((offset2, pos[1]))
+        for i, component in enumerate(value):
+            # the idea is that "TRANSPARENT" won't affect the corresponding component.
+            # but "force_transparent_ink" can set the value of the component itself to
+            # be the "transparent" special marker
             if component is not TRANSPARENT or force_transparent_ink:
-                plane[offset] = component
-            if double_width:
-                plane[offset2] = (
-                    component if plane is not self.value_data else CONTINUATION
-                )
-        # set information so higher level users can partake char width (text, blit)
+                pixel[i] = component
+                if double_width:
+                    pixel2[i] = component if i != 0 else CONTINUATION
+        if self.undo_active:
+            self.data[pos] = pixel
+
+            if offset2:
+                self.data[offset2, pos[1]] = pixel2
 
     def _resize_data(self, new_size):
+        return
         for data_comp, fill in zip("value_data fg_data bg_data eff_data".split(), "background_char foreground background effects".split()):
             data = getattr(self, data_comp)
             setattr(

@@ -486,7 +486,7 @@ class Screen:
     def __del__(self):
         if not self.interactive:
             return
-        for subscription in self._event_subscriptions:
+        for subscription in getattr(self, "_event_subscriptions", ()):
             subscription.kill()
         terminedia.events._unregister_sigwinch()
 

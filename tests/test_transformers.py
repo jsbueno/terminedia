@@ -139,10 +139,8 @@ def test_transformers_container_bake_method_for_source_consuming_transformers():
 
     TM.TransformersContainer([TM.transformers.library.Dilate]).bake(sh)
 
-    #FIXME: compares the internal characters relying on the internal
-    # representation of shape data:
-    joiner = lambda d: '\n'.join(''.join(char for char in d[i: i + 5]) for i in range(0, 5 * 5, 5))
-    assert joiner(sh.value_data) == joiner(reference_shape.value_data)
+    joiner = lambda sh: [sh[pos].value for pos in TM.Rect(sh.size)]
+    assert joiner(sh) == joiner(reference_shape)
 
 ## GradientTransformer tests
 

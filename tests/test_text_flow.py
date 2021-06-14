@@ -123,4 +123,4 @@ def test_extents_work(in_text, final_pos):
     assert not sh.text[1].writtings
     # ATTENTION: This checks an internal implementation detail -
     # might change when FullShape storage becomes a more sane object:
-    assert all(item == TM.TRANSPARENT for item in sh.value_data)
+    assert all(item[0] == TM.TRANSPARENT for item in sh.data.values())
