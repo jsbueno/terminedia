@@ -1,4 +1,5 @@
 import inspect
+from collections.abc import Sequence
 
 from terminedia.image import RasterUndo
 from terminedia.subpixels import BlockChars, HalfChars
@@ -459,9 +460,11 @@ class HighResBase:
         p_y = pos[1] // self.block_height
         i_x, i_y = pos[0] % self.block_width, pos[1] % self.block_height
         graphics = True
-        original = self.parent[p_x, p_y]
+        original = self.parent.get_raw((p_x, p_y))
         if isinstance(original, Pixel):
             original = original.value
+        elif isinstance(original, Sequence):
+            original = original[0]
         if original is TRANSPARENT or original not in self.block_class:
             graphics = False
             original = EMPTY
@@ -554,7 +557,7 @@ class Square(HighResBase):
         in being called directly.
         """
         is_graphics, gross_pos, new_block = self.operate(pos, self.block_class.set)
-        current = self.parent[gross_pos]
+        current = self.parent.PixelCls(*self.parent.get_raw(gross_pos))
 
         if new_block == HalfChars.FULL_BLOCK:
             if self.context.color == current.foreground:
@@ -582,7 +585,7 @@ class Square(HighResBase):
         in being called directly.
         """
         is_graphics, gross_pos, new_block = self.operate(pos, self.block_class.reset)
-        current = self.parent[gross_pos]
+        current = self.parent.PixelCls(*self.parent.get_raw(gross_pos))
 
         if new_block == HalfChars.EMPTY:
             if self.context.background == current.background:
@@ -614,8 +617,9 @@ class Square(HighResBase):
         """
 
         is_graphics, gross_pos, is_set = self.operate(pos, self.block_class.get_at)
-        current = self.parent[gross_pos]
-        return current.foreground if is_set else current.background
+        current = self.parent.get_raw(gross_pos)
+        # foreground ...else... background
+        return current[1] if is_set else current[2]
 
 
 def HighRes(parent, block_class=BlockChars, block_width=2, block_height=2):
