@@ -1079,12 +1079,40 @@ class PalettedShape(Shape):
         self.data[pos[1] * self.width + pos[0]] = type_(value)
 
 
+
 class PixelDict(ChainMap):
+    """Cached ChainMap"""
     def __init__(self, maps=None):
         # Chainmap uses a plain list, still, maps are pilld top-most on the left-side.
         # go figure!
         super().__init__(maps or {})
         self.maps = deque(self.maps)
+        self.cache = {}
+        self._sentinel = object()
+
+    def __setitem__(self, key, value):
+        self.cache[key] = value
+        super().__setitem__(key, value)
+
+    def __getitem__(self, key):
+        value = self.cache.get(key, self._sentinel)
+        if value is self._sentinel:
+            value = super().__getitem__(key)
+            self.cache[key] = value
+        return value
+
+    def clear(self):
+        self.maps = [{}]
+        self.cache.clear()
+
+    def pop(self):
+        self.cache.clear()
+        return self.maps.popleft()
+
+    def push(self, map=None):
+        if map:
+            self.cache.clear()
+        self.maps.appendleft(map or {})
 
 
 class _UNDO_START_MARK:
@@ -1118,7 +1146,7 @@ class RasterUndo:
         for i in range(n):
             if len(self.data.maps) <= 1:
                 break
-            self.redo_data.append(self.data.maps.popleft())
+            self.redo_data.append(self.data.pop())
         if isinstance(self, ShapeDirtyMixin):
             self.dirty_set()
 
@@ -1126,7 +1154,7 @@ class RasterUndo:
         for i in range(n):
             if not self.redo_data:
                 break
-            self.data.maps.appendleft(self.redo_data.pop())
+            self.data.maps.push(self.redo_data.pop())
         if isinstance(self, ShapeDirtyMixin):
             self.dirty_set()
 
@@ -1135,8 +1163,8 @@ class RasterUndo:
         base = self.data.maps[-1]
         for step in self.data.maps[-2::-1]:
             base.update(step)
-        self.data.maps.clear()
-        self.data.maps.append(base)
+        self.data.clear()
+        self.data.maps[0] = base
 
     @classmethod
     def undoable(cls, func):
@@ -1172,7 +1200,7 @@ class RasterUndo:
                 self = args[0]
                 # new undo group
                 if self.undo_active:
-                    self.data.maps.appendleft({})
+                    self.data.push()
                     class_markers["state"] = _UNDO_IN_PROGRESS_MARK
                     self.verify_and_merge_max_undo_groups()
                 # FIXME: maybe think of a non-linear redo strategy?
@@ -1189,7 +1217,6 @@ class RasterUndo:
     def undo_group_start(self):
         if self.undo_active:
             class_markers = getattr(self.__class__._undo_registry, "class_markers", None)
-            #  self.data.maps.appendleft({})
             class_markers["state"] = _UNDO_START_MARK
             self.verify_and_merge_max_undo_groups()
 
