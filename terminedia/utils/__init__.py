@@ -13,7 +13,7 @@ from .collections import (
     TaggedDict,
     mirror_dict,
 )
-from .descriptors import LazyBindProperty, ObservableProperty
+from .descriptors import LazyBindProperty, ObservableProperty, ClassCache
 from .vector import V2, NamedV2
 from .rect import Rect
 from .colors import css_colors, Color, SpecialColor

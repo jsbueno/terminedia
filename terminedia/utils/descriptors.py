@@ -1,3 +1,4 @@
+from functools import wraps
 from weakref import WeakKeyDictionary, finalize
 
 
@@ -172,3 +173,64 @@ class ObservableProperty:
 
     def __repr__(self):
         return f"<{self.__class__.__name__} on {self.fget.__qualname__ if self.fget.__name__ != '<lambda>' else self.owner.__qualname__ + '.' + self.name} with {len(self.callbacks)} registered callbacks>"
+
+
+
+class ClassCache:
+    """Entangled decorators to cache and control cache invalidation of methods and functions
+
+    An instance of this will have a tripplet of decorators:
+    @ClassCache.cached will attach a cache based on the input parameters of a
+    method, similar to functools.lru_cache - and @ClassCache.cached_prop
+    will create a cached property. @ClassCache.invalidate will mark
+    a method so that, when it is called, the cached values for the
+    methods and properties in the same instance is invalidated.
+
+    So, expensive calculations based on certain states of the instance
+    can be lazily calculated just once, when they are needed -
+    and re-calculated if the state they rely on gets changed.
+    """
+
+    def __init__(self):
+        self.instances = WeakKeyDictionary()
+        self.cached_methods = {}
+
+
+    def cached(self, func):
+        @wraps(func)
+        def wrapper(instance, *args, **kwargs):
+            if instance not in self.instances:
+                self.instances[instance] = {}
+                self.instances[instance]["tick"] = -1
+
+            tick = self.instances[instance]["tick"]
+
+            index = func, args, tuple(kwargs.items())
+
+            if index not in self.instances[instance] or self.instances[instance][index][0] < tick:
+                result = func(instance, *args, **kwargs)
+                self.instances[instance][index] = (tick, result)
+
+            return self.instances[instance][index][1]
+        return wrapper
+
+
+    def invalidate(self, func):
+        # NB: this invalidates the caches _After_ the decorated method is run.
+        # a generic version of this "per_class_cache_factory" would
+        # likely have the caches been invalidated _prior_ to the method being run
+        # or have this configurable.
+        @wraps(func)
+        def wrapper(instance, *args, **kwargs):
+            try:
+                result = func(instance, *args, **kwargs)
+            finally:
+                if instance not in self.instances:
+                    self.instances[instance] = {}
+                    self.instances[instance]["tick"] = -1
+                self.instances[instance]["tick"] += 1
+            return result
+        return wrapper
+
+    def cached_prop(self, func):
+        return property(self.cached(func))

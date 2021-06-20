@@ -1,9 +1,7 @@
 import enum
-import weakref
 from collections import namedtuple
 from collections.abc import Iterable, Mapping
 from copy import deepcopy
-from functools import wraps
 from inspect import isawaitable
 from math import ceil
 
@@ -17,6 +15,7 @@ from terminedia import events, V2, Rect
 
 from terminedia.events import EventSuppressFurtherProcessing
 from terminedia.input import KeyCodes
+from terminedia.utils import ClassCache
 from terminedia.utils.gradient import RangeMap
 from terminedia.text import escape, plane_names
 from terminedia.text.planes import relative_char_size
@@ -153,54 +152,9 @@ def map_text(text, pos, direction):
 
     return to_map, from_map
 
-class TextDoesNotFit(ValueError):
+
+class TextDoesNotFit(ValueError): #sentinel
      pass
-
-class ClassCache:
-
-    def __init__(self):
-        self.instances = weakref.WeakKeyDictionary()
-        self.cached_methods = {}
-
-
-    def cached(self, func):
-        @wraps(func)
-        def wrapper(instance, *args, **kwargs):
-            if instance not in self.instances:
-                self.instances[instance] = {}
-                self.instances[instance]["tick"] = -1
-
-            tick = self.instances[instance]["tick"]
-
-            index = func, args, tuple(kwargs.items())
-
-            if index not in self.instances[instance] or self.instances[instance][index][0] < tick:
-                result = func(instance, *args, **kwargs)
-                self.instances[instance][index] = (tick, result)
-
-            return self.instances[instance][index][1]
-        return wrapper
-
-
-    def invalidate(self, func):
-        # NB: this invalidates the caches _After_ the decorated method is run.
-        # a generic version of this "per_class_cache_factory" would
-        # likely have the caches been invalidated _prior_ to the method being run
-        # or have this configurable.
-        @wraps(func)
-        def wrapper(instance, *args, **kwargs):
-            try:
-                result = func(instance, *args, **kwargs)
-            finally:
-                if instance not in self.instances:
-                    self.instances[instance] = {}
-                    self.instances[instance]["tick"] = -1
-                self.instances[instance]["tick"] += 1
-            return result
-        return wrapper
-
-    def cached_prop(self, func):
-        return property(self.cached(func))
 
 
 lcache = ClassCache()
@@ -635,7 +589,7 @@ class Editable:
 
 class WidgetEventReactor:
     def __init__(self):
-        self.registry = {} #weakref.WeakKeyDictionary()
+        self.registry = {}
         self.focus = None
         self.main_mouse_subscription = events._SystemSubscription(events.MouseClick, self.screen_click)
         self.main_mouse_subscription = events._SystemSubscription(events.MouseDoubleClick, self.screen_double_click)
