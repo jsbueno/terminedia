@@ -310,10 +310,18 @@ class Lines:
 
     def _hard_line_capacity_for_given_soft_line(self, line):
         hard_line_index = self.soft_line_map[line]
-        try:
-            result = sum(len(self.hard_lines[j]) for j in range(hard_line_index, hard_line_index + self.soft_lines_spams[line]))
-        except IndexError:
-            raise TextDoesNotFit()
+        disconsider_last_soft_lines = 0
+        done = False
+        while not done:
+            try:
+                result = sum(len(self.hard_lines[j]) for j in range(hard_line_index, hard_line_index + self.soft_lines_spams[line] - disconsider_last_soft_lines))
+            except IndexError:
+                if not disconsider_last_soft_lines:
+                    disconsider_last_soft_lines = 1
+                else:
+                    raise TextDoesNotFit()
+            else:
+                done = True
         return result
 
     def _soft_line_exceeded_space(self, line):
@@ -551,6 +559,7 @@ class Editable:
 
         if key is not KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x1b):
             valid_symbol = False
+
 
         if valid_symbol:
             index = self.indexes_to.get(self.pos, _UNUSED)

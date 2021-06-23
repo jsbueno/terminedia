@@ -57,7 +57,7 @@ Targeted for next release (0.4):
                         - When entered, all characters printed in the text plane are also appended, along with
                             position, tick and context data to a list. [v]
 
-                    - mouse-clicks on the text area can properly position the cursor
+                    - mouse-clicks on the text area can properly position the cursor [wip]
                     - can keep track of softlines and hard lines when moving up and down [wip]
                         (since "lines" are not a hardcoded layout, this is tricky)
                         - can know how do flowing text _get_to_ (from which direction, and distance
