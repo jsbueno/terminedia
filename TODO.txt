@@ -57,12 +57,12 @@ Targeted for next release (0.4):
                         - When entered, all characters printed in the text plane are also appended, along with
                             position, tick and context data to a list. [v]
 
-                    - mouse-clicks on the text area can properly position the cursor [wip]
-                    - can keep track of softlines and hard lines when moving up and down [wip]
+                    - mouse-clicks on the text area can properly position the cursor [v]
+                    - can keep track of softlines and hard lines when moving up and down [v]
                         (since "lines" are not a hardcoded layout, this is tricky)
                         - can know how do flowing text _get_to_ (from which direction, and distance
-                            from the last text with content) [wip]
-                            - map dictionary with each cell and from where one can get there (map_text) [wip]
+                            from the last text with content) [v]
+                            - map dictionary with each cell and from where one can get there (map_text) v]
                                 (this is done, but slugish = > 10seconds for a 200x50 text area)
                                 - rewrite this inside TextPlane (in parallel to '.extents') [x]:
                                     - rewriten inside "widgets" - text_map reduced from 10s to under 1s[v]

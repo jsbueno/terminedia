@@ -780,7 +780,9 @@ class Text(Widget):
 
     def __init__(self, parent, size=None, label="", value="", pos=None, text_plane=1, sprite=None, **kwargs):
 
-        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, keypress_callback=self.__class__.handle_key, **kwargs)
+        click_callbacks = [self.click]
+        _ensure_extend(click_callbacks, kwargs.pop("click_callback", ()))
+        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, keypress_callback=self.__class__.handle_key, click_callback=click_callbacks, **kwargs)
         self.editable = Editable(self.sprite.shape.text[self.text_plane], parent=self, value=value)
 
     def get(self):
@@ -797,6 +799,9 @@ class Text(Widget):
         finally:
             # do not allow keypress to be processed further
             raise EventSuppressFurtherProcessing()
+
+    def click(self, event):
+        self.editable.pos = ((event.pos - (self.editable.text.pad_left, self.editable.text.pad_top)) / (self.editable.text.char_size)).as_int
 
     @property
     def value(self):

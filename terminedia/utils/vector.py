@@ -71,7 +71,10 @@ class V2(tuple):
         try:
             other = 1 / other
         except (ValueError, TypeError):
-            return NotImplemented
+            if len(other) == 2:
+                return self.__class__((self[0] / other[0], self[1] / other[1]))
+            else:
+                return NotImplemented
         return self * other
 
     def __floordiv__(self, other):
