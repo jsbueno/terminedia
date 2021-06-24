@@ -598,7 +598,7 @@ class TextPlane:
         elif transform != None:
             self._last_border_transform = transform
 
-        size = self.size + (1, 1) * pad_level * 2 + (1, 1)
+        size = (self.size * self.char_size) + (1, 1) * pad_level * 2 + (1, 1)
 
         border_shape = shape(size)
 

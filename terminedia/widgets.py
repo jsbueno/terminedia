@@ -63,6 +63,7 @@ class CursorTransformer(terminedia.Transformer):
         if not self.parent.parent.focus or not tick % self.blink_cycle:
             return value
         size = self.parent.text.char_size
+        pos -= (self.parent.text.pad_left, self.parent.text.pad_top)
         if size == (1,1):
             if pos != self.parent.pos:
                 return value
@@ -778,12 +779,31 @@ class Widget:
 
 class Text(Widget):
 
-    def __init__(self, parent, size=None, label="", value="", pos=None, text_plane=1, sprite=None, **kwargs):
+    def __init__(self, parent, size=None, label="", value="", pos=None, text_plane=1, sprite=None, border=None, click_callback=(), **kwargs):
 
         click_callbacks = [self.click]
-        _ensure_extend(click_callbacks, kwargs.pop("click_callback", ()))
-        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, keypress_callback=self.__class__.handle_key, click_callback=click_callbacks, **kwargs)
-        self.editable = Editable(self.sprite.shape.text[self.text_plane], parent=self, value=value)
+        _ensure_extend(click_callbacks, click_callback)
+        if border:
+            if size:
+                size = V2(size)
+                text_plane = plane_names[text_plane]
+                if text_plane != 1:
+                    size *= int(1/relative_char_size[text_plane][0])
+                shape = terminedia.shape(size + (2, 2))
+                size = None
+                sprite = Sprite(shape)
+                sprite.pos = pos
+            if not isinstance(border, Transformer):
+                border = terminedia.transformers.library.box_transformers["LIGHT_ARC"]
+            self.has_border = 1
+        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite,
+                         keypress_callback=self.__class__.handle_key, click_callback=click_callbacks,
+                         **kwargs)
+        text = self.sprite.shape.text[self.text_plane]
+        if border:
+            text.add_border(border)
+
+        self.editable = Editable(text, parent=self, value=value)
 
     def get(self):
         return self.editable.value
