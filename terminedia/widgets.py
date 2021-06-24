@@ -644,7 +644,7 @@ def _ensure_extend(seq, value):
 
 class Widget:
     @contextkwords
-    def __init__(self, parent, size=None, pos=None, text_plane=1, sprite=None, *, click_callback=None, esc_callback=None, enter_callback=None, keypress_callback=None,  double_click_callback=None, cancellable=False):
+    def __init__(self, parent, size=None, pos=(0,0), text_plane=1, sprite=None, *, click_callback=None, esc_callback=None, enter_callback=None, keypress_callback=None,  double_click_callback=None, cancellable=False):
         """Widget base
 
         Under development. More docs added as examples/functionality is written.
@@ -666,15 +666,11 @@ class Widget:
 
         text_plane = plane_names[text_plane]
         if not sprite:
-            size = V2(size)
-            if text_plane != 1:
-                size *= int(1/relative_char_size[text_plane][0])
-            self.shape = shape(size)
-            self.sprite = Sprite(self.shape, active=True, pos=pos or (0,0), alpha=False)
+            self.sprite = self._sprite_from_text_size(size, text_plane, pos)
         else:
             self.sprite = sprite
-            self.shape = sprite.shape
-            size = self.shape.text[text_plane].size
+            size = sprite.shape.text[text_plane].size
+        self.shape = self.sprite.shape
 
         self.parent = parent
         self.click_callbacks = [self._default_click]
@@ -765,6 +761,16 @@ class Widget:
                             raise
                         break
 
+
+    def _sprite_from_text_size(self, text_size, text_plane, pos, padding=(0,0)):
+        text_size = V2(text_size)
+        text_plane = plane_names[text_plane]
+        size = text_size * (int(1/relative_char_size[text_plane][0]), int(1/relative_char_size[text_plane][1]))
+        shape = terminedia.shape(size + padding)
+        sprite =Sprite(shape)
+        sprite.pos = pos
+        return sprite
+
     def __await__(self):
         """Before awaiting: not all widgets have a default condition to be considered 'done':
         A custom callback must set widget.done=True, or the widget might await forever.
@@ -779,20 +785,15 @@ class Widget:
 
 class Text(Widget):
 
-    def __init__(self, parent, size=None, label="", value="", pos=None, text_plane=1, sprite=None, border=None, click_callback=(), **kwargs):
+
+    def __init__(self, parent, size=None, label="", value="", pos=(0,0), text_plane=1, sprite=None, border=None, click_callback=(), **kwargs):
 
         click_callbacks = [self.click]
         _ensure_extend(click_callbacks, click_callback)
         if border:
             if size:
-                size = V2(size)
-                text_plane = plane_names[text_plane]
-                if text_plane != 1:
-                    size *= int(1/relative_char_size[text_plane][0])
-                shape = terminedia.shape(size + (2, 2))
+                sprite = self._sprite_from_text_size(size, text_plane, pos=pos, padding=(2, 2))
                 size = None
-                sprite = Sprite(shape)
-                sprite.pos = pos
             if not isinstance(border, Transformer):
                 border = terminedia.transformers.library.box_transformers["LIGHT_ARC"]
             self.has_border = 1
