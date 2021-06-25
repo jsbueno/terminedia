@@ -69,6 +69,8 @@ class _posix_KeyCodes:
     RIGHT = "\x1b[C"
     DOWN = "\x1b[B"
     LEFT = "\x1b[D"
+    TAB = "\t"
+    SHIFT_TAB = "\x1b[Z"
 
     codes = mirror_dict(locals())
 
@@ -293,8 +295,11 @@ class _win32_KeyCodes:
     RIGHT = "àM"
     DOWN = "àP"
     LEFT = "àK"
+    TAB = "\t"
+    SHIFT_TAB = "\x1b[Z"  # FIXME: not this - have to be checked on a win box.
 
     codes = mirror_dict(locals())
+
 
 class _WindowsKeyboard(KeyboardBase):
     def __enter__(self):

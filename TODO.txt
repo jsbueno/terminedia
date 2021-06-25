@@ -71,15 +71,15 @@ Targeted for next release (0.4):
 
 
                             - return current-direction and last occupied char [wip]
-                            - find out in the widget value stream where which is the char at the given position:
+                            - find out in the widget value stream where which is the char at the given position:[v]
                                 (done inside _get_line_at_pos, but have to factor out)
-                        - have "virtual spaces" to fill up the current line up to the current position if a key is pressed where there is nothing
-                            - introduce a line break, and fill virtual spaces if there is a teleporting mark between the last filled char and current position
+                        - have "virtual spaces" to fill up the current line up to the current position if a key is pressed where there is nothing [v]
+                            - introduce a line break, and fill virtual spaces if there is a teleporting mark between the last filled char and current position[v]
 
                 - rendering a "\n" in a text plane have to forward-the-entry-pos up to the next
                     teleporting mark. With this behavior one gets both a line change, and
-                    a consistent behavior in vertical and "cartoon" layouts.
-                    - implement \n behavior in TM.text.style.StyledSequence
+                    a consistent behavior in vertical and "cartoon" layouts. [v]
+                    - implement \n behavior in TM.text.style.StyledSequence [v]
 
             - Editable operates on the low level of its text-plane object
                 to avoid explosion of "writting" objects in text,writtings attribute [v]:
@@ -87,7 +87,7 @@ Targeted for next release (0.4):
                     and Editable value is set as a single writting [v]
                     - Escape markup on entries when writting [wip]
                     - Correctly handle escaped tokens in TM.text.styles.MLTokenizer.parse
-            - Editable: should position cursor correctly on click
+            - Editable: should position cursor correctly on click [v]
             - [future] handle copy-paste
         - pointer dependent widgets:
             - translate mouse position to in-widget positions [v]
@@ -95,8 +95,8 @@ Targeted for next release (0.4):
             - Entry: one line text editing [v]
             - Text: multiline text editing [v]
             - List Selection: (Selector) options-selector [v]
-                - Make selector highlight option under mouse click [wip]
-                - Make selector pick option under mouse double-click
+                - Make selector highlight option under mouse click [v]
+                - Make selector pick option under mouse double-click [v]
             - Radio box/check box
             - Drop down selection
             - Button [v]
@@ -110,7 +110,7 @@ Targeted for next release (0.4):
                 - Support for submenus
                 - Support for arrowkey navigation and <enter> selection
                 - Support for mouse-click select
-                - Support for special-key shortcuts (contrl + key sequences and KeyCode special keys)
+                - Support for special-key shortcuts (contrl + key sequences and KeyCode special keys) [v]
             - PaletteMenu:
                 - Allow cells with colors or characters or options be picked by clicking or keyboard navigation
             - EditablePaletteMenu:
@@ -129,7 +129,7 @@ Targeted for next release (0.4):
             - styling:
                 - widget framing
                 - styling with context [wip]
-                - styling with transformers (vary likely will work out of the box)
+                - styling with transformers (very likely will work out of the box)
         - Layout management:
             - absolute positioning [v]
             - HBox/VBox filling
@@ -140,7 +140,10 @@ Targeted for next release (0.4):
         - Widget should get focus on click [v]
         - Widget should loose focus on "ESC" [v]:
             - optionally, widget should be cancelled on "ESC". [v]
-        - Focus should traverse widgets on "TAB"
+        - Focus should traverse widgets on "TAB" [v]
+            - shit_tab go to previous widget [v]
+                - also on windows TBD: check shift_tab keycode
+        - default transform to hightlight focused widget [v]
 
         - Make Widgets awaitable [v]:
             - works by default on selector and entries.[v]
@@ -160,7 +163,7 @@ Targeted for next release (0.4):
         - if there are events, there should be a "main loop" (currently, one call per frame to Screen.update)
         - Add "enable mouse" as a context-manager on "input.py" (V)
         - Add "guard-expressions" to event subscriptions, so it is possible to, for example,
-                subscribe for specific key-presses (or any other simple-test with event attributes)
+                subscribe for specific key-presses (or any other simple-test with event attributes) [v]
 
         - way to do "event pump" [v]:
             - call "terminedia.events.process [v] # was "currently one does call 'inkey'":
