@@ -667,6 +667,8 @@ class WidgetEventReactor:
         self._focus = widget
 
     def _tab_change_focus(self, widget, op):
+        if not self.focus_order:
+            return
         try:
             index = self.focus_order.index(widget)
         except ValueError:
