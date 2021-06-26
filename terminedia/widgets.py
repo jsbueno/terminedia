@@ -23,6 +23,13 @@ from terminedia.values import RETAIN_POS
 from terminedia.values import RelativeMarkIndex
 
 
+###############
+#
+# Transformers, Sentinels and Helpers
+#
+##############
+
+
 class WidgetEvents:
     OVERFILL = "OVERFILL"
     UNREACHABLE = "UNREACHABLE"
@@ -119,6 +126,20 @@ class FocusTransformer(terminedia.Transformer):
 
 def _ensure_sequence(mark):
     return [mark,] if isinstance(mark, Mark) else mark
+
+
+def _ensure_extend(seq, value):
+    if isinstance(value, Iterable):
+        seq.extend(value)
+    elif value is not None:
+        seq.append(value)
+
+
+###############
+#
+# Text Editing Guts
+#
+##############
 
 def map_text(text, pos, direction):
     """Given a text plane, maps out the way that each reachable cell can be acessed
@@ -608,6 +629,14 @@ class Editable:
         terminedia.events.Event(terminedia.events.Custom, subtype=type, owner=self, info=args)
 
 
+###############
+#
+# Widgets Coordination Machinery
+#
+##############
+
+
+
 class WidgetEventReactor:
     def __init__(self):
         self.registry = {}
@@ -688,11 +717,11 @@ class WidgetEventReactor:
 WidgetEventReactor = WidgetEventReactor()
 
 
-def _ensure_extend(seq, value):
-    if isinstance(value, Iterable):
-        seq.extend(value)
-    elif value is not None:
-        seq.append(value)
+###############
+#
+# Base Widgets
+#
+##############
 
 
 class Widget:
@@ -1122,3 +1151,10 @@ class ScreenMenu(Widget):
 
     # use same setter as in the superclass:
     focus = focus.setter(Widget.focus.fset)
+
+
+###############
+#
+# Layout Widgets
+#
+##############
