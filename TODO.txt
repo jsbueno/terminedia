@@ -3,7 +3,7 @@ Targeted for next release (0.4):
     - [bug] None ended-slices of shapes should work (i.e. screen.data[10:, :]) should work: bug in Rect class
     - [bug] StyledText: multiple "moveto" Marks pointing one to another do not chain: only the first one take effect
     - [bug] "new_line" marks not working for text-resolutions other than 1. [v]
-    - [bug] 'add_border' in text planes only working for plane[1]
+    - [bug] 'add_border' in text planes only working for plane[1] [v]
 
 [Draw]
     - Drawing API fill (floodfill) [WIP]
@@ -116,9 +116,11 @@ Targeted for next release (0.4):
             - EditablePaletteMenu:
                 - Allow user to interactivelly enter contents for the cells
 
-
-        - Advanced Widgets:
-            - color selection
+        - Advanced Widgets: (develop concurrently with 'cross-widget stateful workflow' widget grou bellow)
+            - palette widget:
+                - color selection
+                - character selection
+                - effect selection
             - Gradient editor
             - date picker
             - "Windows" and "tabs":
@@ -127,12 +129,29 @@ Targeted for next release (0.4):
             - scrollbar
             - label
             - styling:
-                - widget framing
+                - widget framing [v]
                 - styling with context [wip]
                 - styling with transformers (very likely will work out of the box)
+                - check viability of CSS-like traversing and selction for widget styling, with context-keywords:
+                    - allow css like declarative styling
+
         - Layout management:
             - absolute positioning [v]
-            - HBox/VBox filling
+            - HBox/VBox filling:
+                - 'super' widget: elastic box able to contain sub-widgets
+                - widgets inside super-widget should hav a tab-focus order of their own
+                - API: append, prepend, padding, per widget 'gravity' or group 'distribute'
+                - de-activating have to hide and deactivate all contained widgets
+                - hbox
+                - vbox
+                - scrollable
+                    - might need independent scrollbar
+                - table (auto combine vbox + hbox):
+                    - fixed cols
+                    - dynamic cols
+                - cross-widget statefull workflow:
+                    - example: enable implementation of customizable pallet widget as super-widget coupling table + drop-down + buttons
+
         - Widgets have to be renderable and work in other text resolutions than 1:1 [v]
             - Emulated cursor must scale up to character size [v]
 
