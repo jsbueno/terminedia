@@ -27,6 +27,8 @@ class V2(tuple):
             x = x.value
         if hasattr(x, "__len__") or hasattr(x, "__iter__"):
             x, y = x
+        elif x is None:
+            x = y = 0
         return super().__new__(cls, (x, y))
 
     def __init__(self, *args, **kw):

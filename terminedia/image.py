@@ -1423,15 +1423,6 @@ class FullShape(RasterUndo, Shape):
 
     def _resize_data(self, new_size):
         return
-        for data_comp, fill in zip("value_data fg_data bg_data eff_data".split(), "background_char foreground background effects".split()):
-            data = getattr(self, data_comp)
-            setattr(
-                self, data_comp,
-                self._resize_data_one(
-                    new_size, data,
-                    fill_value=getattr(self.context, fill, self.__class__._default_bg)
-                )
-            )
 
     @classmethod
     def promote(cls, other_shape, resolution=None):

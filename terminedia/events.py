@@ -42,8 +42,9 @@ class EventTypes(IterableFlag):
     MouseClick = 64
     MouseDoubleClick = 128
     TerminalSizeChange = 256
-    Custom = 512
-    QuitLoop = 1024
+    WidgetResize = 512
+    Custom = 1024
+    QuitLoop = 2048
 
 
 

@@ -7,7 +7,7 @@ from math import ceil
 
 import terminedia
 
-from terminedia import shape, Mark, Transformer
+from terminedia import shape, Mark, Transformer, Directions
 
 from terminedia.sprites import Sprite
 from terminedia.utils import contextkwords
@@ -677,12 +677,15 @@ class WidgetEventReactor:
                 callbacks = getattr(widget, callback_type, None)
                 if callbacks:
                     local_event = event.copy(pos=event.pos - rect.c1)
+                    local_event.widget = widget
                     for callback in reversed(callbacks):
                         try:
                             callback(local_event)
                         except EventSuppressFurtherProcessing:
                             break
-                raise EventSuppressFurtherProcessing()
+                # FIXME: not quite right. maybe check all hitted sprites first, then execute callbacks in reverse "z-order"
+                if not isinstance(widget, Container):
+                    raise EventSuppressFurtherProcessing()
 
     @property
     def focus(self):
@@ -726,12 +729,12 @@ WidgetEventReactor = WidgetEventReactor()
 
 class Widget:
 
-    @contextkwords
     def __init__(
         self, parent, size=None, pos=(0,0), text_plane=1, sprite=None, *,
         click_callback=None, esc_callback=None, enter_callback=None,
         keypress_callback=None, double_click_callback=None, tab_callback=None,
         cancellable=False, focus_position = ..., focus_transformer = None,
+        context=None
     ):
         """Widget base
 
@@ -743,12 +746,13 @@ class Widget:
         To avoid cancelation, pass an "esc_callback" which raises an EventSuppressFurtherProcessing.
         """
         self.infocus = False
-        if isinstance(parent, terminedia.Screen):
+        original_parent = parent
+        if isinstance(parent, (terminedia.Screen, Widget)):
             parent = parent.shape
 
         self.cancellable = cancellable
         if not any((size, sprite)):
-            raise TypeError("Either a size or a sprite should be given for text editing")
+            raise TypeError("Either a size or a sprite should be given for a widget")
         if sprite and size:
             raise TypeError("If a sprite is given, widget size if picked from the sprite's shape")
 
@@ -759,6 +763,10 @@ class Widget:
             self.sprite = sprite
             size = sprite.shape.text[text_plane].size
         self.shape = self.sprite.shape
+        if context:
+            self.shape.context = context
+        # initialize size property without triggering events
+        self._set_size(self.shape.size)
 
         self.parent = parent
         self.click_callbacks = [self._default_click]
@@ -797,6 +805,12 @@ class Widget:
 
         if focus_position is not ...:
             self.move_to_focus_position(focus_position)
+
+        if hasattr(original_parent, "register_child"):
+            original_parent.register_child(self)
+
+        # trigger resizing event:
+        self.size = self.size
 
     focus_transformer = FocusTransformer
 
@@ -892,6 +906,23 @@ class Widget:
         sprite.pos = pos
         return sprite
 
+    def _set_size(self, value):
+        # set initial size, used by init in a way not to trigger shape-resize
+        self.__dict__["size"] = value
+
+    @property
+    def size(self):
+        return self.__dict__["size"]
+
+    @size.setter
+    def size(self, new_size):
+        old_size = self.__dict__.get("size", V2(0,0))
+        if new_size != old_size:
+            self.shape.resize(new_size)
+            self.__dict__["size"] = new_size
+        events.Event(events.WidgetResize, widget=self, new_size=new_size, old_size=old_size)
+
+
     def __await__(self):
         """Before awaiting: not all widgets have a default condition to be considered 'done':
         A custom callback must set widget.done=True, or the widget might await forever.
@@ -952,7 +983,7 @@ class Text(Widget):
 
 
 class Entry(Text):
-    def __init__(self, parent, width, label="", value="", enter_callback=None, pos=None, text_plane=1, **kwargs):
+    def __init__(self, parent, width, label="", value="", enter_callback=None, pos=(0, 0), text_plane=1, **kwargs):
         super().__init__(parent, (width, 1), label=label, value=value, pos=pos, text_plane=text_plane, enter_callback=enter_callback, **kwargs)
         self.done = False
 
@@ -962,7 +993,7 @@ class Entry(Text):
 
 
 class Button(Widget):
-    def __init__(self, parent, text="", command=None, pos=None, text_plane=1, padding=0, y_padding=None, sprite=None, border=None, **kwargs):
+    def __init__(self, parent, text="", command=None, pos=(0, 0), text_plane=1, padding=0, y_padding=None, sprite=None, border=None, **kwargs):
         if not command and "click_callback" in kwargs:
             command = kwargs.pop("click_callback")
         if y_padding is None:
@@ -970,19 +1001,45 @@ class Button(Widget):
         if not sprite:
             size = len(text) + padding * 2, 1 + y_padding * 2
 
+        self.text_line = y_padding
+
         if command:
             enter_callback = lambda widget, event: command(event)
         else:
             enter_callback = None
 
-        super().__init__(parent, size, pos=pos, text_plane=text_plane,
-                         sprite=sprite, click_callback=command, enter_callback=enter_callback, **kwargs)
         if border:
+            if size:
+                sprite = self._sprite_from_text_size(size, text_plane, pos=pos, padding=(2, 2))
+                size = None
             if not isinstance(border, Transformer):
                 border = terminedia.transformers.library.box_transformers["LIGHT_ARC"]
-            self.shape.text[self.text_plane].add_border(border)
-        if not sprite and text:
-            self.shape.text[self.text_plane][padding - 1 if border else 0, y_padding - 1 if border else 0] = text
+            self.has_border = 1
+
+        super().__init__(parent, size, pos=pos, text_plane=text_plane,
+                         sprite=sprite, click_callback=command, enter_callback=enter_callback, **kwargs)
+        self.border = border
+        self.text = text
+
+        # if not sprite and text:
+        #    self.shape.text[self.text_plane][padding - 1 if border else 0, y_padding - 1 if border else 0] = text
+
+    @property
+    def text(self):
+        return self._text
+
+    @text.setter
+    def text(self, value):
+        # TODO: resize shape
+        self._text = value
+        text_plane = self.shape.text[self.text_plane]
+
+        self.shape.clear()
+        text_plane.clear()
+        text_plane[0, self.text_line] = f"{value:^{text_plane.size.x}s}"
+        if self.border:
+            text_plane.add_border(self.border)
+
 
 Label = Button
 
@@ -1158,3 +1215,50 @@ class ScreenMenu(Widget):
 # Layout Widgets
 #
 ##############
+
+class Container(Widget):
+    pass
+
+class _Box(Container):
+    def __init__(self, *args, padding=0, **kw):
+        self.children = []
+        self.padding = padding
+        self.border = kw.pop("border", None)
+        super().__init__(*args, size=(1, 1), focus_position=None, **kw)
+
+    def add(self, widget):
+        events.Subscription(events.WidgetResize, self._child_resized, guard=lambda event: event.widget is widget)
+        anchor = getattr(widget, "anchor", "end")
+        if anchor == "start":
+            self.children.insert(0, widget)
+        else:
+            self.children.append(widget)
+
+    register_child = add
+
+    def _child_resized(self, event):
+        widget = event.widget
+        self.reorganize()
+
+    def reorganize(self):
+        # import os; os.system("reset");breakpoint()
+        padding = self.padding
+        new_size = V2(0, 0)
+        for widget in self.children:
+            axis = "x" if self.direction == Directions.RIGHT else "y"
+            cross_axis = "y" if axis == "x" else "x"
+            section = getattr(widget.size, axis) + padding
+            current_length = getattr(new_size, axis)
+            current_cross = getattr(new_size, cross_axis)
+            widget.sprite.pos = V2(**{axis: current_length + padding})
+            current_length += section
+            new_size = V2(**{axis: current_length, cross_axis: max(current_cross, getattr(widget.size, cross_axis))})
+        self.size = new_size
+
+    focus = property(lambda s: False, lambda s, v: None)
+
+class VBox(_Box):
+    direction = Directions.DOWN
+
+class HBox(_Box):
+    direction = Directions.RIGHT

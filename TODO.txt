@@ -139,6 +139,8 @@ Targeted for next release (0.4):
             - absolute positioning [v]
             - HBox/VBox filling:
                 - 'super' widget: elastic box able to contain sub-widgets
+                    - widgets need a "resize" method which triggers an event
+                    - container widgets subscribe to the children resizing
                 - widgets inside super-widget should hav a tab-focus order of their own
                 - API: append, prepend, padding, per widget 'gravity' or group 'distribute'
                 - de-activating have to hide and deactivate all contained widgets
@@ -151,6 +153,14 @@ Targeted for next release (0.4):
                     - dynamic cols
                 - cross-widget statefull workflow:
                     - example: enable implementation of customizable pallet widget as super-widget coupling table + drop-down + buttons
+
+        - Make widget properties mutable after instantiation(and reactive):
+            - may change buttons and labels text
+            - "   "  " command
+            - pos [v]
+            - allow resizing
+            - border (turn on, off, change transformer):
+                - refactor border keyword across widgets
 
         - Widgets have to be renderable and work in other text resolutions than 1:1 [v]
             - Emulated cursor must scale up to character size [v]
