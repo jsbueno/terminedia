@@ -123,8 +123,9 @@ class NamedV2(V2):
         super().__init__(*args, **kw)
 
     def __set_name__(self, owner, name):
-        self.owner_name = owner.__name__
-        self.name = name
+        if not self.name:
+            self.owner_name = owner.__name__
+            self.name = name
 
     def __get__(self, instance, owner):
         return self
@@ -138,7 +139,7 @@ class NamedV2(V2):
     # Force operator methods to get these values as pure V2 instances
     # (so that adding "Directions" results in a normal vector,
     # not an object with a __dict__)
-    for method in "__add__ __sub__ __mul__ __abs__ as_int".split():
+    for method in "__add__ __sub__ __mul__ __abs__ __truediv__ __floordiv__ as_int".split():
         locals()[method] = (
             lambda method: lambda s, *args: getattr(V2, method)(V2(s), *args)
         )(method)
