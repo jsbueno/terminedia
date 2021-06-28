@@ -153,13 +153,14 @@ Targeted for next release (0.4):
                     - dynamic cols
                 - cross-widget statefull workflow:
                     - example: enable implementation of customizable pallet widget as super-widget coupling table + drop-down + buttons
+                - bug: NamedV2 would change name when assignd as a class attribute [v]
 
         - Make widget properties mutable after instantiation(and reactive):
-            - may change buttons and labels text
+            - may change buttons and labels text [v]
             - "   "  " command
             - pos [v]
             - allow resizing
-            - border (turn on, off, change transformer):
+            - border (turn on, off, change transformer): [wip]
                 - refactor border keyword across widgets
 
         - Widgets have to be renderable and work in other text resolutions than 1:1 [v]

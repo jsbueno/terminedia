@@ -900,7 +900,7 @@ class Widget:
     def _sprite_from_text_size(self, text_size, text_plane, pos, padding=(0,0)):
         text_size = V2(text_size)
         text_plane = plane_names[text_plane]
-        size = text_size * (int(1/relative_char_size[text_plane][0]), int(1/relative_char_size[text_plane][1]))
+        size = text_size * (ceil(1/relative_char_size[text_plane][0]), ceil(1/relative_char_size[text_plane][1]))
         shape = terminedia.shape(size + padding)
         sprite =Sprite(shape)
         sprite.pos = pos
@@ -999,7 +999,7 @@ class Button(Widget):
         if y_padding is None:
             y_padding = padding
         if not sprite:
-            size = len(text) + padding * 2, 1 + y_padding * 2
+            size = len(text) + padding * 2 + 1, 1 + y_padding * 2
 
         self.text_line = y_padding
 
@@ -1216,10 +1216,36 @@ class ScreenMenu(Widget):
 #
 ##############
 
+class CrossV2(V2):
+    #__slots__ = ("axis", "cross")
+    def __new__(cls, x=0, y=0, axis="x", length=None, width=None):
+        if axis == "x":
+            x = x if length is None else length
+            y = y if width is None else width
+        else:
+            x = x if width is None else width
+            y = y if length is None else length
+
+        return super().__new__(cls, x, y)
+
+    def __init__(self, x=0, y=0, axis="x", length=None, width=None):
+        self.axis = axis
+        self.cross = "y" if axis == "x" else "x"
+
+    length = property(lambda s: getattr(s, s.axis))
+    width = property(lambda s: getattr(s, s.cross))
+    V2 = property(lambda s: V2(s.x, s.y))
+
+
 class Container(Widget):
     pass
 
+
 class _Box(Container):
+    # abstract - use either HBox or VBox
+
+    axis = None
+
     def __init__(self, *args, padding=0, **kw):
         self.children = []
         self.padding = padding
@@ -1241,24 +1267,20 @@ class _Box(Container):
         self.reorganize()
 
     def reorganize(self):
-        # import os; os.system("reset");breakpoint()
-        padding = self.padding
-        new_size = V2(0, 0)
+        axis = self.axis
+        padding = CrossV2(length = self.padding, axis=axis)
+        new_size = CrossV2(0, 0, axis=axis)
         for widget in self.children:
-            axis = "x" if self.direction == Directions.RIGHT else "y"
-            cross_axis = "y" if axis == "x" else "x"
-            section = getattr(widget.size, axis) + padding
-            current_length = getattr(new_size, axis)
-            current_cross = getattr(new_size, cross_axis)
-            widget.sprite.pos = V2(**{axis: current_length + padding})
-            current_length += section
-            new_size = V2(**{axis: current_length, cross_axis: max(current_cross, getattr(widget.size, cross_axis))})
-        self.size = new_size
+            widget_size = CrossV2(widget.size, axis=axis)
+            current_pos = new_size.length + padding.length
+            widget.sprite.pos = CrossV2(length=current_pos, axis=axis).V2
+            new_size = CrossV2(length=current_pos + widget_size.length, width=max(new_size.width, widget_size.width), axis=axis)
+        self.size = new_size.V2
 
     focus = property(lambda s: False, lambda s, v: None)
 
 class VBox(_Box):
-    direction = Directions.DOWN
+    axis = "y"
 
 class HBox(_Box):
-    direction = Directions.RIGHT
+    axis = "x"
