@@ -107,7 +107,7 @@ Targeted for next release (0.4):
                 - ScreenMenu will capture keyboard events whenever no other widget has focus (its focus policy is different)[v]
                 - ScreenMenu will let keyboard events pass through if key is not associated with a shortcut
                 - ScreenMenu can toggle itself on and off-screen (and still handle shortcuts) with a special sentinel command[v]
-                - Support for submenus
+                - Support for submenus [v]
                 - Support for arrowkey navigation and <enter> selection
                 - Support for mouse-click select
                 - Support for special-key shortcuts (contrl + key sequences and KeyCode special keys) [v]

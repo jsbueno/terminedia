@@ -991,7 +991,6 @@ class Entry(Text):
         self.done = True
 
 
-
 class Button(Widget):
     def __init__(self, parent, text="", command=None, pos=(0, 0), text_plane=1, padding=0, y_padding=None, sprite=None, border=None, **kwargs):
         if not command and "click_callback" in kwargs:
@@ -1149,21 +1148,49 @@ class ScreenMenu(Widget):
 
 
     """
-    def __init__(self, parent, mapping, columns=1, width=None, max_col_width=25, **kwargs):
+    def __init__(self, parent, mapping, columns=1, width=None, max_col_width=25, context=None, gravity=Directions.DOWN, **kwargs):
         self.mapping = mapping.copy()
 
-
         self.width = width or parent.size.x
+        self.columns = columns
+        self.custom_context = context
+        self.max_col_width = max_col_width
+        self._shape_cache = {}
+        self.sprite = None
+        self.gravity = gravity
+        self.parent = parent
+        self.bread_crumbs = []
+        # If a toggle menu display shortcut is on a parent level of a menu,
+        # record it so it works on child levels:
+        self.toggle_key = None
 
-        rows = ceil(len(mapping) // columns) + 1
+        self._set_mapping(self.mapping)
+        self._set_shape()
+
+        super().__init__(parent, sprite=self.sprite, keypress_callback=self.__class__.handle_key, **kwargs)
+            #self.sc.sprites.add(self.help_sprite)
+
+    def _set_mapping(self, mapping):
+        self.active_mapping = mapping
+        if id(mapping) in self._shape_cache:
+            self.sh, self.active_keys, self.toggle_key = self._shape_cache[id(mapping)]
+            return
+
+        rows = ceil(len(mapping) // self.columns) + 1
         sh = terminedia.shape((self.width,  rows + 2))
         sh.text[1].add_border(transform=terminedia.borders["DOUBLE"])
-        col_width = (sh.size.x - 2) // columns
+        col_width = (sh.size.x - 2) // self.columns
         current_row = 0
-        sh.context.foreground = terminedia.DEFAULT_FG
+        if self.custom_context:
+            sh.context = self.custom_context
+        else:
+            sh.context.foreground = terminedia.DEFAULT_FG
         current_col = 0
-        actual_width = min(col_width, max_col_width)
-        for shortcut, (callback, text) in self.mapping.items():
+        actual_width = min(col_width, self.max_col_width)
+        commands = [definition[0] for definition in mapping.values()]
+        if self.bread_crumbs and "back" not in commands:
+            mapping["<ESC>"] = ("back", "back")
+        for shortcut, (callback, text) in mapping.items():
 
             sh.text[1][current_col * col_width + 1, current_row] = f"[effects: bold|underline]{shortcut}[/effects]{text:>{actual_width - len(shortcut) - 3}s}"
             current_row += 1
@@ -1171,21 +1198,39 @@ class ScreenMenu(Widget):
                 current_col += 1
                 current_row = 0
 
-        # support for control-characters as shortcut:
-        for shortcut in list(self.mapping.keys()):
+        self.active_keys = {}
+        for shortcut, definition in mapping.items():
+            command = definition[0]
+            # support for control-characters as shortcut:
             if len(shortcut) == 2 and shortcut[0] == "^":
-                self.mapping[chr(ord(shortcut[1].upper()) - ord("@"))] = self.mapping[shortcut]
-                del self.mapping[shortcut]
+                shortcut = chr(ord(shortcut[1].upper()) - ord("@"))
+            elif shortcut[0] == "<" and shortcut[-1] == ">" and hasattr(KeyCodes, shortcut[1:-1]):
+                shortcut = getattr(KeyCodes, shortcut[1: -1])
+            self.active_keys[shortcut] = command
+            if command == "toggle":
+                self.toggle_key = shortcut
 
-        sprite = terminedia.Sprite(sh, alpha=False)
-        sprite.pos = (0, parent.size.y - sprite.rect.height)
-        super().__init__(parent, sprite=sprite, keypress_callback=self.__class__.handle_key, **kwargs)
-            #self.sc.sprites.add(self.help_sprite)
+        self._shape_cache[id(mapping)] = sh, self.active_keys, self.toggle_key
+        self.sh = sh
+
+    def _set_shape(self):
+        if not self.sprite:
+            self.sprite = terminedia.Sprite(self.sh, alpha=False)
+        else:
+            self.sprite.shapes[0] = self.sh
+        self.sh.dirty_set()
+        sprite = self.sprite
+        if self.gravity == Directions.DOWN:
+            sprite.pos = (0, self.parent.size.y - sprite.rect.height)
+        elif self.gravity == Directions.RIGHT:
+            sprite.pos = (self.parent.size.x - sprite.rect.width, 0)
+        elif self.gravity == Directions.UP or self.gravity == Directions.LEFT:
+            sprite.pos = (0, 0)
 
     def handle_key(self, event):
         key = event.key
-        if key in self.mapping:
-            command = self.mapping[key][0]
+        if key in self.active_keys:
+            command = self.active_keys[key]
             if callable(command):
                 result = command()
                 if isawaitable(result):
@@ -1194,11 +1239,19 @@ class ScreenMenu(Widget):
             elif command == "toggle":
                 self.sprite.active = not self.sprite.active
                 raise EventSuppressFurtherProcessing()
+            elif command == "back" and self.bread_crumbs:
+                self._set_mapping(self.bread_crumbs.pop())
+                self._set_shape()
+                raise EventSuppressFurtherProcessing()
             elif isinstance(command, Mapping):
-                # TODO: activate sub-menu
-                pass
+                self.bread_crumbs.append(self.active_mapping)
+                self._set_mapping(command)
+                self._set_shape()
             elif command == None:
                 pass # Allow key to be further processed
+        elif key == self.toggle_key:
+            self.sprite.active = not self.sprite.active
+            raise EventSuppressFurtherProcessing()
 
 
     @property
