@@ -38,6 +38,7 @@ from terminedia.transformers.library import box_transformers as borders
 import terminedia.unicode
 from terminedia.events import EventTypes
 from terminedia.asynchronous import terminedia_main, ainput
+from terminedia.terminal import cls
 
 import terminedia.widgets
 

@@ -543,5 +543,14 @@ class ScreenCommands(BackendColorContextMixin):
 class JournalingScreenCommands(JournalingCommandsMixin, ScreenCommands):
     """Internal use class to optimize writting ANSI-Sequence commands to the terminal
     """
-
     pass
+
+
+def cls():
+    """Clears the output terminal.
+
+    (if using Screen prefer "Screen.clear()")
+    """
+    cmd = ScreenCommands()
+    cmd.clear()
+    cmd.moveto((0,0))
