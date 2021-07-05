@@ -4,6 +4,10 @@ Targeted for next release (0.4):
     - [bug] StyledText: multiple "moveto" Marks pointing one to another do not chain: only the first one take effect
     - [bug] "new_line" marks not working for text-resolutions other than 1. [v]
     - [bug] 'add_border' in text planes only working for plane[1] [v]
+    - [bug] top level ScreenMenu being redrawn everyframe. App gets slugish: [v]
+        - dirty_rect clear on display shape was not propagating to the sprites shapes [v]
+            - sprites with "tick" transforms are stil always dirty [v]
+
 
 [Draw]
     - Drawing API fill (floodfill) [WIP]

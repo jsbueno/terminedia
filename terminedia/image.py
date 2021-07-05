@@ -367,6 +367,8 @@ class ShapeDirtyMixin:
         self.dirty_registry.reset()  # clear_left(tick)
 
         self.dirty_save_current_sprite_rects(tick)
+        for sprite in self.sprites:
+            sprite.shape.dirty_clear()
 
     def dirty_save_current_sprite_rects(self, tick):
         self.dirty_sprite_rects_saved_at = tick
@@ -392,7 +394,7 @@ class ShapeDirtyMixin:
         # If there is any time-dependant image change, there is no way
         # to predict what changes from one frame to the next - just mark
         # all shape as dirty.
-        if any("tick" in transformer.signatures for transformer in self.context.transformers):
+        if any("tick" in sig for transformer in self.context.transformers for sig in transformer.signatures.values()):
             self.dirty_set()
             return
 
@@ -402,8 +404,11 @@ class ShapeDirtyMixin:
                 if not sprite.active:
                     continue
 
-                for rect in sprite.dirty_rects:
-                    self.dirty_registry.push((tick, sprite.owner_coords(rect), sprite.shape))
+                if any("tick" in sig for transformer in sprite.transformers for sig in transformer.signatures.values()):
+                    self.dirty_registry.push((tick, sprite.rect, sprite.shape))
+                else:
+                    for rect in sprite.dirty_rects:
+                        self.dirty_registry.push((tick, sprite.owner_coords(rect), sprite.shape))
             if self.sprites.killed_sprites:
                 for rect in self.sprites.killed_sprites:
                     self.dirty_registry.push((tick, rect, None))
