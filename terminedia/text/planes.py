@@ -36,13 +36,21 @@ class CharPlaneData(dict):
         self.height = size[1]
 
     def __getitem__(self, pos):
-        if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):
-            raise IndexError(f"Text position out of range - {self.size}")
+        for retry in 0, 1:
+            if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):
+                if retry == 0:
+                    self._update_size()
+                    continue
+                raise IndexError(f"Text position out of range - {self.size}")
         return super().get(pos, EMPTY)
 
     def __setitem__(self, pos, value):
-        if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):
-            raise IndexError(f"Text position out of range - {self.size}")
+        for retry in 0, 1:
+            if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):
+                if retry == 0:
+                    self._update_size()
+                    continue
+                raise IndexError(f"Text position out of range - {self.size}")
         if not self.active:
             return
         super().__setitem__(pos, value)
@@ -193,12 +201,6 @@ class TextPlane:
             self.pad_left + self.pad_right,
             self.pad_top + self.pad_bottom
         )
-
-            #((self.padding if self.pad_left is None else self.pad_left) +
-            #(self.padding if self.pad_right is None else self.pad_right)),
-            #((self.padding if self.pad_top is None else self.pad_top) +
-            #(self.padding if self.pad_bottom is None else self.pad_bottom))
-        #)
         size = (size * (fx, fy)).as_int
         return size
 

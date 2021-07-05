@@ -1044,7 +1044,7 @@ Label = Button
 
 
 class Selector(Widget):
-    def __init__(self, parent, options, select=None, pos=None, text_plane=1, sprite=None, border=None, align="^", selected_row=0, click_callback=None, **kwargs):
+    def __init__(self, parent, options, select=None, pos=None, text_plane=1, sprite=None, border=None, align="^", selected_row=0, click_callback=None, max_height=None, **kwargs):
 
         if isinstance(options, dict):
             str_options = list(options.keys())
@@ -1052,36 +1052,59 @@ class Selector(Widget):
         else:
             str_options = [opt[0] if isinstance(opt, tuple) else opt for opt in options]
             options_values = {str_opt:(opt[1] if isinstance(opt, tuple) else opt) for str_opt, opt in zip(str_options, options)}
-        max_width = max(len(opt) for opt in str_options)
 
-        size = V2(max_width, len(options))
+        self.options = list(zip(str_options, options_values))
+        ##max_width
+
+        self.max_height = max_height or 9999
+        self.align = align
         self.has_border = 0
         if border:
-            size += V2(2,2)
             if not isinstance(border, Transformer):
                 border = terminedia.transformers.library.box_transformers["LIGHT_ARC"]
             self.has_border = 1
 
         click_callbacks = [self._select_click]
         _ensure_extend(click_callbacks, click_callback)
-        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, click_callback=click_callbacks, keypress_callback=self.__class__.change, double_click_callback=self._select_double_click, **kwargs)
-        text = self.shape.text[self.text_plane]
-        if border:
-            text.add_border(border)
+        super().__init__(parent, self.size, pos=pos, text_plane=text_plane, sprite=sprite, click_callback=click_callbacks, keypress_callback=self.__class__.change, double_click_callback=self._select_double_click, **kwargs)
+        self.border = border
+        self.text = self.shape.text[self.text_plane]
+        if self.has_border:
+            self.text.add_border(border)
 
-        for row, opt in enumerate(str_options):
-            text[0, row] = f"{opt:{align}{max_width}s}"
+        self.redraw()
 
-        self.text = text
         self.selected_row = selected_row
         self.str_options = str_options
-        self.options = options_values
-        self.num_options = {num: opt for num, opt in enumerate(options_values.values())}
         self.selected_row = selected_row
         self.transformer = SelectorTransformer(self)
         self.callback = select
 
         self.sprite.transformers.append(self.transformer)
+
+    @property
+    def max_width(self):
+        return max(len(opt[0]) for opt in self.options)
+    @property
+    def size(self):
+        size = V2(self.max_width, min(len(self.options), self.max_height))
+        if self.has_border:
+            size += V2(2,2)
+        return size
+
+    @size.setter
+    def size(self, value):
+        pass #dynamically calculated
+
+    def redraw(self):
+        self.text.clear()
+        self.shape.clear()
+        if self.border:
+            self.text.draw_border(transform=self.border)
+        for row, opt_row in enumerate(self.options):
+            opt = opt_row[0]
+            self.text[0, row] = f"{opt:{self.align}{self.max_width}s}"
+        self.shape.dirty_set()
 
     def change(self, event):
         key = event.key
@@ -1109,7 +1132,45 @@ class Selector(Widget):
 
     @property
     def value(self):
-        return self.num_options[self.selected_row]
+        return self.options[self.selected_row][1]
+
+    def __len__(self):
+        return len(self.options)
+
+    def __getitem__(self, index):
+        return self.options[index]
+
+    def _prechange(self):
+        ṕass
+
+    def _poschange(self):
+        pass
+
+    def __setitem__(self, index, value):
+        if isinstance(value, str):
+            value = (value, value)
+        prev_size = self.size
+        self.options[index] = value
+        if self.size != prev_size:
+            self.shape.resize(self.size)
+        self.redraw()
+
+    def __delitem__(self, index):
+        prev_size = self.size
+        del self.options[index]
+        if self.size != prev_size:
+            self.shape.resize(self.size)
+        self.redraw()
+
+    def insert(self, index, value):
+        if isinstance(value, str):
+            value = (value, value)
+        prev_size = self.size
+        # import os; os.system("reset");breakpoint()
+        self.options.insert(index, value)
+        if self.size != prev_size:
+            self.shape.resize(self.size)
+        self.redraw()
 
 
 class ScreenMenu(Widget):

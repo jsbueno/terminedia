@@ -725,8 +725,11 @@ class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
         self.data = self._resize_data_one(new_size, self.data, fill_value=getattr(self.context, "background_char", self.__class__._default_bg))
 
     def resize(self, new_size):
+        new_size = V2(new_size)
         self._resize_data(V2(new_size))
         self.width, self.height = new_size
+        if hasattr(self, "rect"):
+            self.rect = Rect(new_size)
         self.dirty_set()
 
 

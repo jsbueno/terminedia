@@ -97,6 +97,13 @@ Targeted for next release (0.4):
             - List Selection: (Selector) options-selector [v]
                 - Make selector highlight option under mouse click [v]
                 - Make selector pick option under mouse double-click [v]
+                - make selector list reactive (changes to the selectable list are reflected on the screen)[v]
+                - accept list of colors
+                - work with list larger than displayed size (add "offset" state)
+                - refactor to generalize layout
+
+            - tabular selector (depends on refactoring list selector)
+
             - Radio box/check box
             - Drop down selection
             - Button [v]
