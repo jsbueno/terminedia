@@ -10,7 +10,7 @@ Targeted for next release (0.4):
 
 
 [Draw]
-    - Drawing API fill (floodfill) [WIP]
+    - Drawing API fill (floodfill) [v]
 
 
 [Widgets]
@@ -490,10 +490,12 @@ Future
                         - it is possible that this is hard to do for text-planes of more than one block per character (big-text):
                             if that is the case, just leave big-text rendering as eager (as they work today(, and document that.
                 - subpixel:
-                    - benchmark to csheck if "de-normalizing" the super-refactored code in there would make some difference.
-                    - (current code is super-geekie but requires 3-level calls to set/reset each subpixel)
-                    - if keeping elegance is a must, evolve a script in tools that will "glue together" the denormalized code inline.
-                    - (or check pymacro)
+                    - benchmark to csheck if "de-normalizing" the super-refactored code in there would make some difference. [x]
+                    - (current code is super-geekie but requires 3-level calls to set/reset each subpixel) [x]
+                    - if keeping elegance is a must, evolve a script in tools that will "glue together" the denormalized code inline. [x]
+                    - (or check pymacro) [x]
+                    - pre-render all possible subppixel operations as 2 dicts per subpixel class upon loading, using existing code.
+                        -subsequent calls to set/reset pixels are just a matter of a dict lookup by tuple
     - ^^ these optimizations should bring frame performance to a more reasonable value (10s of FPS expected. Currently 5
          FPS is something just achiaveable for the most simple of renderings, just affecting an area of the screen).
          At this point the bottleneck
@@ -557,8 +559,10 @@ Sprites:
 Improving Shape objects:
     - Change the internal representation of data in FullShape (if not other shapes) -
         - it is absoltely wasteful
-        - check if Numpy can be used optionally without complicating too much the code (do not force Numpy data - Python arrays, or some ctypes Struct should be preferable)
-             - Perceived problem - there is no "char array" in stdlib.array.
+        - check if Numpy can be used optionally without complicating too much the code (do not force Numpy data - Python arrays, or some ctypes Struct should be preferable) [x]
+             - Perceived problem - there is no "char array" in stdlib.array. [x]
+            - instead of numpy or arrays: inner data representation using dicionaries seems enough, and it enables undo steps using chainmap strategy. [v]
+
     - Add Shape public functions to retrieve the raw shape data in ways useful outside of terminedia, other than by rendering (shape.as_string? what about other attributes than chars?)
 
 MS-Windows support (colorama/mscrvt/color reducing)[WIP]
