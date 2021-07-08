@@ -212,6 +212,14 @@ class TextPlane:
     def height(self):
         return self.size[1]
 
+    def pos_to_text_cell(self, pos):
+        """Given a 1-block coordinate on screen, return the cordinate of the matchng text cell
+        on the current plane, taking in account padding.
+        """
+        if not self.current_plane:
+            return pos
+        return ((V2(pos) - (self.pad_left, self.pad_top)) / self.char_size).as_int
+
     def _build_plane(self, index, char_width=None):
         """Internally called to build concrete views, with different resolutions, of a text_plane by the same owner.
 
@@ -240,7 +248,7 @@ class TextPlane:
         # plane["width"] = width = self.owner.width // char_width
         # plane["height"] = height = int(self.owner.height // char_height)
         concretized_text.current_plane = index
-        concretized_text.char_size = (char_width, char_height)
+        concretized_text.char_size = V2(char_width, char_height)
         marks = style.MarkMap(parent=concretized_text)
         # plane["marks"] = marks = style.MarkMap(parent=concretized_text)
         data = CharPlaneData(concretized_text)

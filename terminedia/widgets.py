@@ -1124,6 +1124,18 @@ class Selector(Widget):
         for row, opt_row in enumerate(self.options[self.offset:]):
             opt = opt_row[0]
             self.text[0, row] = f"{opt:{self._align}{self.text.size.x}s}"
+        #⏶⏷
+        scroll_mark_x = self.text.size.x - 1
+        if self.offset > 0:
+            self._scroll_mark_up = V2(scroll_mark_x, 0)
+            self.text[self._scroll_mark_up] = "[effects: reverse]⏶"
+        else:
+            self._scroll_mark_up = None
+        if self.text.size.y + self.offset < len(self.options):
+            self._scroll_mark_down = V2(scroll_mark_x,  self.text.size.y - 1)
+            self.text[self._scroll_mark_down] = "[effects: reverse]⏷"
+        else:
+            self._scroll_mark_down = V2(scroll_mark_x, None)
         self.shape.dirty_set()
 
     def change(self, event):
@@ -1147,8 +1159,8 @@ class Selector(Widget):
         raise EventSuppressFurtherProcessing()
 
     def _get_clicked_option(self, event):
-        selected_row = event.pos.y - self.text.pad_top
-        if 0 < selected_row < len(self.options):
+        selected_row = self.text.pos_to_text_cell(event.pos).y
+        if 0 <= selected_row < len(self.options):
             return selected_row
         return None
 
@@ -1166,6 +1178,15 @@ class Selector(Widget):
         self.redraw()
 
     def _select_click(self, event):
+        pos = self.text.pos_to_text_cell(event.pos)
+        if pos == self._scroll_mark_up:
+            self.offset -= 1
+            return
+
+        if pos == self._scroll_mark_down:
+            self.offset += 1
+            return
+
         selected_row = self._get_clicked_option(event)
         if selected_row is not None:
             self.selected_row = selected_row
