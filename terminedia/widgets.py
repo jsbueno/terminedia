@@ -1044,7 +1044,15 @@ Label = Button
 
 
 class Selector(Widget):
-    def __init__(self, parent, options, *, callback=None, pos=None, text_plane=1, sprite=None, border=None, align="^", selected_row=0, click_callback=None, min_height=1, max_height=None, **kwargs):
+    def __init__(
+        self, parent, options, *,
+        callback=None, pos=None, text_plane=1, sprite=None,
+        border=None, align="center",
+        selected_row=0, offset=0, click_callback=None,
+        min_height=1, max_height=None,
+        min_width=1, max_width=100,
+        **kwargs
+    ):
 
         if isinstance(options, dict):
             str_options = list(options.keys())
@@ -1055,10 +1063,11 @@ class Selector(Widget):
 
         self.min_height = min_height
         self.max_height = max_height or parent.size.y
+        self.min_width = min_width
+        self.max_width = max_width
 
         self.options = list(zip(str_options, options_values))
-        ##max_width
-
+        self.__dict__["offset"] = min(offset, len(self.options) - 1)
 
         self.align = align
         self.has_border = 0
@@ -1086,35 +1095,51 @@ class Selector(Widget):
         self.sprite.transformers.append(self.transformer)
 
     @property
-    def max_width(self):
+    def _align(self):
+        return {"right": ">", "left": "<", "center": "^"}.get(self.align.lower(), self.align)
+
+    @property
+    def max_option_width(self):
         return max(len(opt[0]) for opt in self.options)
+
     @property
     def size(self):
-        size = V2(self.max_width, max(self.min_height,  min(len(self.options), self.max_height)))
+        size = V2(
+            max(min(self.max_option_width, self.max_width), self.min_width),
+            max(self.min_height,  min(len(self.options), self.max_height))
+        )
         if self.has_border:
             size += V2(2,2)
         return size
 
     @size.setter
     def size(self, value):
-        pass #dynamically calculated
+        pass #dynamically calculated. Method needs to exist because parnt class tries to set attribute.
 
     def redraw(self):
         self.text.clear()
         self.shape.clear()
         if self.border:
             self.text.draw_border(transform=self.border)
-        for row, opt_row in enumerate(self.options):
+        for row, opt_row in enumerate(self.options[self.offset:]):
             opt = opt_row[0]
-            self.text[0, row] = f"{opt:{self.align}{self.max_width}s}"
+            self.text[0, row] = f"{opt:{self._align}{self.text.size.x}s}"
         self.shape.dirty_set()
 
     def change(self, event):
         key = event.key
-        if key == KeyCodes.UP and self.selected_row > 0:
-            self.selected_row -= 1
-        elif key == KeyCodes.DOWN and self.selected_row < len(self.options) - 1:
-            self.selected_row += 1
+        if key == KeyCodes.UP:
+            if self.selected_row > 0:
+                self.selected_row -= 1
+            elif self.offset > 0:
+                self.offset -= 1
+
+        elif key == KeyCodes.DOWN:
+            if self.selected_row  + self.offset < len(self.options) - 1 and self.selected_row < self.text.size.y - 1:
+                self.selected_row += 1
+            elif self.offset + self.text.size.y < len(self.options):
+                self.offset += 1
+
         elif key == KeyCodes.ENTER:
             if self.callback:
                 self.callback(self)
@@ -1127,6 +1152,18 @@ class Selector(Widget):
             return selected_row
         return None
 
+    @property
+    def offset(self):
+        return self.__dict__["offset"]
+
+    @offset.setter
+    def offset(self, value):
+        if value >= len(self.options):
+            value = len(self.options) - 1
+        if value < 0:
+            value = 0
+        self.__dict__["offset"] = value
+        self.redraw()
 
     def _select_click(self, event):
         selected_row = self._get_clicked_option(event)
@@ -1149,7 +1186,7 @@ class Selector(Widget):
 
     @property
     def value(self):
-        return self.options[self.selected_row][1]
+        return self.options[self.selected_row + self.offset][1]
 
     def __len__(self):
         return len(self.options)
