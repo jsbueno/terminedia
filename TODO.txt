@@ -109,9 +109,9 @@ Targeted for next release (0.4):
                     - modify selector transformer so that a color/gradient selected item is distinguisablew
                     - accept attribute tokens on strings
 
-
-
-                - work with list larger than displayed size (add "offset" state) [wip]
+                - work with list larger than displayed size (add "offset" state) [v]
+                - scroll indicator when options don't fit on widget size [v]
+                - clickable scroll indicator [v]
                 - refactor to generalize layout
 
             - tabular selector (depends on refactoring list selector)
@@ -173,6 +173,9 @@ Targeted for next release (0.4):
                 - cross-widget statefull workflow:
                     - example: enable implementation of customizable pallet widget as super-widget coupling table + drop-down + buttons
                 - bug: NamedV2 would change name when assignd as a class attribute [v]
+                - reactively respond to inner widgets size change ?
+                    - (maybe have a "size" property for all widgets as an "ObservableProperty"?)
+                    - or emit a custom "resize" event?
 
         - Make widget properties mutable after instantiation(and reactive):
             - may change buttons and labels text [v]
