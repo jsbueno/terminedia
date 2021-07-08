@@ -102,8 +102,16 @@ Targeted for next release (0.4):
                 - Make selector highlight option under mouse click [v]
                 - Make selector pick option under mouse double-click [v]
                 - make selector list reactive (changes to the selectable list are reflected on the screen)[v]
-                - accept list of colors
-                - work with list larger than displayed size (add "offset" state)
+                - accept list of colors:-
+                    - refactor to work with other items than strings:
+                        - colors
+                        - gradients
+                    - modify selector transformer so that a color/gradient selected item is distinguisablew
+                    - accept attribute tokens on strings
+
+
+
+                - work with list larger than displayed size (add "offset" state) [wip]
                 - refactor to generalize layout
 
             - tabular selector (depends on refactoring list selector)
@@ -192,7 +200,6 @@ Targeted for next release (0.4):
             - click [v]
             - enter [v]
             - esc [v]
-
 
 
 [mouse-and-events]

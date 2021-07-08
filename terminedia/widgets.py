@@ -1044,19 +1044,22 @@ Label = Button
 
 
 class Selector(Widget):
-    def __init__(self, parent, options, select=None, pos=None, text_plane=1, sprite=None, border=None, align="^", selected_row=0, click_callback=None, max_height=None, **kwargs):
+    def __init__(self, parent, options, *, callback=None, pos=None, text_plane=1, sprite=None, border=None, align="^", selected_row=0, click_callback=None, min_height=1, max_height=None, **kwargs):
 
         if isinstance(options, dict):
             str_options = list(options.keys())
-            options_values = options
+            options_values = list(options.values())
         else:
             str_options = [opt[0] if isinstance(opt, tuple) else opt for opt in options]
             options_values = {str_opt:(opt[1] if isinstance(opt, tuple) else opt) for str_opt, opt in zip(str_options, options)}
 
+        self.min_height = min_height
+        self.max_height = max_height or parent.size.y
+
         self.options = list(zip(str_options, options_values))
         ##max_width
 
-        self.max_height = max_height or 9999
+
         self.align = align
         self.has_border = 0
         if border:
@@ -1078,7 +1081,7 @@ class Selector(Widget):
         self.str_options = str_options
         self.selected_row = selected_row
         self.transformer = SelectorTransformer(self)
-        self.callback = select
+        self.callback = callback
 
         self.sprite.transformers.append(self.transformer)
 
@@ -1087,7 +1090,7 @@ class Selector(Widget):
         return max(len(opt[0]) for opt in self.options)
     @property
     def size(self):
-        size = V2(self.max_width, min(len(self.options), self.max_height))
+        size = V2(self.max_width, max(self.min_height,  min(len(self.options), self.max_height)))
         if self.has_border:
             size += V2(2,2)
         return size
@@ -1118,10 +1121,24 @@ class Selector(Widget):
             self.done = True
         raise EventSuppressFurtherProcessing()
 
+    def _get_clicked_option(self, event):
+        selected_row = event.pos.y - self.text.pad_top
+        if 0 < selected_row < len(self.options):
+            return selected_row
+        return None
+
+
     def _select_click(self, event):
-        self.selected_row = event.pos.y - self.text.pad_top
+        selected_row = self._get_clicked_option(event)
+        if selected_row is not None:
+            self.selected_row = selected_row
 
     def _select_double_click(self, event):
+        selected_row = self._get_clicked_option(event)
+        # there may be "blank" positions in the widget - it should not be finished in this case.
+        if selected_row != self.selected_row:
+            raise EventSuppressFurtherProcessing()
+
         if self.callback:
             self.callback(self)
         self.done = True
