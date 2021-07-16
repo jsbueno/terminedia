@@ -1053,13 +1053,12 @@ class Selector(Widget):
         min_width=1, max_width=100,
         **kwargs
     ):
-
         if isinstance(options, dict):
             str_options = list(options.keys())
             options_values = list(options.values())
         else:
             str_options = [opt[0] if isinstance(opt, tuple) else opt for opt in options]
-            options_values = {str_opt:(opt[1] if isinstance(opt, tuple) else opt) for str_opt, opt in zip(str_options, options)}
+            options_values = [(opt[1] if isinstance(opt, tuple) else opt) for str_opt, opt in zip(str_options, options) ]
 
         self.min_height = min_height
         self.max_height = max_height or parent.size.y
@@ -1100,7 +1099,13 @@ class Selector(Widget):
 
     @property
     def max_option_width(self):
-        return max(len(opt[0]) for opt in self.options)
+        # TODO: strip tokens for width calculation
+        widths = [len(opt[0]) for opt in self.options if isinstance(opt[0], str)]
+        if widths:
+            width = max(widths)
+        else:
+            width = self.min_width
+        return width
 
     @property
     def size(self):
@@ -1123,8 +1128,11 @@ class Selector(Widget):
             self.text.draw_border(transform=self.border)
         for row, opt_row in enumerate(self.options[self.offset:]):
             opt = opt_row[0]
-            self.text[0, row] = f"{opt:{self._align}{self.text.size.x}s}"
-        #⏶⏷
+            if isinstance(opt, str):
+                # TODO: strip tokens from opt before calculating aligment
+                self.text[0, row] = f"{opt:{self._align}{self.text.size.x}s}"
+            elif isinstance(opt, terminedia.Color):
+                self.text[0, row] = f"[foreground: {opt.html}]{terminedia.values.FULL_BLOCK * (self.text.size.x - 2):^s}"
         scroll_mark_x = self.text.size.x - 1
         if self.offset > 0:
             self._scroll_mark_up = V2(scroll_mark_x, 0)
@@ -1160,7 +1168,7 @@ class Selector(Widget):
 
     def _get_clicked_option(self, event):
         selected_row = self.text.pos_to_text_cell(event.pos).y
-        if 0 <= selected_row < len(self.options):
+        if 0 <= selected_row < len(self.options) - self.offset:
             return selected_row
         return None
 
