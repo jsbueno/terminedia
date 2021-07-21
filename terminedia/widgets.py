@@ -1132,7 +1132,7 @@ class Selector(Widget):
                 # TODO: strip tokens from opt before calculating aligment
                 self.text[0, row] = f"{opt:{self._align}{self.text.size.x}s}"
             elif isinstance(opt, terminedia.Color):
-                self.text[0, row] = f"[foreground: {opt.html}]{terminedia.values.FULL_BLOCK * (self.text.size.x - 2):^s}"
+                self.text[0, row] = f"[foreground: {opt.html}][background: {opt.html}]{' '* (self.text.size.x - 2):^s}"
         scroll_mark_x = self.text.size.x - 1
         if self.offset > 0:
             self._scroll_mark_up = V2(scroll_mark_x, 0)
