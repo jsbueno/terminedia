@@ -283,6 +283,9 @@ class Screen:
     def get_at(self, pos):
         return self[pos]
 
+    def get_raw(self, pos):
+        return self.shape.get_raw(pos)
+
     def reset_at(self, pos):
         """Resets pixel at given coordinate
 
