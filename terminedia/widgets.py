@@ -19,6 +19,7 @@ from terminedia.utils import ClassCache
 from terminedia.utils.gradient import RangeMap
 from terminedia.text import escape, plane_names
 from terminedia.text.planes import relative_char_size
+from terminedia.text.style import MLTokenizer
 from terminedia.values import RETAIN_POS
 from terminedia.values import RelativeMarkIndex
 
@@ -1043,6 +1044,9 @@ class Button(Widget):
 Label = Button
 
 
+_selector_option = namedtuple("option", "raw_text value parsed_text")
+
+
 class Selector(Widget):
     def __init__(
         self, parent, options, *,
@@ -1065,7 +1069,7 @@ class Selector(Widget):
         self.min_width = min_width
         self.max_width = max_width
 
-        self.options = list(zip(str_options, options_values))
+        self.options = [_selector_option(opt, val, self._stripped_opt(opt)) for opt, val in zip(str_options, options_values)]
         self.__dict__["offset"] = min(offset, len(self.options) - 1)
 
         self.align = align
@@ -1093,6 +1097,15 @@ class Selector(Widget):
 
         self.sprite.transformers.append(self.transformer)
 
+    def _stripped_opt(self, raw_opt):
+        if isinstance(raw_opt, terminedia.Color):
+            opt_text = " " * self.min_width
+        else: # str
+            tmp = MLTokenizer(raw_opt)
+            tmp.parse()
+            opt_text = tmp.parsed_text
+        return opt_text
+
     @property
     def _align(self):
         return {"right": ">", "left": "<", "center": "^"}.get(self.align.lower(), self.align)
@@ -1100,7 +1113,7 @@ class Selector(Widget):
     @property
     def max_option_width(self):
         # TODO: strip tokens for width calculation
-        widths = [len(opt[0]) for opt in self.options if isinstance(opt[0], str)]
+        widths = [len(opt.parsed_text) for opt in self.options if isinstance(opt.raw_text, str)]
         if widths:
             width = max(widths)
         else:
@@ -1126,13 +1139,14 @@ class Selector(Widget):
         self.shape.clear()
         if self.border:
             self.text.draw_border(transform=self.border)
-        for row, opt_row in enumerate(self.options[self.offset:]):
-            opt = opt_row[0]
-            if isinstance(opt, str):
+        for row, opt in enumerate(self.options[self.offset:]):
+            if isinstance(opt.raw_text, str):
                 # TODO: strip tokens from opt before calculating aligment
-                self.text[0, row] = f"{opt:{self._align}{self.text.size.x}s}"
-            elif isinstance(opt, terminedia.Color):
-                self.text[0, row] = f"[foreground: {opt.html}][background: {opt.html}]{' '* (self.text.size.x - 2):^s}"
+                tmp = f"{opt.parsed_text:{self._align}{self.text.size.x}s}"
+                tmp = tmp.replace(opt.parsed_text, opt.raw_text)
+                self.text[0, row] = tmp
+            elif isinstance(opt.raw_text, terminedia.Color):
+                self.text[0, row] = f"[foreground: {opt.raw_text.html}][background: {opt.raw_text.html}]{' ' * (self.text.size.x - 2):^s}"
         scroll_mark_x = self.text.size.x - 1
         if self.offset > 0:
             self._scroll_mark_up = V2(scroll_mark_x, 0)
@@ -1231,7 +1245,10 @@ class Selector(Widget):
 
     def __setitem__(self, index, value):
         if isinstance(value, str):
-            value = (value, value)
+            value = _selector_option(value, value, self._stripped_opt(value))
+        elif len(value) == 2:
+            value = _selector_option(value[0], value[1], self._stripped_opt(value[0]))
+
         prev_size = self.size
         self.options[index] = value
         if self.size != prev_size:
@@ -1247,7 +1264,9 @@ class Selector(Widget):
 
     def insert(self, index, value):
         if isinstance(value, str):
-            value = (value, value)
+            value = _selector_option(value, value, self._stripped_opt(value))
+        elif len(value) == 2:
+            value = _selector_option(value[0], value[1], self._stripped_opt(value[0]))
         prev_size = self.size
         # import os; os.system("reset");breakpoint()
         self.options.insert(index, value)
