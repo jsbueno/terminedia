@@ -99,7 +99,7 @@ def render(text, font=None, shape_cls=PalettedShape, direction=Directions.RIGHT)
     for char in text:
         if char not in font:
             font.update(load_font(font_id, is_resource, page=ord(char)//0x100))
-        phrase.append(shape_cls(font[char]))
+        phrase.append(shape_cls(font.get(char, "?")))
 
     if len(text) == 0:
         return shape_cls.new((0, 0))

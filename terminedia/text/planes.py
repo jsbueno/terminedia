@@ -36,13 +36,21 @@ class CharPlaneData(dict):
         self.height = size[1]
 
     def __getitem__(self, pos):
-        if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):
-            raise IndexError(f"Text position out of range - {self.size}")
+        for retry in 0, 1:
+            if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):
+                if retry == 0:
+                    self._update_size()
+                    continue
+                raise IndexError(f"Text position out of range - {self.size}")
         return super().get(pos, EMPTY)
 
     def __setitem__(self, pos, value):
-        if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):
-            raise IndexError(f"Text position out of range - {self.size}")
+        for retry in 0, 1:
+            if not (0 <= pos[0] < self.width) or not (0 <= pos[1] < self.height):
+                if retry == 0:
+                    self._update_size()
+                    continue
+                raise IndexError(f"Text position out of range - {self.size}")
         if not self.active:
             return
         super().__setitem__(pos, value)
@@ -193,12 +201,6 @@ class TextPlane:
             self.pad_left + self.pad_right,
             self.pad_top + self.pad_bottom
         )
-
-            #((self.padding if self.pad_left is None else self.pad_left) +
-            #(self.padding if self.pad_right is None else self.pad_right)),
-            #((self.padding if self.pad_top is None else self.pad_top) +
-            #(self.padding if self.pad_bottom is None else self.pad_bottom))
-        #)
         size = (size * (fx, fy)).as_int
         return size
 
@@ -209,6 +211,14 @@ class TextPlane:
     @property
     def height(self):
         return self.size[1]
+
+    def pos_to_text_cell(self, pos):
+        """Given a 1-block coordinate on screen, return the cordinate of the matchng text cell
+        on the current plane, taking in account padding.
+        """
+        if not self.current_plane:
+            return pos
+        return ((V2(pos) - (self.pad_left, self.pad_top)) / self.char_size).as_int
 
     def _build_plane(self, index, char_width=None):
         """Internally called to build concrete views, with different resolutions, of a text_plane by the same owner.
@@ -238,7 +248,7 @@ class TextPlane:
         # plane["width"] = width = self.owner.width // char_width
         # plane["height"] = height = int(self.owner.height // char_height)
         concretized_text.current_plane = index
-        concretized_text.char_size = (char_width, char_height)
+        concretized_text.char_size = V2(char_width, char_height)
         marks = style.MarkMap(parent=concretized_text)
         # plane["marks"] = marks = style.MarkMap(parent=concretized_text)
         data = CharPlaneData(concretized_text)

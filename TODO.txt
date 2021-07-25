@@ -3,10 +3,14 @@ Targeted for next release (0.4):
     - [bug] None ended-slices of shapes should work (i.e. screen.data[10:, :]) should work: bug in Rect class
     - [bug] StyledText: multiple "moveto" Marks pointing one to another do not chain: only the first one take effect
     - [bug] "new_line" marks not working for text-resolutions other than 1. [v]
-    - [bug] 'add_border' in text planes only working for plane[1]
+    - [bug] 'add_border' in text planes only working for plane[1] [v]
+    - [bug] top level ScreenMenu being redrawn everyframe. App gets slugish: [v]
+        - dirty_rect clear on display shape was not propagating to the sprites shapes [v]
+            - sprites with "tick" transforms are stil always dirty [v]
+
 
 [Draw]
-    - Drawing API fill (floodfill) [WIP]
+    - Drawing API fill (floodfill) [v]
 
 
 [Widgets]
@@ -97,6 +101,21 @@ Targeted for next release (0.4):
             - List Selection: (Selector) options-selector [v]
                 - Make selector highlight option under mouse click [v]
                 - Make selector pick option under mouse double-click [v]
+                - make selector list reactive (changes to the selectable list are reflected on the screen)[v]
+                - accept list of colors:-
+                    - refactor to work with other items than strings:
+                        - colors
+                        - gradients
+                    - modify selector transformer so that a color/gradient selected item is distinguisablew
+                    - accept attribute tokens on strings
+
+                - work with list larger than displayed size (add "offset" state) [v]
+                - scroll indicator when options don't fit on widget size [v]
+                - clickable scroll indicator [v]
+                - refactor to generalize layout
+
+            - tabular selector (depends on refactoring list selector)
+
             - Radio box/check box
             - Drop down selection
             - Button [v]
@@ -107,7 +126,7 @@ Targeted for next release (0.4):
                 - ScreenMenu will capture keyboard events whenever no other widget has focus (its focus policy is different)[v]
                 - ScreenMenu will let keyboard events pass through if key is not associated with a shortcut
                 - ScreenMenu can toggle itself on and off-screen (and still handle shortcuts) with a special sentinel command[v]
-                - Support for submenus
+                - Support for submenus [v]
                 - Support for arrowkey navigation and <enter> selection
                 - Support for mouse-click select
                 - Support for special-key shortcuts (contrl + key sequences and KeyCode special keys) [v]
@@ -116,9 +135,11 @@ Targeted for next release (0.4):
             - EditablePaletteMenu:
                 - Allow user to interactivelly enter contents for the cells
 
-
-        - Advanced Widgets:
-            - color selection
+        - Advanced Widgets: (develop concurrently with 'cross-widget stateful workflow' widget grou bellow)
+            - palette widget:
+                - color selection
+                - character selection
+                - effect selection
             - Gradient editor
             - date picker
             - "Windows" and "tabs":
@@ -127,12 +148,43 @@ Targeted for next release (0.4):
             - scrollbar
             - label
             - styling:
-                - widget framing
+                - widget framing [v]
                 - styling with context [wip]
                 - styling with transformers (very likely will work out of the box)
+                - check viability of CSS-like traversing and selction for widget styling, with context-keywords:
+                    - allow css like declarative styling
+
         - Layout management:
             - absolute positioning [v]
-            - HBox/VBox filling
+            - HBox/VBox filling:
+                - 'super' widget: elastic box able to contain sub-widgets
+                    - widgets need a "resize" method which triggers an event
+                    - container widgets subscribe to the children resizing
+                - widgets inside super-widget should hav a tab-focus order of their own
+                - API: append, prepend, padding, per widget 'gravity' or group 'distribute'
+                - de-activating have to hide and deactivate all contained widgets
+                - hbox
+                - vbox
+                - scrollable
+                    - might need independent scrollbar
+                - table (auto combine vbox + hbox):
+                    - fixed cols
+                    - dynamic cols
+                - cross-widget statefull workflow:
+                    - example: enable implementation of customizable pallet widget as super-widget coupling table + drop-down + buttons
+                - bug: NamedV2 would change name when assignd as a class attribute [v]
+                - reactively respond to inner widgets size change ?
+                    - (maybe have a "size" property for all widgets as an "ObservableProperty"?)
+                    - or emit a custom "resize" event?
+
+        - Make widget properties mutable after instantiation(and reactive):
+            - may change buttons and labels text [v]
+            - "   "  " command
+            - pos [v]
+            - allow resizing
+            - border (turn on, off, change transformer): [wip]
+                - refactor border keyword across widgets
+
         - Widgets have to be renderable and work in other text resolutions than 1:1 [v]
             - Emulated cursor must scale up to character size [v]
 
@@ -151,7 +203,6 @@ Targeted for next release (0.4):
             - click [v]
             - enter [v]
             - esc [v]
-
 
 
 [mouse-and-events]
@@ -449,10 +500,12 @@ Future
                         - it is possible that this is hard to do for text-planes of more than one block per character (big-text):
                             if that is the case, just leave big-text rendering as eager (as they work today(, and document that.
                 - subpixel:
-                    - benchmark to csheck if "de-normalizing" the super-refactored code in there would make some difference.
-                    - (current code is super-geekie but requires 3-level calls to set/reset each subpixel)
-                    - if keeping elegance is a must, evolve a script in tools that will "glue together" the denormalized code inline.
-                    - (or check pymacro)
+                    - benchmark to csheck if "de-normalizing" the super-refactored code in there would make some difference. [x]
+                    - (current code is super-geekie but requires 3-level calls to set/reset each subpixel) [x]
+                    - if keeping elegance is a must, evolve a script in tools that will "glue together" the denormalized code inline. [x]
+                    - (or check pymacro) [x]
+                    - pre-render all possible subppixel operations as 2 dicts per subpixel class upon loading, using existing code.
+                        -subsequent calls to set/reset pixels are just a matter of a dict lookup by tuple
     - ^^ these optimizations should bring frame performance to a more reasonable value (10s of FPS expected. Currently 5
          FPS is something just achiaveable for the most simple of renderings, just affecting an area of the screen).
          At this point the bottleneck
@@ -516,8 +569,10 @@ Sprites:
 Improving Shape objects:
     - Change the internal representation of data in FullShape (if not other shapes) -
         - it is absoltely wasteful
-        - check if Numpy can be used optionally without complicating too much the code (do not force Numpy data - Python arrays, or some ctypes Struct should be preferable)
-             - Perceived problem - there is no "char array" in stdlib.array.
+        - check if Numpy can be used optionally without complicating too much the code (do not force Numpy data - Python arrays, or some ctypes Struct should be preferable) [x]
+             - Perceived problem - there is no "char array" in stdlib.array. [x]
+            - instead of numpy or arrays: inner data representation using dicionaries seems enough, and it enables undo steps using chainmap strategy. [v]
+
     - Add Shape public functions to retrieve the raw shape data in ways useful outside of terminedia, other than by rendering (shape.as_string? what about other attributes than chars?)
 
 MS-Windows support (colorama/mscrvt/color reducing)[WIP]

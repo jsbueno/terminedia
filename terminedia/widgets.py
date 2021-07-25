@@ -7,7 +7,7 @@ from math import ceil
 
 import terminedia
 
-from terminedia import shape, Mark, Transformer
+from terminedia import shape, Mark, Transformer, Directions
 
 from terminedia.sprites import Sprite
 from terminedia.utils import contextkwords
@@ -19,8 +19,16 @@ from terminedia.utils import ClassCache
 from terminedia.utils.gradient import RangeMap
 from terminedia.text import escape, plane_names
 from terminedia.text.planes import relative_char_size
+from terminedia.text.style import MLTokenizer
 from terminedia.values import RETAIN_POS
 from terminedia.values import RelativeMarkIndex
+
+
+###############
+#
+# Transformers, Sentinels and Helpers
+#
+##############
 
 
 class WidgetEvents:
@@ -119,6 +127,20 @@ class FocusTransformer(terminedia.Transformer):
 
 def _ensure_sequence(mark):
     return [mark,] if isinstance(mark, Mark) else mark
+
+
+def _ensure_extend(seq, value):
+    if isinstance(value, Iterable):
+        seq.extend(value)
+    elif value is not None:
+        seq.append(value)
+
+
+###############
+#
+# Text Editing Guts
+#
+##############
 
 def map_text(text, pos, direction):
     """Given a text plane, maps out the way that each reachable cell can be acessed
@@ -608,6 +630,14 @@ class Editable:
         terminedia.events.Event(terminedia.events.Custom, subtype=type, owner=self, info=args)
 
 
+###############
+#
+# Widgets Coordination Machinery
+#
+##############
+
+
+
 class WidgetEventReactor:
     def __init__(self):
         self.registry = {}
@@ -648,12 +678,15 @@ class WidgetEventReactor:
                 callbacks = getattr(widget, callback_type, None)
                 if callbacks:
                     local_event = event.copy(pos=event.pos - rect.c1)
+                    local_event.widget = widget
                     for callback in reversed(callbacks):
                         try:
                             callback(local_event)
                         except EventSuppressFurtherProcessing:
                             break
-                raise EventSuppressFurtherProcessing()
+                # FIXME: not quite right. maybe check all hitted sprites first, then execute callbacks in reverse "z-order"
+                if not isinstance(widget, Container):
+                    raise EventSuppressFurtherProcessing()
 
     @property
     def focus(self):
@@ -688,21 +721,21 @@ class WidgetEventReactor:
 WidgetEventReactor = WidgetEventReactor()
 
 
-def _ensure_extend(seq, value):
-    if isinstance(value, Iterable):
-        seq.extend(value)
-    elif value is not None:
-        seq.append(value)
+###############
+#
+# Base Widgets
+#
+##############
 
 
 class Widget:
 
-    @contextkwords
     def __init__(
         self, parent, size=None, pos=(0,0), text_plane=1, sprite=None, *,
         click_callback=None, esc_callback=None, enter_callback=None,
         keypress_callback=None, double_click_callback=None, tab_callback=None,
         cancellable=False, focus_position = ..., focus_transformer = None,
+        context=None
     ):
         """Widget base
 
@@ -714,12 +747,13 @@ class Widget:
         To avoid cancelation, pass an "esc_callback" which raises an EventSuppressFurtherProcessing.
         """
         self.infocus = False
-        if isinstance(parent, terminedia.Screen):
+        original_parent = parent
+        if isinstance(parent, (terminedia.Screen, Widget)):
             parent = parent.shape
 
         self.cancellable = cancellable
         if not any((size, sprite)):
-            raise TypeError("Either a size or a sprite should be given for text editing")
+            raise TypeError("Either a size or a sprite should be given for a widget")
         if sprite and size:
             raise TypeError("If a sprite is given, widget size if picked from the sprite's shape")
 
@@ -730,6 +764,10 @@ class Widget:
             self.sprite = sprite
             size = sprite.shape.text[text_plane].size
         self.shape = self.sprite.shape
+        if context:
+            self.shape.context = context
+        # initialize size property without triggering events
+        self._set_size(self.shape.size)
 
         self.parent = parent
         self.click_callbacks = [self._default_click]
@@ -768,6 +806,12 @@ class Widget:
 
         if focus_position is not ...:
             self.move_to_focus_position(focus_position)
+
+        if hasattr(original_parent, "register_child"):
+            original_parent.register_child(self)
+
+        # trigger resizing event:
+        self.size = self.size
 
     focus_transformer = FocusTransformer
 
@@ -857,11 +901,28 @@ class Widget:
     def _sprite_from_text_size(self, text_size, text_plane, pos, padding=(0,0)):
         text_size = V2(text_size)
         text_plane = plane_names[text_plane]
-        size = text_size * (int(1/relative_char_size[text_plane][0]), int(1/relative_char_size[text_plane][1]))
+        size = text_size * (ceil(1/relative_char_size[text_plane][0]), ceil(1/relative_char_size[text_plane][1]))
         shape = terminedia.shape(size + padding)
         sprite =Sprite(shape)
         sprite.pos = pos
         return sprite
+
+    def _set_size(self, value):
+        # set initial size, used by init in a way not to trigger shape-resize
+        self.__dict__["size"] = value
+
+    @property
+    def size(self):
+        return self.__dict__["size"]
+
+    @size.setter
+    def size(self, new_size):
+        old_size = self.__dict__.get("size", V2(0,0))
+        if new_size != old_size:
+            self.shape.resize(new_size)
+            self.__dict__["size"] = new_size
+        events.Event(events.WidgetResize, widget=self, new_size=new_size, old_size=old_size)
+
 
     def __await__(self):
         """Before awaiting: not all widgets have a default condition to be considered 'done':
@@ -923,7 +984,7 @@ class Text(Widget):
 
 
 class Entry(Text):
-    def __init__(self, parent, width, label="", value="", enter_callback=None, pos=None, text_plane=1, **kwargs):
+    def __init__(self, parent, width, label="", value="", enter_callback=None, pos=(0, 0), text_plane=1, **kwargs):
         super().__init__(parent, (width, 1), label=label, value=value, pos=pos, text_plane=text_plane, enter_callback=enter_callback, **kwargs)
         self.done = False
 
@@ -931,89 +992,233 @@ class Entry(Text):
         self.done = True
 
 
-
 class Button(Widget):
-    def __init__(self, parent, text="", command=None, pos=None, text_plane=1, padding=0, y_padding=None, sprite=None, border=None, **kwargs):
+    def __init__(self, parent, text="", command=None, pos=(0, 0), text_plane=1, padding=0, y_padding=None, sprite=None, border=None, **kwargs):
         if not command and "click_callback" in kwargs:
             command = kwargs.pop("click_callback")
         if y_padding is None:
             y_padding = padding
         if not sprite:
-            size = len(text) + padding * 2, 1 + y_padding * 2
+            size = len(text) + padding * 2 + 1, 1 + y_padding * 2
+
+        self.text_line = y_padding
 
         if command:
             enter_callback = lambda widget, event: command(event)
         else:
             enter_callback = None
 
-        super().__init__(parent, size, pos=pos, text_plane=text_plane,
-                         sprite=sprite, click_callback=command, enter_callback=enter_callback, **kwargs)
         if border:
+            if size:
+                sprite = self._sprite_from_text_size(size, text_plane, pos=pos, padding=(2, 2))
+                size = None
             if not isinstance(border, Transformer):
                 border = terminedia.transformers.library.box_transformers["LIGHT_ARC"]
-            self.shape.text[self.text_plane].add_border(border)
-        if not sprite and text:
-            self.shape.text[self.text_plane][padding - 1 if border else 0, y_padding - 1 if border else 0] = text
+            self.has_border = 1
+
+        super().__init__(parent, size, pos=pos, text_plane=text_plane,
+                         sprite=sprite, click_callback=command, enter_callback=enter_callback, **kwargs)
+        self.border = border
+        self.text = text
+
+        # if not sprite and text:
+        #    self.shape.text[self.text_plane][padding - 1 if border else 0, y_padding - 1 if border else 0] = text
+
+    @property
+    def text(self):
+        return self._text
+
+    @text.setter
+    def text(self, value):
+        # TODO: resize shape
+        self._text = value
+        text_plane = self.shape.text[self.text_plane]
+
+        self.shape.clear()
+        text_plane.clear()
+        text_plane[0, self.text_line] = f"{value:^{text_plane.size.x}s}"
+        if self.border:
+            text_plane.add_border(self.border)
+
 
 Label = Button
 
 
-class Selector(Widget):
-    def __init__(self, parent, options, select=None, pos=None, text_plane=1, sprite=None, border=None, align="^", selected_row=0, click_callback=None, **kwargs):
+_selector_option = namedtuple("option", "raw_text value parsed_text")
 
+
+class Selector(Widget):
+    def __init__(
+        self, parent, options, *,
+        callback=None, pos=None, text_plane=1, sprite=None,
+        border=None, align="center",
+        selected_row=0, offset=0, click_callback=None,
+        min_height=1, max_height=None,
+        min_width=1, max_width=100,
+        **kwargs
+    ):
         if isinstance(options, dict):
             str_options = list(options.keys())
-            options_values = options
+            options_values = list(options.values())
         else:
             str_options = [opt[0] if isinstance(opt, tuple) else opt for opt in options]
-            options_values = {str_opt:(opt[1] if isinstance(opt, tuple) else opt) for str_opt, opt in zip(str_options, options)}
-        max_width = max(len(opt) for opt in str_options)
+            options_values = [(opt[1] if isinstance(opt, tuple) else opt) for str_opt, opt in zip(str_options, options) ]
 
-        size = V2(max_width, len(options))
+        self.min_height = min_height
+        self.max_height = max_height or parent.size.y
+        self.min_width = min_width
+        self.max_width = max_width
+
+        self.options = [_selector_option(opt, val, self._stripped_opt(opt)) for opt, val in zip(str_options, options_values)]
+        self.__dict__["offset"] = min(offset, len(self.options) - 1)
+
+        self.align = align
         self.has_border = 0
         if border:
-            size += V2(2,2)
             if not isinstance(border, Transformer):
                 border = terminedia.transformers.library.box_transformers["LIGHT_ARC"]
             self.has_border = 1
 
         click_callbacks = [self._select_click]
         _ensure_extend(click_callbacks, click_callback)
-        super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite, click_callback=click_callbacks, keypress_callback=self.__class__.change, double_click_callback=self._select_double_click, **kwargs)
-        text = self.shape.text[self.text_plane]
-        if border:
-            text.add_border(border)
+        super().__init__(parent, self.size, pos=pos, text_plane=text_plane, sprite=sprite, click_callback=click_callbacks, keypress_callback=self.__class__.change, double_click_callback=self._select_double_click, **kwargs)
+        self.border = border
+        self.text = self.shape.text[self.text_plane]
+        if self.has_border:
+            self.text.add_border(border)
 
-        for row, opt in enumerate(str_options):
-            text[0, row] = f"{opt:{align}{max_width}s}"
+        self.redraw()
 
-        self.text = text
         self.selected_row = selected_row
         self.str_options = str_options
-        self.options = options_values
-        self.num_options = {num: opt for num, opt in enumerate(options_values.values())}
         self.selected_row = selected_row
         self.transformer = SelectorTransformer(self)
-        self.callback = select
+        self.callback = callback
 
         self.sprite.transformers.append(self.transformer)
 
+    def _stripped_opt(self, raw_opt):
+        if isinstance(raw_opt, terminedia.Color):
+            opt_text = " " * self.min_width
+        else: # str
+            tmp = MLTokenizer(raw_opt)
+            tmp.parse()
+            opt_text = tmp.parsed_text
+        return opt_text
+
+    @property
+    def _align(self):
+        return {"right": ">", "left": "<", "center": "^"}.get(self.align.lower(), self.align)
+
+    @property
+    def max_option_width(self):
+        # TODO: strip tokens for width calculation
+        widths = [len(opt.parsed_text) for opt in self.options if isinstance(opt.raw_text, str)]
+        if widths:
+            width = max(widths)
+        else:
+            width = self.min_width
+        return width
+
+    @property
+    def size(self):
+        size = V2(
+            max(min(self.max_option_width, self.max_width), self.min_width),
+            max(self.min_height,  min(len(self.options), self.max_height))
+        )
+        if self.has_border:
+            size += V2(2,2)
+        return size
+
+    @size.setter
+    def size(self, value):
+        pass #dynamically calculated. Method needs to exist because parnt class tries to set attribute.
+
+    def redraw(self):
+        self.text.clear()
+        self.shape.clear()
+        if self.border:
+            self.text.draw_border(transform=self.border)
+        for row, opt in enumerate(self.options[self.offset:]):
+            if isinstance(opt.raw_text, str):
+                # TODO: strip tokens from opt before calculating aligment
+                tmp = f"{opt.parsed_text:{self._align}{self.text.size.x}s}"
+                tmp = tmp.replace(opt.parsed_text, opt.raw_text)
+                self.text[0, row] = tmp
+            elif isinstance(opt.raw_text, terminedia.Color):
+                self.text[0, row] = f"[foreground: {opt.raw_text.html}][background: {opt.raw_text.html}]{' ' * (self.text.size.x - 2):^s}"
+        scroll_mark_x = self.text.size.x - 1
+        if self.offset > 0:
+            self._scroll_mark_up = V2(scroll_mark_x, 0)
+            self.text[self._scroll_mark_up] = "[effects: reverse]⏶"
+        else:
+            self._scroll_mark_up = None
+        if self.text.size.y + self.offset < len(self.options):
+            self._scroll_mark_down = V2(scroll_mark_x,  self.text.size.y - 1)
+            self.text[self._scroll_mark_down] = "[effects: reverse]⏷"
+        else:
+            self._scroll_mark_down = V2(scroll_mark_x, None)
+        self.shape.dirty_set()
+
     def change(self, event):
         key = event.key
-        if key == KeyCodes.UP and self.selected_row > 0:
-            self.selected_row -= 1
-        elif key == KeyCodes.DOWN and self.selected_row < len(self.options) - 1:
-            self.selected_row += 1
+        if key == KeyCodes.UP:
+            if self.selected_row > 0:
+                self.selected_row -= 1
+            elif self.offset > 0:
+                self.offset -= 1
+
+        elif key == KeyCodes.DOWN:
+            if self.selected_row  + self.offset < len(self.options) - 1 and self.selected_row < self.text.size.y - 1:
+                self.selected_row += 1
+            elif self.offset + self.text.size.y < len(self.options):
+                self.offset += 1
+
         elif key == KeyCodes.ENTER:
             if self.callback:
                 self.callback(self)
             self.done = True
         raise EventSuppressFurtherProcessing()
 
+    def _get_clicked_option(self, event):
+        selected_row = self.text.pos_to_text_cell(event.pos).y
+        if 0 <= selected_row < len(self.options) - self.offset:
+            return selected_row
+        return None
+
+    @property
+    def offset(self):
+        return self.__dict__["offset"]
+
+    @offset.setter
+    def offset(self, value):
+        if value >= len(self.options):
+            value = len(self.options) - 1
+        if value < 0:
+            value = 0
+        self.__dict__["offset"] = value
+        self.redraw()
+
     def _select_click(self, event):
-        self.selected_row = event.pos.y - self.text.pad_top
+        pos = self.text.pos_to_text_cell(event.pos)
+        if pos == self._scroll_mark_up:
+            self.offset -= 1
+            return
+
+        if pos == self._scroll_mark_down:
+            self.offset += 1
+            return
+
+        selected_row = self._get_clicked_option(event)
+        if selected_row is not None:
+            self.selected_row = selected_row
 
     def _select_double_click(self, event):
+        selected_row = self._get_clicked_option(event)
+        # there may be "blank" positions in the widget - it should not be finished in this case.
+        if selected_row != self.selected_row:
+            raise EventSuppressFurtherProcessing()
+
         if self.callback:
             self.callback(self)
         self.done = True
@@ -1024,7 +1229,50 @@ class Selector(Widget):
 
     @property
     def value(self):
-        return self.num_options[self.selected_row]
+        return self.options[self.selected_row + self.offset][1]
+
+    def __len__(self):
+        return len(self.options)
+
+    def __getitem__(self, index):
+        return self.options[index]
+
+    def _prechange(self):
+        ṕass
+
+    def _poschange(self):
+        pass
+
+    def __setitem__(self, index, value):
+        if isinstance(value, str):
+            value = _selector_option(value, value, self._stripped_opt(value))
+        elif len(value) == 2:
+            value = _selector_option(value[0], value[1], self._stripped_opt(value[0]))
+
+        prev_size = self.size
+        self.options[index] = value
+        if self.size != prev_size:
+            self.shape.resize(self.size)
+        self.redraw()
+
+    def __delitem__(self, index):
+        prev_size = self.size
+        del self.options[index]
+        if self.size != prev_size:
+            self.shape.resize(self.size)
+        self.redraw()
+
+    def insert(self, index, value):
+        if isinstance(value, str):
+            value = _selector_option(value, value, self._stripped_opt(value))
+        elif len(value) == 2:
+            value = _selector_option(value[0], value[1], self._stripped_opt(value[0]))
+        prev_size = self.size
+        # import os; os.system("reset");breakpoint()
+        self.options.insert(index, value)
+        if self.size != prev_size:
+            self.shape.resize(self.size)
+        self.redraw()
 
 
 class ScreenMenu(Widget):
@@ -1063,21 +1311,49 @@ class ScreenMenu(Widget):
 
 
     """
-    def __init__(self, parent, mapping, columns=1, width=None, max_col_width=25, **kwargs):
+    def __init__(self, parent, mapping, columns=1, width=None, max_col_width=25, context=None, gravity=Directions.DOWN, **kwargs):
         self.mapping = mapping.copy()
 
-
         self.width = width or parent.size.x
+        self.columns = columns
+        self.custom_context = context
+        self.max_col_width = max_col_width
+        self._shape_cache = {}
+        self.sprite = None
+        self.gravity = gravity
+        self.parent = parent
+        self.bread_crumbs = []
+        # If a toggle menu display shortcut is on a parent level of a menu,
+        # record it so it works on child levels:
+        self.toggle_key = None
 
-        rows = ceil(len(mapping) // columns) + 1
+        self._set_mapping(self.mapping)
+        self._set_shape()
+
+        super().__init__(parent, sprite=self.sprite, keypress_callback=self.__class__.handle_key, **kwargs)
+            #self.sc.sprites.add(self.help_sprite)
+
+    def _set_mapping(self, mapping):
+        self.active_mapping = mapping
+        if id(mapping) in self._shape_cache:
+            self.sh, self.active_keys, self.toggle_key = self._shape_cache[id(mapping)]
+            return
+
+        rows = ceil(len(mapping) // self.columns) + 1
         sh = terminedia.shape((self.width,  rows + 2))
         sh.text[1].add_border(transform=terminedia.borders["DOUBLE"])
-        col_width = (sh.size.x - 2) // columns
+        col_width = (sh.size.x - 2) // self.columns
         current_row = 0
-        sh.context.foreground = terminedia.DEFAULT_FG
+        if self.custom_context:
+            sh.context = self.custom_context
+        else:
+            sh.context.foreground = terminedia.DEFAULT_FG
         current_col = 0
-        actual_width = min(col_width, max_col_width)
-        for shortcut, (callback, text) in self.mapping.items():
+        actual_width = min(col_width, self.max_col_width)
+        commands = [definition[0] for definition in mapping.values()]
+        if self.bread_crumbs and "back" not in commands:
+            mapping["<ESC>"] = ("back", "back")
+        for shortcut, (callback, text) in mapping.items():
 
             sh.text[1][current_col * col_width + 1, current_row] = f"[effects: bold|underline]{shortcut}[/effects]{text:>{actual_width - len(shortcut) - 3}s}"
             current_row += 1
@@ -1085,21 +1361,39 @@ class ScreenMenu(Widget):
                 current_col += 1
                 current_row = 0
 
-        # support for control-characters as shortcut:
-        for shortcut in list(self.mapping.keys()):
+        self.active_keys = {}
+        for shortcut, definition in mapping.items():
+            command = definition[0]
+            # support for control-characters as shortcut:
             if len(shortcut) == 2 and shortcut[0] == "^":
-                self.mapping[chr(ord(shortcut[1].upper()) - ord("@"))] = self.mapping[shortcut]
-                del self.mapping[shortcut]
+                shortcut = chr(ord(shortcut[1].upper()) - ord("@"))
+            elif shortcut[0] == "<" and shortcut[-1] == ">" and hasattr(KeyCodes, shortcut[1:-1]):
+                shortcut = getattr(KeyCodes, shortcut[1: -1])
+            self.active_keys[shortcut] = command
+            if command == "toggle":
+                self.toggle_key = shortcut
 
-        sprite = terminedia.Sprite(sh, alpha=False)
-        sprite.pos = (0, parent.size.y - sprite.rect.height)
-        super().__init__(parent, sprite=sprite, keypress_callback=self.__class__.handle_key, **kwargs)
-            #self.sc.sprites.add(self.help_sprite)
+        self._shape_cache[id(mapping)] = sh, self.active_keys, self.toggle_key
+        self.sh = sh
+
+    def _set_shape(self):
+        if not self.sprite:
+            self.sprite = terminedia.Sprite(self.sh, alpha=False)
+        else:
+            self.sprite.shapes[0] = self.sh
+        self.sh.dirty_set()
+        sprite = self.sprite
+        if self.gravity == Directions.DOWN:
+            sprite.pos = (0, self.parent.size.y - sprite.rect.height)
+        elif self.gravity == Directions.RIGHT:
+            sprite.pos = (self.parent.size.x - sprite.rect.width, 0)
+        elif self.gravity == Directions.UP or self.gravity == Directions.LEFT:
+            sprite.pos = (0, 0)
 
     def handle_key(self, event):
         key = event.key
-        if key in self.mapping:
-            command = self.mapping[key][0]
+        if key in self.active_keys:
+            command = self.active_keys[key]
             if callable(command):
                 result = command()
                 if isawaitable(result):
@@ -1108,11 +1402,19 @@ class ScreenMenu(Widget):
             elif command == "toggle":
                 self.sprite.active = not self.sprite.active
                 raise EventSuppressFurtherProcessing()
+            elif command == "back" and self.bread_crumbs:
+                self._set_mapping(self.bread_crumbs.pop())
+                self._set_shape()
+                raise EventSuppressFurtherProcessing()
             elif isinstance(command, Mapping):
-                # TODO: activate sub-menu
-                pass
+                self.bread_crumbs.append(self.active_mapping)
+                self._set_mapping(command)
+                self._set_shape()
             elif command == None:
                 pass # Allow key to be further processed
+        elif key == self.toggle_key:
+            self.sprite.active = not self.sprite.active
+            raise EventSuppressFurtherProcessing()
 
 
     @property
@@ -1122,3 +1424,79 @@ class ScreenMenu(Widget):
 
     # use same setter as in the superclass:
     focus = focus.setter(Widget.focus.fset)
+
+
+###############
+#
+# Layout Widgets
+#
+##############
+
+class CrossV2(V2):
+    #__slots__ = ("axis", "cross")
+    def __new__(cls, x=0, y=0, axis="x", length=None, width=None):
+        if axis == "x":
+            x = x if length is None else length
+            y = y if width is None else width
+        else:
+            x = x if width is None else width
+            y = y if length is None else length
+
+        return super().__new__(cls, x, y)
+
+    def __init__(self, x=0, y=0, axis="x", length=None, width=None):
+        self.axis = axis
+        self.cross = "y" if axis == "x" else "x"
+
+    length = property(lambda s: getattr(s, s.axis))
+    width = property(lambda s: getattr(s, s.cross))
+    V2 = property(lambda s: V2(s.x, s.y))
+
+
+class Container(Widget):
+    pass
+
+
+class _Box(Container):
+    # abstract - use either HBox or VBox
+
+    axis = None
+
+    def __init__(self, *args, padding=0, **kw):
+        self.children = []
+        self.padding = padding
+        self.border = kw.pop("border", None)
+        super().__init__(*args, size=(1, 1), focus_position=None, **kw)
+
+    def add(self, widget):
+        events.Subscription(events.WidgetResize, self._child_resized, guard=lambda event: event.widget is widget)
+        anchor = getattr(widget, "anchor", "end")
+        if anchor == "start":
+            self.children.insert(0, widget)
+        else:
+            self.children.append(widget)
+
+    register_child = add
+
+    def _child_resized(self, event):
+        widget = event.widget
+        self.reorganize()
+
+    def reorganize(self):
+        axis = self.axis
+        padding = CrossV2(length = self.padding, axis=axis)
+        new_size = CrossV2(0, 0, axis=axis)
+        for widget in self.children:
+            widget_size = CrossV2(widget.size, axis=axis)
+            current_pos = new_size.length + padding.length
+            widget.sprite.pos = CrossV2(length=current_pos, axis=axis).V2
+            new_size = CrossV2(length=current_pos + widget_size.length, width=max(new_size.width, widget_size.width), axis=axis)
+        self.size = new_size.V2
+
+    focus = property(lambda s: False, lambda s, v: None)
+
+class VBox(_Box):
+    axis = "y"
+
+class HBox(_Box):
+    axis = "x"
