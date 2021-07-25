@@ -34,7 +34,7 @@ New Mouse and events:
         - Register the signal handler on Screen instantiation
         - Unregister signal handler on Screen de-instantiation
         - Handler should send Terminedia event
-        - decouple terminedia event "dispatch" from actually calling the callbacks; create an event "process" that does that; [V]
+        - decouple terminedia event "dispatch" from actually calling the callbacks; create an event "process" that does that;
                 - add  a signl queue for holding all events. (deque).
                 - This will prevent screen.data Shape resizing in the mid of some processing and potential catastrohpic bugs
         - Actually create "shape.resize" methods - (just truncate on reduce, fill with context attrs on enlarge)
@@ -45,6 +45,146 @@ New Mouse and events:
         - inkey should error on posix if called outside of a "keyboard" context manager
     - "sinput" and "ainput" can take context parameters
 
+New Widgets System:
+
+    - Widget System:
+        - Base Widget, with sub-event system
+            - Use custom events with "subtype" attribute
+            - Widgets have an associated Sprite class and a Shape parent to work
+            - Base widget should take care of "focus" and "active" machinnery:
+                - Focused widget getting keyboard or mouse event should stop event
+                    from propagating to other subscriptions of th same event:
+                        - event subscription priority mechanism
+                - .focus property can work as:
+                    - all widgets register to a parent group, Screen if there is no subgroup
+                    - setting the focus to True on a widget automatically sets the focus all other widgets
+                        (and groups) to False: an "exclusive property".
+            - masks and guards for event subscriptions :
+                - subscription only for certain keys (works through guards)
+                - subscription only for certain Regions of interest (works through guards)
+        - widgets with text-typing capability have an associated  Editable
+            - Editable uses a text plane on the widget'sprites shape for controling input
+            - Editable emulates a text cursor by using a custom Transformers :
+                - CursorTransformer :
+                    - Bug: effect transform of Cursor is "leaking" to th remainder of the text
+                    - Bug: Transform cursor not displayed on the "leading edge" of typing, just
+                        when the entry point moves left
+                        - both bugs are related with "transparency" features of sprited combined
+                            on how transparency is handled in terminal fast_render.
+                            The functionality was mitigated by not using  a transparent sprite -
+                            but fast_render is possibly still buggy.
+
+            - Editable is able to handle overwritting text
+            - Editable is able to insert text in middle of an entry
+            - Editable can toggle insert/overwritte with the "ins" key.
+            - Editable can startout with some text already filled in
+            - Editable can handle right-left entry-point movement via keyboard arrows
+            - Editable can handle up-down entry-point movement via keyboard arrows: [wip]
+                - multi-line editing have to take care of "teleporting" marks in the associated text objcts (with moveto and rmoveto)
+                        - this was acomplished by regenerating the whole widget text, which flows thugh the marks
+                - default text-plane layout should place teleporting marks to go up one line when flowing from the left side
+                    (just as they work to go down one line when flowing into the right side)
+                    - de-hardcode left-to-right-and-down text layout from text planes, and offer other layout options. examples: [wip]
+                        - left-to-right and down
+                - have a way to know in what position each character in the text being edited falls in the text-plane,
+                    - Created a _RecordingControl context manager which exists as "recording" attribute on text_planes
+                        - When entered, all characters printed in the text plane are also appended, along with
+                            position, tick and context data to a list.
+
+                    - mouse-clicks on the text area can properly position the cursor
+                    - can keep track of softlines and hard lines when moving up and down
+                        (since "lines" are not a hardcoded layout, this is tricky)
+                        - can know how do flowing text _get_to_ (from which direction, and distance
+                            from the last text with content)
+                            - map dictionary with each cell and from where one can get there (map_text) v]
+                                (this is done, but slugish = > 10seconds for a 200x50 text area)
+                                    - rewriten inside "widgets" - text_map reduced from 10s to under 1s
+                                        - new version interprets Marks with teleporting capabilities on its own
+                                        - this version supports chain-teleporting.
+
+
+                            - find out in the widget value stream where which is the char at the given position:
+                                (done inside _get_line_at_pos, but have to factor out)
+                        - have "virtual spaces" to fill up the current line up to the current position if a key is pressed where there is nothing
+                            - introduce a line break, and fill virtual spaces if there is a teleporting mark between the last filled char and current position
+
+                - rendering a "\n" in a text plane have to forward-the-entry-pos up to the next
+                    teleporting mark. With this behavior one gets both a line change, and
+                    a consistent behavior in vertical and "cartoon" layouts.
+                    - implement \n behavior in TM.text.style.StyledSequence
+
+            - Editable operates on the low level of its text-plane object
+                to avoid explosion of "writting" objects in text,writtings attribute :
+                    - when regenerating the text on the entry, text.writtings is reset,
+                    and Editable value is set as a single writting
+                    - Escape markup on entries when writting [wip]
+                    - Correctly handle escaped tokens in TM.text.styles.MLTokenizer.parse
+            - Editable: should position cursor correctly on click
+        - pointer dependent widgets:
+            - translate mouse position to in-widget positions
+        - Widgets:
+            - Entry: one line text editing
+            - Text: multiline text editing
+            - List Selection: (Selector) options-selector
+                - Make selector highlight option under mouse click
+                - Make selector pick option under mouse double-click
+                - make selector list reactive (changes to the selectable list are reflected on the screen)
+                - accept list of colors:-
+                    - refactor to work with other items than strings:
+                        - colors
+                    - modify selector transformer so that a color/gradient selected item is distinguisable
+                    - accept attribute tokens on strings
+
+                - work with list larger than displayed size (add "offset" state)
+                - scroll indicator when options don't fit on widget size
+                - clickable scroll indicator
+                - refactor to generalize layout
+
+            - Button
+
+            - ScreenMenu [wip]
+                - ScreenMenu can handle a mapping of shortcut: (callback, description)
+                - ScreenMenu will auto-position and autosize on Screen by default
+                - ScreenMenu will capture keyboard events whenever no other widget has focus (its focus policy is different)
+                - ScreenMenu will let keyboard events pass through if key is not associated with a shortcut
+                - ScreenMenu can toggle itself on and off-screen (and still handle shortcuts) with a special sentinel command
+                - Support for submenus
+                - Support for arrowkey navigation and <enter> selection
+                - Support for mouse-click select
+                - Support for special-key shortcuts (contrl + key sequences and KeyCode special keys)
+
+        - Advanced Widgets: (develop concurrently with 'cross-widget stateful workflow' widget grou bellow)
+            - styling:
+                - widget framing
+
+        - Layout management:
+            - absolute positioning
+
+        - Make widget properties mutable after instantiation(and reactive):
+            - may change buttons and labels text
+            - "   "  " command
+            - pos
+
+        - Widgets have to be renderable and work in other text resolutions than 1:1
+            - Emulated cursor must scale up to character size
+
+        - Widgets should have the concept of focus
+        - Widget should get focus on click
+        - Widget should loose focus on "ESC" :
+            - optionally, widget should be cancelled on "ESC".
+        - Focus should traverse widgets on "TAB"
+            - shit_tab go to previous widget
+                - also on windows TBD: check shift_tab keycode
+        - default transform to hightlight focused widget
+
+        - Make Widgets awaitable :
+            - works by default on selector and entries.
+        - Rewrite in-widget events to handle list of callbacks instead of single callback
+            - click
+            - enter
+            - esc
+
+
 New 'transformers library':
     - Set of Kernel transformers to convert blocks to "line art" by using box drawing (table drawing) unicode characters
     - ThresholdTransformer - apply a threshold filter to a colored image.
@@ -54,74 +194,74 @@ New 'transformers library':
 New rich-text and text-handling features:
     [text-branch]
 
-    - Refactor 'text.py' into directory:[V]
-        - separate 'font' code into text/fonts.py [V]
+    - Refactor 'text.py' into directory:
+        - separate 'font' code into text/fonts.py
         - text_planes/big text into text/planes.py (V)
         - file with text utilities for parsing/rendering text:
             - split string into units containing a single grapheme, by grouping "combining characters" together (V)
-            - Refactor code to have a core to be used by  backend.print, screen.print, text.at, shape.print [V]
-    - create aliased string names for the text[...] text planes [V]
+            - Refactor code to have a core to be used by  backend.print, screen.print, text.at, shape.print
+    - create aliased string names for the text[...] text planes
     - Add tests to terminedia-planes [ongoing]
-    - Avoid creating a new "Text" instance on each text-plane access![V]
-    - Tests for styling bases classes in progress - testing attribute changing and position[V]
-    - Rename "Text" class to "TextPlane" [v]
-    - Remove dictionary attribute with concrete TextPlane information: use TextPlane instances themselves [v]
-    - Make assignment of string to shape or text area cell spread the text across as many cells as needed:[V]
+    - Avoid creating a new "Text" instance on each text-plane access!
+    - Tests for styling bases classes in progress - testing attribute changing and position
+    - Rename "Text" class to "TextPlane"
+    - Remove dictionary attribute with concrete TextPlane information: use TextPlane instances themselves
+    - Make assignment of string to shape or text area cell spread the text across as many cells as needed:
         - correctly detect combining characters so that combined characters live on the same cell (V)
 
         - create markup language for embedding context changing directives inside a single string:[WIP]
-        - make it usable by assignment, `print` and `at` methods on shapes, scren and text [V]
+        - make it usable by assignment, `print` and `at` methods on shapes, scren and text
 
-    - changed text rendering to silently "swallow" out of range characters, instead of raising[V]
-    - Text entity, akim to "shape" or "sprite" which allows for flowing text [V]:
+    - changed text rendering to silently "swallow" out of range characters, instead of raising
+    - Text entity, akim to "shape" or "sprite" which allows for flowing text :
         - BUG: when rendering spaces, attributes (like background) are not updated (V) - fixed by sprite transparency handling implementation.
-        - BUG: on rendering rich text, text_plane's context is not being taken in account. (i.e. if color is "red", DEFAULT_FG is being used instead) [V]
-        - The "Text entity" endded up implemented as the pre-existint "text_planes" themselves [v]
+        - BUG: on rendering rich text, text_plane's context is not being taken in account. (i.e. if color is "red", DEFAULT_FG is being used instead)
+        - The "Text entity" endded up implemented as the pre-existint "text_planes" themselves
 
-    - create markup language for embedding context changing directives inside a single string:[V]
+    - create markup language for embedding context changing directives inside a single string:
         - make it usable by assignment, `text[x].print` and `at` methods
         - BUG: when rendering spaces from text-planes, attributes (like background) are not updated (V):
-                - fixed by sprite transparency handling implementation.[V]
-        - Implement a way to "stream" rich text inside these text-plane containers [V]:
-            - TM.text.style.StyledSequence is the class used for that [v]
-            - Streamed text should allow marks for changing style (color, bg, effects, direction, position)[v]
-                - accept tokens in embedded square-brackets in the string ex.: "abc[color:red]def[V]
-                - Accept absolute/relative movement with "[+x,+y]" tokens embedded in the string (and work as "portals")[V]
-                - allow for 'pop last parameter of this type' tokens ([/color], [/effects])[V]
+                - fixed by sprite transparency handling implementation.
+        - Implement a way to "stream" rich text inside these text-plane containers :
+            - TM.text.style.StyledSequence is the class used for that
+            - Streamed text should allow marks for changing style (color, bg, effects, direction, position)
+                - accept tokens in embedded square-brackets in the string ex.: "abc[color:red]def
+                - Accept absolute/relative movement with "[+x,+y]" tokens embedded in the string (and work as "portals")
+                - allow for 'pop last parameter of this type' tokens ([/color], [/effects])
                 - allow for default colors with [color:default] (V) (but check default-color bug)
-            - Allow a call to MLToken.parse to be passed a transformers-mapping, and use it as a source for transformers objects in the  markup [transformer:...] elements [V]
-            - Apply transformers eagerly on a  per-character base [V]
-                    - Added "pretransformers"  ( regular context-transformers are currently lazy, applied at rendering time only, and are "flat" for the whole shape) [V]
-                    - Change MLTokenizer to create 'pre-tranformer" context attribute on "transformer" token [V]
-                    - Manage list of pretransformers in context during StyledText rendering [V]
-                    - Add new features to transformers that will make sense for text-streams as opposed to 2D shape data:[V]
-                        - character linear position in text - sequence_index [V]
-                        - transformation starting point inside main sequence - sequence_absolute_start [V]
-                        - transformed sequence_len - sequence_len [V]
-                        - transformed sequence itself - sequence [V]
+            - Allow a call to MLToken.parse to be passed a transformers-mapping, and use it as a source for transformers objects in the  markup [transformer:...] elements
+            - Apply transformers eagerly on a  per-character base
+                    - Added "pretransformers"  ( regular context-transformers are currently lazy, applied at rendering time only, and are "flat" for the whole shape)
+                    - Change MLTokenizer to create 'pre-tranformer" context attribute on "transformer" token
+                    - Manage list of pretransformers in context during StyledText rendering
+                    - Add new features to transformers that will make sense for text-streams as opposed to 2D shape data:
+                        - character linear position in text - sequence_index
+                        - transformation starting point inside main sequence - sequence_absolute_start
+                        - transformed sequence_len - sequence_len
+                        - transformed sequence itself - sequence
                         - allow a markup with a transformer to specify the block length that will be transformed -
-                            (the 'sequence_len' and 'sequence_index' parameters are relative to this block): [V]
-                                - a length in the Mark object itself [V]
-                                - a [/transformer]  mark in the text. [V]
-                                - take care that mixed transformers started by markup and by embeded Marks in the text_plane  keep their counts without interfering one in another [V]
-                    - find a way to declare and retrieve meaningful pretransformers from markup: [V]
-                        - Text class includes a ".transformers_map" attribute - a plain dictionary with transfomer-names as keys, and Transformer instances as values - the names can be used from the rich-text markup [V]
+                            (the 'sequence_len' and 'sequence_index' parameters are relative to this block):
+                                - a length in the Mark object itself
+                                - a [/transformer]  mark in the text.
+                                - take care that mixed transformers started by markup and by embeded Marks in the text_plane  keep their counts without interfering one in another
+                    - find a way to declare and retrieve meaningful pretransformers from markup:
+                        - Text class includes a ".transformers_map" attribute - a plain dictionary with transfomer-names as keys, and Transformer instances as values - the names can be used from the rich-text markup
 
 
-        - Any rich writting on a text-plane is recorded in a non destructive way, so it can be retrieved and re-rendered in a follow-up frame (with possibly differing attributes)[V]:
-                - base suport [V]
-                - Refactor to specialized data object instead of parallel list and set (to preserve order) (implemented as a dict with None values) [V]
+        - Any rich writting on a text-plane is recorded in a non destructive way, so it can be retrieved and re-rendered in a follow-up frame (with possibly differing attributes):
+                - base suport
+                - Refactor to specialized data object instead of parallel list and set (to preserve order) (implemented as a dict with None values)
 
-        - create special markup for possible but hard to create patterns: apply gradients, modify color by tick and position:[V]:
-            - these can be achived by adding "transformers" to "attributes" in the Mark objects.[V]
-            - Allow Transformers inlined in Marks to have "sequence_index" and "sequence_len"  allowed dependency injections:[V]
-                - Transformers is changed so that arbitrary dependency injection names can work: their values have to be  set as attributes on the transformer instanc prior to rendering [V]
-                - StyledSequence rendering machinnery have to setup these parameters in the transformers.[V]
-                - StyledSequence rendering machinnery have to pop a transformer once its spam is due.[V]
-                - sequence_index should count from the place the Mark containing the transformer is active, not the absolute value[V]
-                - sequence_len, likewise, should reflect the length of the string that is modified by that Mark.[V]
-                - allow  closing Marks, popping a transformer to specify the affected length [v]
-                - also allow "lenght" field on markups and Mark to specify the affected length of text [v]
+        - create special markup for possible but hard to create patterns: apply gradients, modify color by tick and position::
+            - these can be achived by adding "transformers" to "attributes" in the Mark objects.
+            - Allow Transformers inlined in Marks to have "sequence_index" and "sequence_len"  allowed dependency injections:
+                - Transformers is changed so that arbitrary dependency injection names can work: their values have to be  set as attributes on the transformer instanc prior to rendering
+                - StyledSequence rendering machinnery have to setup these parameters in the transformers.
+                - StyledSequence rendering machinnery have to pop a transformer once its spam is due.
+                - sequence_index should count from the place the Mark containing the transformer is active, not the absolute value
+                - sequence_len, likewise, should reflect the length of the string that is modified by that Mark.
+                - allow  closing Marks, popping a transformer to specify the affected length
+                - also allow "lenght" field on markups and Mark to specify the affected length of text
 
         - Markup is super-rich allowing marks indicating attribute changes to be set either
             in the text sequence, or in locations on the Text object
@@ -129,46 +269,46 @@ New rich-text and text-handling features:
         right of the last  column of the TextPlane object - each of these "teleport" the
         text-flow to the column 0 on the next line.
     - To enable the automatic portals and some other features, a specialized container
-        for Marks assigned to a textplane is created (MarkMap) [V]:
-            - it is tightly coupled with Mark, StyledSequence and TextPlanes (sorry purists)[V]
+        for Marks assigned to a textplane is created (MarkMap) :
+            - it is tightly coupled with Mark, StyledSequence and TextPlanes (sorry purists)
             - It can draw "rectangles" of markers in order to create the portals at
-                text-plane boundaries[V]
-            - it can handle special Marks which position varies with the current tick [V]
+                text-plane boundaries
+            - it can handle special Marks which position varies with the current tick
 
-    -  Method .add_border to the TextPlane class - allowing fancy unicode frames (by using ready_made tranformers available on the transformers.library) [V]:
-        - create text[x].add_border method [V]:
-        - Text.update for adding frames does: [v]
-            - move special next-line portal "markers" to the recalculatd last-column of the text-area[V]:
-                - Caused a breaktrhough in the code with the "ObservableProperty": the start of an event system [V]:
+    -  Method .add_border to the TextPlane class - allowing fancy unicode frames (by using ready_made tranformers available on the transformers.library) :
+        - create text[x].add_border method :
+        - Text.update for adding frames does:
+            - move special next-line portal "markers" to the recalculatd last-column of the text-area:
+                - Caused a breaktrhough in the code with the "ObservableProperty": the start of an event system :
                     - Padding changes trigger changes to computed with and height of textplanes through ObservableProperty suscriptions [P]
-                - create the concept of marker being rallowed to be rlative to the left margin or bottom[v]:
-                    - RelativeMarkIndex class in TM.values created, resembling SymPy stuff[v]
-                    - MarkMap separates normally indexed marks and relativemarks[v]
-                    - markmap __getitem__ working for all relativemarks [v]
-                    - markmap __setitem__ working for all normal and relativemarks [v]
-                    - markmap __delitem__ working for all normal and relativemarks [v]
-                    - Markmap __getitem__ should be optimized when rendering text by baking in all relativemarks when .prepare is called (tests in place for this) (checking the existence of a mark at an index triggers a lot of code) [V]
+                - create the concept of marker being rallowed to be rlative to the left margin or bottom:
+                    - RelativeMarkIndex class in TM.values created, resembling SymPy stuff
+                    - MarkMap separates normally indexed marks and relativemarks
+                    - markmap __getitem__ working for all relativemarks
+                    - markmap __setitem__ working for all normal and relativemarks
+                    - markmap __delitem__ working for all normal and relativemarks
+                    - Markmap __getitem__ should be optimized when rendering text by baking in all relativemarks when .prepare is called (tests in place for this) (checking the existence of a mark at an index triggers a lot of code)
 
 
 
-    - modify text_plane.at method to use styled sequence (Screen.print_at calls this as well) [V]
+    - modify text_plane.at method to use styled sequence (Screen.print_at calls this as well)
     - fix and modify "=" in text_plane to use styled_sequence[V
-    - Allow a "size" attribute accepting the text-resolution to use on Screen.print_at method [V]
-    - create aliased string names for the text[...] text planes [V]
-    - allow programatic attributes on Mark objects (computed Color, etc...)[V]:
-        - implemented as Transformers.[V]
+    - Allow a "size" attribute accepting the text-resolution to use on Screen.print_at method
+    - create aliased string names for the text[...] text planes
+    - allow programatic attributes on Mark objects (computed Color, etc...):
+        - implemented as Transformers.
 
-    - correctly detect if final transformed character takes more than 1 cell width after applying effects, and correctly use 2 cells for character [V]
-        - retrieve last-character width after calling Shape.__setitem__ [V]
-        - check that last-character width works with multiple-character grapheme [V]
-        - allow Shape.__setitem__ to set character to the _left_ of given position if a special attribute is set in the context (and maybe if direction==Right) [V]
+    - correctly detect if final transformed character takes more than 1 cell width after applying effects, and correctly use 2 cells for character
+        - retrieve last-character width after calling Shape.__setitem__
+        - check that last-character width works with multiple-character grapheme
+        - allow Shape.__setitem__ to set character to the _left_ of given position if a special attribute is set in the context (and maybe if direction==Right)
 
-        - implement a dry-run TextPlane.extents call [V]
-        - implement TextPlane[num].last_pos as a simple instance attribute [V]
-        - make text-rendering on plane thread-safe [V]
-        - Write tests for .extents[V]
+        - implement a dry-run TextPlane.extents call
+        - implement TextPlane[num].last_pos as a simple instance attribute
+        - make text-rendering on plane thread-safe
+        - Write tests for .extents
     - when printing double-width characters, check if the skiped cell contained
-        any positional Mark before rendering the next character (github issue #16)[V]
+        any positional Mark before rendering the next character (github issue #16)
 
 [gradient-transformers-upgrade]
     - Allow gradient to be applied to background, char and effects channel as well as "foreground"
@@ -306,15 +446,15 @@ create full fledged shape with char, fg, bg, effects
         FEATURE: being able to draw in differing planes (value, FG, BG, effects) independent way(V) (Use TM.TRANSPARENT as value not to affect a given plane- even for "char")
         write a refresh method to redraw a Screen rectangle - allowing double-buffering drawing (V)
     Add "render" method or other API for early implementation of other backends (not terminal)
-- accept context attributes (color, background, effects) as keyword arguments on all .draw methods [V]:
-        - reate contextkwords decorator [V]
-        - refactor methods in drawing.py [V]
+- accept context attributes (color, background, effects) as keyword arguments on all .draw methods :
+        - reate contextkwords decorator
+        - refactor methods in drawing.py
         - optimize decorator not to enter a 'with' context block if not needed
-                (it slows down certain operations)[V]
+                (it slows down certain operations)
         - fix bug that prevents temporary context drawing with the same color
-                (context is reset to black on a second call)[V]
-        - fix subshape slicing drawing (fill is broken)[V]
-        - refactor various 'print', 'at' and 'set_at' around[V]
+                (context is reset to black on a second call)
+        - fix subshape slicing drawing (fill is broken)
+        - refactor various 'print', 'at' and 'set_at' around
 
 
 Imaging capabilities:
@@ -370,7 +510,7 @@ Improvements and small features:
     - add an option so that rectangular area rendering to files be '"relocatable" - suppressing absolute cursor movement sequences (V):
 
 smaller features:
-    - accept context attributes (color, background, effects) as keyword arguments on all .draw methods [V]:
+    - accept context attributes (color, background, effects) as keyword arguments on all .draw methods :
         - change decorator (and possibly context) to allow using a whole
             context as parameter to update the current context (V)
         - improve decorator to proper fix the signature of the decorated functions (V)

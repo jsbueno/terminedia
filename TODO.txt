@@ -14,122 +14,28 @@ Targeted for next release (0.4):
 
 
 [Widgets]
-    - Widget System:
-        - Base Widget, with sub-event system
-            - Use custom events with "subtype" attribute [v]
-            - Widgets have an associated Sprite class and a Shape parent to work [v]
-            - Base widget should take care of "focus" and "active" machinnery:
-                - Focused widget getting keyboard or mouse event should stop event
-                    from propagating to other subscriptions of th same event: [v]
-                        - event subscription priority mechanism [v]
-                - .focus property can work as:
-                    - all widgets register to a parent group, Screen if there is no subgroup
-                    - setting the focus to True on a widget automatically sets the focus all other widgets
-                        (and groups) to False: an "exclusive property". [v]
-            - masks and guards for event subscriptions [v]:
-                - subscription only for certain keys (works through guards) [v]
-                - subscription only for certain Regions of interest (works through guards) [v]
-        - widgets with text-typing capability have an associated  Editable [v]
-            - Editable uses a text plane on the widget'sprites shape for controling input [v]
-            - Editable emulates a text cursor by using a custom Transformers [v]:
-                - CursorTransformer [v]:
-                    - Bug: effect transform of Cursor is "leaking" to th remainder of the text
-                    - Bug: Transform cursor not displayed on the "leading edge" of typing, just
-                        when the entry point moves left [v]
-                        - both bugs are related with "transparency" features of sprited combined
-                            on how transparency is handled in terminal fast_render.
-                            The functionality was mitigated by not using  a transparent sprite -
-                            but fast_render is possibly still buggy.
-
-            - Editable is able to handle overwritting text[v]
-            - Editable is able to insert text in middle of an entry [v]
-            - Editable can toggle insert/overwritte with the "ins" key. [v]
-            - Editable can startout with some text already filled in
-            - Editable can handle right-left entry-point movement via keyboard arrows [v]
             - Editable can handle up-down entry-point movement via keyboard arrows: [wip]
-                - multi-line editing have to take care of "teleporting" marks in the associated text objcts (with moveto and rmoveto) [v]
-                        - this was acomplished by regenerating the whole widget text, which flows thugh the marks
-                - default text-plane layout should place teleporting marks to go up one line when flowing from the left side [v]
-                    (just as they work to go down one line when flowing into the right side)
                     - de-hardcode left-to-right-and-down text layout from text planes, and offer other layout options. examples: [wip]
                         - left-to-right and down [v]
                         - S shaped
                         - up-to-down and right
                         - spiral shaped
-                - have a way to know in what position each character in the text being edited falls in the text-plane, [v]
-                    - Created a _RecordingControl context manager which exists as "recording" attribute on text_planes [v]
-                        - When entered, all characters printed in the text plane are also appended, along with
-                            position, tick and context data to a list. [v]
-
-                    - mouse-clicks on the text area can properly position the cursor [v]
-                    - can keep track of softlines and hard lines when moving up and down [v]
-                        (since "lines" are not a hardcoded layout, this is tricky)
-                        - can know how do flowing text _get_to_ (from which direction, and distance
-                            from the last text with content) [v]
-                            - map dictionary with each cell and from where one can get there (map_text) v]
-                                (this is done, but slugish = > 10seconds for a 200x50 text area)
-                                - rewrite this inside TextPlane (in parallel to '.extents') [x]:
-                                    - rewriten inside "widgets" - text_map reduced from 10s to under 1s[v]
-                                        - new version interprets Marks with teleporting capabilities on its own [v]
-                                        - this version supports chain-teleporting.[v]
-
-
-                            - return current-direction and last occupied char [wip]
-                            - find out in the widget value stream where which is the char at the given position:[v]
-                                (done inside _get_line_at_pos, but have to factor out)
-                        - have "virtual spaces" to fill up the current line up to the current position if a key is pressed where there is nothing [v]
-                            - introduce a line break, and fill virtual spaces if there is a teleporting mark between the last filled char and current position[v]
-
-                - rendering a "\n" in a text plane have to forward-the-entry-pos up to the next
-                    teleporting mark. With this behavior one gets both a line change, and
-                    a consistent behavior in vertical and "cartoon" layouts. [v]
-                    - implement \n behavior in TM.text.style.StyledSequence [v]
-
-            - Editable operates on the low level of its text-plane object
-                to avoid explosion of "writting" objects in text,writtings attribute [v]:
-                    - when regenerating the text on the entry, text.writtings is reset,
-                    and Editable value is set as a single writting [v]
-                    - Escape markup on entries when writting [wip]
-                    - Correctly handle escaped tokens in TM.text.styles.MLTokenizer.parse
-            - Editable: should position cursor correctly on click [v]
             - [future] handle copy-paste
         - pointer dependent widgets:
-            - translate mouse position to in-widget positions [v]
         - Widgets:
             - Entry: one line text editing [v]
             - Text: multiline text editing [v]
             - List Selection: (Selector) options-selector [v]
-                - Make selector highlight option under mouse click [v]
-                - Make selector pick option under mouse double-click [v]
-                - make selector list reactive (changes to the selectable list are reflected on the screen)[v]
-                - accept list of colors:-
-                    - refactor to work with other items than strings:
-                        - colors
-                        - gradients
-                    - modify selector transformer so that a color/gradient selected item is distinguisablew
-                    - accept attribute tokens on strings
-
-                - work with list larger than displayed size (add "offset" state) [v]
-                - scroll indicator when options don't fit on widget size [v]
-                - clickable scroll indicator [v]
                 - refactor to generalize layout
 
             - tabular selector (depends on refactoring list selector)
 
             - Radio box/check box
             - Drop down selection
-            - Button [v]
 
             - ScreenMenu [wip]
-                - ScreenMenu can handle a mapping of shortcut: (callback, description) [v]
-                - ScreenMenu will auto-position and autosize on Screen by default [v]
-                - ScreenMenu will capture keyboard events whenever no other widget has focus (its focus policy is different)[v]
-                - ScreenMenu will let keyboard events pass through if key is not associated with a shortcut
-                - ScreenMenu can toggle itself on and off-screen (and still handle shortcuts) with a special sentinel command[v]
-                - Support for submenus [v]
                 - Support for arrowkey navigation and <enter> selection
                 - Support for mouse-click select
-                - Support for special-key shortcuts (contrl + key sequences and KeyCode special keys) [v]
             - PaletteMenu:
                 - Allow cells with colors or characters or options be picked by clicking or keyboard navigation
             - EditablePaletteMenu:
@@ -155,7 +61,6 @@ Targeted for next release (0.4):
                     - allow css like declarative styling
 
         - Layout management:
-            - absolute positioning [v]
             - HBox/VBox filling:
                 - 'super' widget: elastic box able to contain sub-widgets
                     - widgets need a "resize" method which triggers an event
@@ -172,37 +77,9 @@ Targeted for next release (0.4):
                     - dynamic cols
                 - cross-widget statefull workflow:
                     - example: enable implementation of customizable pallet widget as super-widget coupling table + drop-down + buttons
-                - bug: NamedV2 would change name when assignd as a class attribute [v]
                 - reactively respond to inner widgets size change ?
                     - (maybe have a "size" property for all widgets as an "ObservableProperty"?)
                     - or emit a custom "resize" event?
-
-        - Make widget properties mutable after instantiation(and reactive):
-            - may change buttons and labels text [v]
-            - "   "  " command
-            - pos [v]
-            - allow resizing
-            - border (turn on, off, change transformer): [wip]
-                - refactor border keyword across widgets
-
-        - Widgets have to be renderable and work in other text resolutions than 1:1 [v]
-            - Emulated cursor must scale up to character size [v]
-
-        - Widgets should have the concept of focus [v]
-        - Widget should get focus on click [v]
-        - Widget should loose focus on "ESC" [v]:
-            - optionally, widget should be cancelled on "ESC". [v]
-        - Focus should traverse widgets on "TAB" [v]
-            - shit_tab go to previous widget [v]
-                - also on windows TBD: check shift_tab keycode
-        - default transform to hightlight focused widget [v]
-
-        - Make Widgets awaitable [v]:
-            - works by default on selector and entries.[v]
-        - Rewrite in-widget events to handle list of callbacks instead of single callback
-            - click [v]
-            - enter [v]
-            - esc [v]
 
 
 [mouse-and-events]
@@ -450,7 +327,7 @@ smaller features:
 breaking-changes:
     - rename unicode effects so that their name matchs their unicode names (at least "super_bold" -> "regional_indicator")
 
-3.1:
+0.4.1:
 ========
 Write some real nice docs, with tutorials and use suggestions
 
