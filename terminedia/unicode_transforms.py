@@ -32,7 +32,7 @@ _template = """
 # basis - but one could use these directly to convert text blocks of arbitrary
 # content - the cap on the LRU cache is to prevent deterioration with this use.
 
-@lru_cache(1024)
+# @lru_cache(1024)
 def _name_based_translation(
     text,
     convert,
@@ -166,6 +166,21 @@ def text_to_modifier_letter(text, convert=True):
     )
 
 
+def text_to_double_struck(text, convert=True): # WIP
+    return _name_based_translation(
+        text, convert, r"MATHEMATICAL DOUBLE-STRUCK \g<case> \g<symbol>",
+        r"[A-Za-z0-9]", convert_lower=False,
+        fallback_dict=FD({
+            "C": "\N{DOUBLE-STRUCK CAPITAL C}",
+            "H": "\N{DOUBLE-STRUCK CAPITAL H}",
+            "P": "\N{DOUBLE-STRUCK CAPITAL P}",
+            "Q": "\N{DOUBLE-STRUCK CAPITAL Q}",
+            "R": "\N{DOUBLE-STRUCK CAPITAL R}",
+            "Z": "\N{DOUBLE-STRUCK CAPITAL Z}",
+            }),
+    )
+
+
 def text_to_upside_down(text, convert=True):
     """Use a table of custom characters to find aproximate upside-down glyphs"""
     return _dict_based_translation(text, UPSIDE_DOWN_MAPPING, convert)
@@ -193,6 +208,7 @@ def translate_chars(text, unicode_effects, convert=True):
         Effects.super_bold: text_to_regional_indicator_symbol,
         Effects.super_script: text_to_modifier_letter,
         Effects.upside_down: text_to_upside_down,
+        Effects.double_struck: text_to_double_struck,
     }
     for effect in unicode_effects:
         text = effect_dict.get(effect, _nop_effect)(text, convert)

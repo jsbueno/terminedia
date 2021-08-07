@@ -106,6 +106,7 @@ class Effects(OrableByNameEnumMixin, IterableFlag, metaclass=RetrieveFromNameEnu
     super_bold = 2 ** 21
     super_script = 2 ** 22
     upside_down = 2 ** 23
+    double_struck = 2 ** 24
 
 
 # Effects that are rendered by character translation / unicode combining
@@ -121,7 +122,8 @@ unicode_effects_set = {
     Effects.math_bold_italic,
     Effects.super_bold,
     Effects.super_script,
-    Effects.upside_down
+    Effects.upside_down,
+    Effects.double_struck,
 }
 
 UNICODE_EFFECTS = Effects(
@@ -132,8 +134,6 @@ TERMINAL_EFFECTS =  Effects((max(Effects) * 2 -1) - UNICODE_EFFECTS)
 
 # (encircled is actually defined as an ANSI effect, but no terminal
 # support for it was found at codification time.)
-
-
 
 
 class _TextStyleSentinels(Enum):
