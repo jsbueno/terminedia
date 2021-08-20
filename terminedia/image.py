@@ -663,7 +663,7 @@ class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
         else:
             raise ValueError(f"Output type {backend!r} not implemented")
         if not original_output:
-            return output.get_value()
+            return output.getvalue()
 
     def _render_using_screen(self, output, backend):
         from terminedia.screen import Screen
