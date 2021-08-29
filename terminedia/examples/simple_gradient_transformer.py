@@ -10,6 +10,6 @@ b.active=True
 sc.data.sprites.append(b)
 b.pos = (5,5)
 a.context.transformers.append(
-    GradientTransformer(TM.Gradient([(0, "blue"),(0.5,"white"), (1, "blue")]), TM.Directions.LEFT)
+    GradientTransformer(TM.ColorGradient([(0, "blue"),(0.5,"white"), (1, "blue")]), TM.Directions.LEFT)
 )
 sc.update()

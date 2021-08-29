@@ -107,7 +107,6 @@ Targeted for next release (0.4):
 
     - last frame events can be retrieved without the need to add callbacks.[?]
 
-
     - simple "cls" [v]
 
         - check if there is a ms-windows equivalent - (yes - have to be hacked in: https://github.com/microsoft/terminal/issues/281)
@@ -327,7 +326,7 @@ smaller features:
 breaking-changes:
     - rename unicode effects so that their name matchs their unicode names (at least "super_bold" -> "regional_indicator")
 
-0.4.1:
+0.5.0:
 ========
 Write some real nice docs, with tutorials and use suggestions
 

@@ -932,11 +932,12 @@ class ImageShape(ValueShape):
     and one is free to use PIL drawing and image manipulation APIs
     to draw on it.
 
-    Important: on instantating  these shapes, Terminedia will
+    Important: on instantiating  these shapes, Terminedia will
     try to auto-scale down/resample the image to compensate for
     the aspect-ratio of text imags. Pass the parameter `auto_scale=False`
     to `__init__` or `__new__` to preserve the exact size of the
     PIL Image.
+
     """
 
     PixelCls = pixel_factory(bool, has_foreground=True)
@@ -947,30 +948,42 @@ class ImageShape(ValueShape):
     if PILImage:
         _allowed_types = (str, Path, PILImage.Image)
 
-    def load_data(self, file_or_path, size=None):
+    def load_data(self, file_or_path, size=None, half_height=False):
         """Will load data from an image file using PIL,
 
-        Image is re-scaled to self.size if that is not None.
+        If "size" is not passed, the native image size is used.
+        Otherwise it should be a 2-sequence: if both numbers
+        are given, that is used as final image size.
+        If one component of "size" is "None", the other
+        one is used to scale the image, keeping its aspect ratio.
+
+        As due to the nature of character blocks, keeping the aspect ratio can
+        lead to a strange 1:2 final display, pass "half_height=True"
+        to  keep the same visual aspect ratio for full blocks.
+        (hint: you can load the full height and blit
+        the resulting shape to a square 1/2 block drawable instead)
+
         """
         if isinstance(file_or_path, PILImage.Image):
             img = file_or_path
         else:
             img = PILImage.open(file_or_path)
-        if size is not None:
-            pixel_ratio = 1
-            size = V2(size) - (1, 1)
-            img_size = V2(img.width, img.height)
-            if size.x < img_size.x or size.y < img_size.y:
-                ratio_x = size.x / img_size.x
-                ratio_y = (size.y / img_size.y) * pixel_ratio
-                if ratio_x > ratio_y:
-                    size = V2(
-                        size.x, min((img_size.y * ratio_x / pixel_ratio), size.y - 1)
-                    )
-                else:
-                    size = V2(img_size * ratio_y, size.y / pixel_ratio)
+        img_size = V2(img.width, img.height)
+        if size is None:
+            size = img_size
+        else:
+            size = V2(size) #- (1, 1)
+            if size.x is None:
+                size = V2(img_size.x * (size.y / img_size.y)  , size.y).as_int
+            elif size.y is None:
+                size = V2(size.x, img_size.y * (size.x / img_size.x)).as_int
 
-                img = img.resize(size.as_int, PILImage.BICUBIC)
+        pixel_ratio = 1 if not half_height else 0.5
+
+        if size.x != img_size.x or size.y * pixel_ratio != img_size.y:
+            ratio_x = size.x / img_size.x
+            ratio_y = (size.y / img_size.y) * pixel_ratio
+            img = img.resize(size.as_int, PILImage.BICUBIC)
 
         self.width, self.height = img.width, img.height
 
