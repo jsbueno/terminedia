@@ -14,11 +14,25 @@ def mirror_dict(dct):
 
 
 class FrozenDict(dict):
+    """Quick hack for a hashable dict which could be used as key in a cache dictionary.
+
+    If one needs this for real, please fill in a feature request
+    on jsbueno/extradict. (You might use this, fix whatever is missing, and
+    add a PR with that :-) )
+    """
     __slots__ = ()
     __setitem__ = None
 
+    def __setitem__(self, *args, **kw):
+        raise NotImplementedError()
+
+    update = setdefault = clear = pop = popitem = __delitem__ = __setitem__
+
     def __hash__(self):
-        return hash(tuple(self.items()))
+        return hash(frozenset(self.items()))
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({super().__repr__()})"
 
 
 class HookList(MutableSequence):
