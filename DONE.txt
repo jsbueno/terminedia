@@ -1,8 +1,11 @@
 version 0.4.2
 ==============
     - Unicode Text Effect "Double-Struck".
+    - Loading PIL image files now will respect given size (including upscaling),
+            and will only keep aspect ratio if one of the components is set to None (fixes issue #24)
 
-
+Bugfixes:
+    - fixes "getvalue" call when rendering shape to a raw string. (PR in Issue #23)
 
 version 0.4
 ============

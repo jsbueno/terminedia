@@ -273,7 +273,7 @@ class TextPlane:
         (attribute .marks) - and, applies the specified text-flow
         layout.
         The layout is a callback, which should take the text-plane
-        as sole parameter - it can them fill in Mark objects
+        as sole parameter - it can then fill in Mark objects
         (usually containing "moveto" and "rmoveto" tags) in specific positions
         so that text will flow in the desired directions when reaching the mark
         (the default "normal" layout places marks so that
@@ -309,8 +309,12 @@ class TextPlane:
     def __setitem__(self, index, value):
         if isinstance(index[0], slice) or isinstance(index[1], slice):
             raise NotImplementedError()
-        self._at(index, value)
+        self.at(index, value)
 
+    # TODO: mark this as 'undoable'.
+    # in addition to "raster undo", we also need to remove
+    # the 'writtings' entry . could be done by adding a callback
+    # to the current raster-undo mechanism.
     @contextkwords(context_path="owner.context", text_attrs=True)
     def at(self, pos, text, transformerlib=None):
         """Renders text at position.
@@ -387,7 +391,7 @@ class TextPlane:
                 original_writtings = self.writtings
                 self.writtings = {}
                 self.plane.active = False
-                last_pos = self.at(pos, text)
+                last_pos = self._at(pos, text)
             finally:
                 # restore method defined in the shape class:
                 self.writtings = original_writtings

@@ -1,5 +1,18 @@
-Targeted for next release (0.4):
+Targeted for release (0.5):
 =================================
+
+    - create an ANSI Sequence parser based on the MLTkenizer parser.
+
+
+Targeted for minor 0.4 releases:
+================================
+    - bug: ANSI renderer skips empty text lines (breaks terminedia-paint save files)
+
+
+Targeted for release (0.4):
+=================================
+(items marked with "v" are completed - kept here to keep track of missing siblings or sub-items)
+
     - [bug] None ended-slices of shapes should work (i.e. screen.data[10:, :]) should work: bug in Rect class
     - [bug] StyledText: multiple "moveto" Marks pointing one to another do not chain: only the first one take effect
     - [bug] "new_line" marks not working for text-resolutions other than 1. [v]
@@ -41,7 +54,7 @@ Targeted for next release (0.4):
             - EditablePaletteMenu:
                 - Allow user to interactivelly enter contents for the cells
 
-        - Advanced Widgets: (develop concurrently with 'cross-widget stateful workflow' widget grou bellow)
+        - Advanced Widgets: (develop concurrently with 'cross-widget stateful workflow' widget group bellow)
             - palette widget:
                 - color selection
                 - character selection
@@ -165,7 +178,7 @@ Targeted for next release (0.4):
 
     - Think of a nice API to make use of TM.text.StyledSequence that is shorter than instantiating one, passing the screen.data.text[1] as text_plane kwarg, and calling "render" on it followed by "screen.update()" :-) (probably changing "print", "at" and "__setitem__" on .text to use it :-) ):[V]
 
-    - create an ANSI Sequence parser based on the MLTkenizer parser.
+    - create an ANSI Sequence parser based on the MLTkenizer parser. [WIP for 0.5]
 
     - Allow parsing mixed markup-and-ansi text and create a unique rich text object that can be rendered.
 
