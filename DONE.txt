@@ -6,6 +6,7 @@ version 0.4.2
 
 Bugfixes:
     - fixes "getvalue" call when rendering shape to a raw string. (PR in Issue #23)
+    - bug: ANSI renderer skips empty text lines (breaks terminedia-paint save files)
 
 version 0.4
 ============

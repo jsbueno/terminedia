@@ -117,11 +117,12 @@ class ScreenCommands(BackendColorContextMixin):
     locks = {}
     last_pos = None
 
-    def __init__(self, absolute_movement=True):
+    def __init__(self, absolute_movement=True, force_newlines=False):
         self.alternate_terminal_buffer = 0
         self.active_unicode_effects = Effects.none
         self.__class__.last_pos = None
         self.absolute_movement = absolute_movement
+        self.force_newlines = force_newlines
 
     def __repr__(self):
         return "".join(
@@ -376,15 +377,20 @@ class ScreenCommands(BackendColorContextMixin):
                     self.__class__.last_pos = V2(0,0)
                 delta_x = pos.x - self.__class__.last_pos.x
                 delta_y = pos.y - self.__class__.last_pos.y
+                if delta_y > 0:
+                    if self.force_newlines:
+                        self._print("\n" * delta_y, file=file)
+                        delta_x = pos.x
+                    else:
+                        self.down(delta_y, file=file)
+                elif delta_y < 0:
+                    self.up(-delta_y, file=file)
+
                 if delta_x > 0:
                     self.right(delta_x, file=file)
                 elif delta_x < 0:
                     self.left(-delta_x, file=file)
 
-                if delta_y > 0:
-                    self.down(delta_y, file=file)
-                elif delta_y < 0:
-                    self.up(-delta_y, file=file)
 
         self.__class__.last_pos = pos
 

@@ -6,7 +6,7 @@ Targeted for release (0.5):
 
 Targeted for minor 0.4 releases:
 ================================
-    - bug: ANSI renderer skips empty text lines (breaks terminedia-paint save files)
+    - bug: ANSI renderer skips empty text lines (breaks terminedia-paint save files) (v)
 
 
 Targeted for release (0.4):
