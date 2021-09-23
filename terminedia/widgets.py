@@ -1326,6 +1326,7 @@ class ScreenMenu(Widget):
         # If a toggle menu display shortcut is on a parent level of a menu,
         # record it so it works on child levels:
         self.toggle_key = None
+        self._enabled = True
 
         self._set_mapping(self.mapping)
         self._set_shape()
@@ -1391,6 +1392,8 @@ class ScreenMenu(Widget):
             sprite.pos = (0, 0)
 
     def handle_key(self, event):
+        if not self._enabled:
+            return
         key = event.key
         if key in self.active_keys:
             command = self.active_keys[key]
@@ -1400,7 +1403,7 @@ class ScreenMenu(Widget):
                     events._event_process_handle_coro(result)
                 raise EventSuppressFurtherProcessing()
             elif command == "toggle":
-                self.sprite.active = not self.sprite.active
+                self.visible = not self.visible
                 raise EventSuppressFurtherProcessing()
             elif command == "back" and self.bread_crumbs:
                 self._set_mapping(self.bread_crumbs.pop())
@@ -1413,8 +1416,28 @@ class ScreenMenu(Widget):
             elif command == None:
                 pass # Allow key to be further processed
         elif key == self.toggle_key:
-            self.sprite.active = not self.sprite.active
+            self.active = not self.active
             raise EventSuppressFurtherProcessing()
+
+    @property
+    def visible(self):
+        """Toggle widget display - keeping it active"""
+        return self.sprite.active
+
+    @visible.setter
+    def visible(self, value: bool):
+        self.sprite.active = value
+
+    @property
+    def enabled(self):
+        """setting to False will hide widget and stop key processing"""
+        return self._enabled
+
+    @enabled.setter
+    def enabled(self, value: bool):
+        self.visible = value
+        self._enabled = value
+
 
 
     @property
