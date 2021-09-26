@@ -20,6 +20,7 @@ Targeted for release (0.4):
     - [bug] top level ScreenMenu being redrawn everyframe. App gets slugish: [v]
         - dirty_rect clear on display shape was not propagating to the sprites shapes [v]
             - sprites with "tick" transforms are stil always dirty [v]
+========================================
 
 
 [Draw]
@@ -41,7 +42,7 @@ Targeted for release (0.4):
             - List Selection: (Selector) options-selector [v]
                 - refactor to generalize layout
 
-            - tabular selector (depends on refactoring list selector)
+            - tabular selector (see ScreenMenu) [v]
 
             - Radio box/check box
             - Drop down selection
@@ -62,10 +63,11 @@ Targeted for release (0.4):
             - Gradient editor
             - date picker
             - "Windows" and "tabs":
-                - widget grouping and selective display
+                - widget grouping and selective display [wip]
+            - Filepicker widget
         - Widget tools:
-            - scrollbar
-            - label
+            - scrollbar [wip]
+            - label [v]
             - styling:
                 - widget framing [v]
                 - styling with context [wip]
