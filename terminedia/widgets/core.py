@@ -1,23 +1,14 @@
-import enum
-from collections import namedtuple
-from collections.abc import Iterable, Mapping
-from copy import deepcopy
-from inspect import isawaitable
+from collections.abc import Iterable
 from math import ceil
 
 import terminedia
 
-from terminedia import shape, Mark, Transformer, Directions
-
 from terminedia.sprites import Sprite
-from terminedia.utils import contextkwords
-from terminedia import events, V2, Rect
+from terminedia import events, V2
 
 from terminedia.events import EventSuppressFurtherProcessing
 from terminedia.input import KeyCodes
-from terminedia.utils import ClassCache
-from terminedia.utils.gradient import RangeMap
-from terminedia.text import escape, plane_names
+from terminedia.text import plane_names
 from terminedia.text.planes import relative_char_size
 
 
@@ -363,4 +354,9 @@ class Widget:
         if getattr(self, "cancelled", False):
             raise WidgetCancelled()
         return getattr(self, "value", None)
+
+
+
+class Container(Widget):
+    pass
 
