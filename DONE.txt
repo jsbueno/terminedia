@@ -1,3 +1,7 @@
+
+    - Refactor Widgets
+    - Add size propert to Rect and Sprite
+
 version 0.4.2
 ==============
     - Unicode Text Effect "Double-Struck".

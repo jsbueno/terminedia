@@ -148,6 +148,10 @@ class Sprite:
         if getattr(self, "owner", None):
             self.owner.sprites.remove(self)
 
+    @property
+    def size(self):
+        return self.shape.size
+
 
 class SpriteContainer(HookList):
     def __init__(self, owner):

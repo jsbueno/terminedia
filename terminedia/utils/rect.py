@@ -246,6 +246,10 @@ class Rect:
         ))
         return result
 
+    @property
+    def size(self):
+        return self.c2 - self.c1
+
     def __iter__(self):
         yield self.c1
         yield self.c2
