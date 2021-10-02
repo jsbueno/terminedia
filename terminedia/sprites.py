@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from numbers import Real
 from pathlib import Path
+import math
 import weakref
 
 from terminedia.transformers import TransformersContainer
@@ -152,6 +153,17 @@ class Sprite:
     def size(self):
         return self.shape.size
 
+    @property
+    def zindex(self):
+        return self.owner.sprites.index(self)
+
+    @zindex.setter
+    def zindex(self, zindex):
+        self.owner.sprites._set_zindex(self, zindex)
+
+    def raise_(self):
+        self.zindex=math.inf
+
 
 class SpriteContainer(HookList):
     def __init__(self, owner):
@@ -168,7 +180,7 @@ class SpriteContainer(HookList):
     def get_at(self, pos, pixel=None):
         # TBD:unit test sprite layering
         pcls = type(pixel)
-        for sprite in reversed(self.data):
+        for sprite in self.data:
             if not sprite.active:
                 continue
             if pos in sprite.rect:
@@ -189,3 +201,12 @@ class SpriteContainer(HookList):
         self.killed_sprites.append(sprite.rect)
         super().remove(sprite)
         sprite.owner = None
+
+    def _set_zindex(self, sprite, zindex):
+        pos = self.index(sprite)
+        del self[pos]
+        if zindex == math.inf:
+            zindex = len(self)
+        self.insert(zindex, sprite)
+        self.owner.dirty_set()
+
