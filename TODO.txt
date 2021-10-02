@@ -64,7 +64,37 @@ Targeted for release (0.4):
             - date picker
             - "Windows" and "tabs":
                 - widget grouping and selective display [wip]
-            - Filepicker widget
+            - Filepicker widget: [WIP]
+                - inherit from VBOX and compose several sub-widgets [V]
+                - fix tab-focus on VBOX widget group
+                - Populate selector widget with folder contents:[V]
+                    - process folder contents:
+                        - ignore case
+                        - folders first
+                        - indicate which are folders
+                        - filter by file extension
+                    - make folder content-selector reloadable
+                    - on selecting a folder, change file-picker path
+                    - on selecting a file, change file-name in main Entry [v]
+                    - on re-selecting a file, accept selection as FilePicker choice
+                - main Entry: [v]
+                    - Main Entry value have to be setable
+                - current-folder entry
+                - constrain navigation
+                - implement and enforce options:
+                    - allow new files
+                    - can create folder
+                        - new_folder button:
+                            - launches sub-widget
+                    - pick folder
+                - allow dynamic filtering by typed filename
+                - clear filename entry button
+                - fix visibility of main-entry (currently background changes when it is active)
+                - add accept and cancel buttons
+
+
+
+
         - Widget tools:
             - scrollbar [wip]
             - label [v]
