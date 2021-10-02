@@ -252,6 +252,10 @@ class Widget:
     def active(self):
         return self.sprite.active
 
+    @active.setter
+    def active(self, value):
+        self.sprite.active = False
+
     @property
     def focus(self):
         return WidgetEventReactor.focus is self
@@ -360,3 +364,7 @@ class Widget:
 class Container(Widget):
     pass
 
+class ModalMisc:
+    def __init__(self, *args, **kw):
+        super.__init__(*args, **kw)
+        self.sprite.raise_()

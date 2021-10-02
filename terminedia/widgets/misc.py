@@ -530,12 +530,13 @@ class _Box(Container):
     # abstract - use either HBox or VBox
 
     axis = None
+    _fixed_size = False
 
     def __init__(self, *args, padding=0, **kw):
         self.children = []
         self.padding = padding
         self.border = kw.pop("border", None)
-        super().__init__(*args, size=(1, 1), focus_position=None, **kw)
+        super().__init__(*args, size=kw.pop("size", (1, 1)), focus_position=None, **kw)
 
     def add(self, widget):
         events.Subscription(events.WidgetResize, self._child_resized, guard=lambda event: event.widget is widget)
@@ -552,6 +553,8 @@ class _Box(Container):
         self.reorganize()
 
     def reorganize(self):
+        if self._fixed_size:
+            return
         axis = self.axis
         padding = CrossV2(length = self.padding, axis=axis)
         new_size = CrossV2(0, 0, axis=axis)

@@ -127,7 +127,7 @@ class Lines:
     # helper class closely tied to Editable
     def __init__(self, value, parent):
         self.parent= parent
-        self._reload(value)
+        self.reload(value)
         self._last_event = (None, None, None, None)
 
     @lcache.invalidate
@@ -144,7 +144,7 @@ class Lines:
             raise TextDoesNotFit()
         self.parent.raw_value = raw_value
 
-    def _reload(self, value):
+    def reload(self, value):
         if isinstance(value, str):
             value = value.split("\n")
         if len(value) < self.len_hard_lines:
@@ -605,6 +605,13 @@ class Text(Widget):
     def value(self):
         return self.editable.value
 
+    @value.setter
+    def value(self, text):
+        self.editable.lines.reload(text)
+        self.editable.lines._hard_load_from_soft_lines()
+        # self.editable.raw_value = text
+        self.editable.regen_text()
+
 
 class Entry(Text):
     def __init__(self, parent, width, label="", value="", enter_callback=None, pos=(0, 0), text_plane=1, **kwargs):
@@ -613,3 +620,8 @@ class Entry(Text):
 
     def _default_enter(self, event):
         self.done = True
+
+    @Text.value.setter
+    def value(self, text):
+        text = text.replace("\n", "\\n")
+        Text.value.__set__(self, text)
