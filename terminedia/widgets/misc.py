@@ -107,19 +107,14 @@ class Selector(Widget):
         min_width=1, max_width=100,
         **kwargs
     ):
-        if isinstance(options, dict):
-            str_options = list(options.keys())
-            options_values = list(options.values())
-        else:
-            str_options = [opt[0] if isinstance(opt, tuple) else opt for opt in options]
-            options_values = [(opt[1] if isinstance(opt, tuple) else opt) for str_opt, opt in zip(str_options, options) ]
 
         self.min_height = min_height
         self.max_height = max_height or parent.size.y
         self.min_width = min_width
         self.max_width = max_width
 
-        self.options = [_selector_option(opt, val, self._stripped_opt(opt)) for opt, val in zip(str_options, options_values)]
+        self.load_options(options, redraw=False)
+
         self.__dict__["offset"] = min(offset, len(self.options) - 1)
 
         self.align = align
@@ -140,12 +135,26 @@ class Selector(Widget):
         self.redraw()
 
         self.selected_row = selected_row
-        self.str_options = str_options
         self.selected_row = selected_row
         self.transformer = SelectorTransformer(self)
         self.callback = callback
 
         self.sprite.transformers.append(self.transformer)
+
+    def load_options(self, options, redraw=True):
+        if isinstance(options, dict):
+            str_options = list(options.keys())
+            options_values = list(options.values())
+        else:
+            str_options = [opt[0] if isinstance(opt, tuple) else opt for opt in options]
+            options_values = [(opt[1] if isinstance(opt, tuple) else opt) for str_opt, opt in zip(str_options, options) ]
+
+        self.options = [_selector_option(opt, val, self._stripped_opt(opt)) for opt, val in zip(str_options, options_values)]
+        self.str_options = str_options
+        if redraw:
+            self.offset = 0
+            self.selected_row = 0
+            self.redraw()
 
     def _stripped_opt(self, raw_opt):
         if isinstance(raw_opt, terminedia.Color):
@@ -301,6 +310,7 @@ class Selector(Widget):
 
         prev_size = self.size
         self.options[index] = value
+        self.str_options[index] = str(value)
         if self.size != prev_size:
             self.shape.resize(self.size)
         self.redraw()

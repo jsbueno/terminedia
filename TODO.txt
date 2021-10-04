@@ -64,23 +64,23 @@ Targeted for release (0.4):
             - date picker
             - "Windows" and "tabs":
                 - widget grouping and selective display [wip]
-            - Filepicker widget: [WIP]
+            - FileSelector widget: [WIP]
                 - inherit from VBOX and compose several sub-widgets [V]
                 - fix tab-focus on VBOX widget group
                 - Populate selector widget with folder contents:[V]
-                    - process folder contents:
-                        - ignore case
-                        - folders first
-                        - indicate which are folders
+                    - process folder contents[V]:
+                        - ignore case [V]
+                        - folders first [V]
+                        - indicate which are folders [V]
                         - filter by file extension
-                    - make folder content-selector reloadable
-                    - on selecting a folder, change file-picker path
+                    - make folder content-selector reloadable [V]
+                    - on selecting a folder, change file-picker path [V]
                     - on selecting a file, change file-name in main Entry [v]
-                    - on re-selecting a file, accept selection as FilePicker choice
+                    - on re-selecting a file, accept selection as FilePicker choice [V]
                 - main Entry: [v]
-                    - Main Entry value have to be setable
-                - current-folder entry
-                - constrain navigation
+                    - Main Entry value have to be settable [V]
+                - current-folder entry [V]
+                - constrain navigation [V]
                 - implement and enforce options:
                     - allow new files
                     - can create folder
@@ -91,6 +91,11 @@ Targeted for release (0.4):
                 - clear filename entry button
                 - fix visibility of main-entry (currently background changes when it is active)
                 - add accept and cancel buttons
+                - Improve responsiviness of "Selector"
+                    - accept more than one keystroke per frame
+                    - don't take several frames to re-rerender
+                - make fileselector "modal" by default.
+                - Add a title-line (for the purpose of the file picking)
 
 
 
