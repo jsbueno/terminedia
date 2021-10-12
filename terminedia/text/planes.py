@@ -185,7 +185,7 @@ class TextPlane:
     padding = ObservableProperty()
     for pad_name in "pad_left pad_right pad_top pad_bottom".split():
         locals()[pad_name] = ObservableProperty(
-            lambda s, pad_name=pad_name: s.__dict__.get(name) if s.__dict__.get(pad_name) is not None else s.padding,
+            lambda s, pad_name=pad_name: s.__dict__.get(pad_name) if s.__dict__.get(pad_name) is not None else s.padding,
             lambda s, v, pad_name=pad_name: s.__dict__.__setitem__(pad_name, v)
         )
     #pad_right = ObservableProperty()

@@ -49,7 +49,7 @@ class LazyBindProperty:
 
 
 class ObservableProperty:
-    """This puts the "R' in Reactive
+    """This puts the "R" in Reactive
     """
     def __init__(self, fget=None, fset=None, fdel=None):
         """Change subscrible descriptor - enables Reactive/Observable  pattern
