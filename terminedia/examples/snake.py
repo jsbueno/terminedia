@@ -5,6 +5,10 @@ import click
 
 import terminedia
 from terminedia import Effects
+from terminedia.values import FULL_BLOCK
+
+
+# RESOLUTION = "square" #  "full", "high", "sextant", "braille"
 
 K = terminedia.KeyCodes
 D = terminedia.Directions
@@ -45,7 +49,7 @@ class Snake:
                 game.eat_item((rx, y))
 
     def check_dead(self, game):
-        if game.drawable.get_at(self.pos):
+        if game.drawable.get_at(self.pos) in (True, FULL_BLOCK):
             raise GameOver()
 
     def draw(self, scr):
@@ -57,14 +61,22 @@ class Snake:
 
 
 @click.command()
-def main():
+@click.option(
+    "resolution",
+    "--resolution",
+    "-r",
+    required=False,
+    default="square",
+    help="Game resolution to use: square, high, sextant, braille",
+)
+def main(resolution):
     """Terminedia snake-game!"""
 
     snake = Snake((2, 2), direction=D.RIGHT)
 
     with terminedia.Screen() as scr, terminedia.keyboard():
         try:
-            game = Game(scr, snake)
+            game = Game(scr, snake, resolution=resolution)
             game.run()
         except GameOver:
             pass
@@ -73,9 +85,9 @@ def main():
 
 
 class Game:
-    def __init__(self, scr, snake):
+    def __init__(self, scr, snake, resolution):
         self.scr = scr
-        self.drawable = scr.square
+        self.drawable = getattr(scr, resolution)
         self.snake = snake
         self.items = {}
         self.tick = 0
@@ -110,8 +122,9 @@ class Game:
 
     def start_scene(self):
         width, height = self.drawable.get_size()
-
-        self.drawable.draw.rect((0, 0, width, height-2), color=(1, 0, 1))
+        if self.drawable.at_parent((0, height - 2)).y > self.scr.size.y - 2:
+            height -= 4
+        self.drawable.draw.rect((0, 0, width, height - 2), color=(1, 0, 1))
 
     def show_status(self):
         if self.score == self.last_score:
