@@ -101,9 +101,6 @@ class UnblockTTY:
         fcntl.fcntl(self.fd, fcntl.F_SETFL, self.flags_save)
 
 
-
-
-
 class ScreenCommands(BackendColorContextMixin):
     """Low level functions to execute ANSI-Sequence-related tasks on the terminal.
 
@@ -166,7 +163,7 @@ class ScreenCommands(BackendColorContextMixin):
         return
 
 
-        # FIXME: there was a previous code with retry attempts.
+        # Historic curiosity: there was a previous code with retry attempts.
         # and breaking the data into chunks.
         # most of this code was written to avoid
         # an "blocking error" when outputing too much data
@@ -407,7 +404,7 @@ class ScreenCommands(BackendColorContextMixin):
 
     RCP = restore_cursor_position
 
-    def print(self, *texts, pos=None, context=None, color=None, background=None, effects=None,
+    def print(self, *texts, pos=None, context=None, color=None, foreground=None, background=None, effects=None,
               file=None, flush=False, sep=" ", end="\n"
               ):
         """Method to print a straightforward rich-text string to the terminal
@@ -417,6 +414,7 @@ class ScreenCommands(BackendColorContextMixin):
           pos: Optional[Tuple[int, int]]: Terminal position to print to
           context: Optional[terminedia.Context instance]
           color: Union[terminedia.Color, str, Tuple[int, int, int], Tuple[float, float, float]] : foreground color to use
+          foreground: aliased to color
           background: Union[terminedia.Color, str, Tuple[int, int, int], Tuple[float, float, float]] : background color to use
           effects: terminedia.Effects : effect or effect combination to apply to characters before printing
           file, flush, sep, end: The same as standard Python's `print`
@@ -426,12 +424,17 @@ class ScreenCommands(BackendColorContextMixin):
         if not context:
             context = active_context.get()
 
-        color = color or context.color
-        background = background or context.background
-        if effects is None:
-            effects = context.effects
-        elif isinstance(effects, str):
+        original_attributes = (context.color, context.background, context.effects)
+
+        color = foreground or color
+        color = Color(color) if color is not None else context.color
+        background = Color(background) if background is not None else context.background
+
+        if effects is not None:
+            # if an empty string is given, we have to use Effects.none
             effects = Effects(effects) if effects else Effects.none
+        else:
+            effects = context.effects
 
         self.set_colors(color, background, effects, file=file)
 
@@ -443,6 +446,8 @@ class ScreenCommands(BackendColorContextMixin):
             self.moveto(pos, file=file)
 
         self._print(*texts, file=file, flush=flush, sep=sep, end=end)
+
+        self.set_colors(*original_attributes, file=file)
 
     def print_at(self, pos, text, file=None):
         """Positions the cursor and prints a text sequence
