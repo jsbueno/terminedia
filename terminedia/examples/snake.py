@@ -28,10 +28,7 @@ class Snake:
         self.remove = []
 
     def update(self, game):
-        x, y = self.pos
-        x += self.direction.x
-        y += self.direction.y
-        self.pos = (x, y)
+        self.pos += self.direction
         self.body.append(self.pos)
         while len(self.body) > self.length:
             self.remove.append(self.body.pop(0))
@@ -39,9 +36,7 @@ class Snake:
         self.check_item(game)
 
     def check_item(self, game):
-        x, y = self.pos
-        x //= 2
-        y //= 2
+        x, y = game.drawable.at_parent(self.pos)
         # The apple emoji is a double width character
         for rx in (x, x - 1):
             if rx < 0:
@@ -50,7 +45,7 @@ class Snake:
                 game.eat_item((rx, y))
 
     def check_dead(self, game):
-        if game.scr.square.get_at(self.pos):
+        if game.drawable.get_at(self.pos):
             raise GameOver()
 
     def draw(self, scr):
@@ -80,6 +75,7 @@ def main():
 class Game:
     def __init__(self, scr, snake):
         self.scr = scr
+        self.drawable = scr.square
         self.snake = snake
         self.items = {}
         self.tick = 0
@@ -104,7 +100,7 @@ class Game:
                 self.snake.direction = D.LEFT
 
             self.snake.update(self)
-            self.snake.draw(self.scr.square)
+            self.snake.draw(self.drawable)
 
             self.maybe_create_item()
             self.show_status()
@@ -113,15 +109,9 @@ class Game:
             self.tick += 1
 
     def start_scene(self):
-        scr = self.scr.square
-        width, height = scr.get_size()
+        width, height = self.drawable.get_size()
 
-        scr.context.color = 1, 0, 1
-        scr.draw.line((0, 0), (width - 1, 0))
-        scr.draw.line((0, 0), (0, height - 3))
-        scr.draw.line((0, height - 3), (width - 1, height - 3))
-        scr.draw.line((width - 1, 0), (width - 1, height - 3))
-        scr.context.color = terminedia.DEFAULT_FG
+        self.drawable.draw.rect((0, 0, width, height-2), color=(1, 0, 1))
 
     def show_status(self):
         if self.score == self.last_score:
