@@ -1,9 +1,15 @@
 
     - Refactor Widgets
-    - Add size propert to Rect and Sprite
+    - Add size property to Rect and Sprite
     - Add 'zindex' property and raise_ method to sprites; fix sprite display order: position 0 in sprite list is bottommost
+    - Change screen.size, width, height attributes to proxy properties from screen.shape
     - Add 'full' resolution as an alias for the "full character", non namespaced resolution
     - Updates to terminedia-snake
+    - Terminedia print:
+        - restores terminal attributes after print is done
+        - Terminedia Effects can be used as strings
+        - accept markup strings (just like screen.text[1])
+    - Terminedia effects repr now list all available effects
 
 version 0.4.2
 ==============
