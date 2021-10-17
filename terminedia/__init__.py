@@ -16,7 +16,7 @@ if sys.platform == "win32":
 from terminedia.input import keyboard, mouse, inkey, pause, KeyCodes, getch, input as sinput
 from terminedia.utils import Color, Rect, V2, Gradient, ColorGradient
 from terminedia.sprites import Sprite
-from terminedia.terminal import ScreenCommands, JournalingScreenCommands
+from terminedia.terminal import ScreenCommands, JournalingScreenCommands, cls
 from terminedia.values import (
     Directions,
     Effects,
@@ -38,12 +38,11 @@ from terminedia.transformers.library import box_transformers as borders
 import terminedia.unicode
 from terminedia.events import EventTypes
 from terminedia.asynchronous import terminedia_main, ainput
-from terminedia.terminal import cls
 
 import terminedia.widgets
 
 
-__version__ = "0.4.dev0"
+__version__ = "0.4.3"
 __author__ = "João S. O. Bueno"
 
 
