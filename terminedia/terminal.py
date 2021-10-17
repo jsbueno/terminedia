@@ -420,6 +420,9 @@ class ScreenCommands(BackendColorContextMixin):
           file, flush, sep, end: The same as standard Python's `print`
 
         """
+        from terminedia.text.style import MLTokenizer
+        from terminedia import shape
+        import os
 
         if not context:
             context = active_context.get()
@@ -445,7 +448,27 @@ class ScreenCommands(BackendColorContextMixin):
             self.__class__.last_pos = None
             self.moveto(pos, file=file)
 
-        self._print(*texts, file=file, flush=flush, sep=sep, end=end)
+        first_text = True
+        for text in texts:
+            if not first_text:
+                self._print(sep, file=file, end="")
+            if not isinstance(text, str):
+                text = str(text)
+            tokenized = MLTokenizer(text)
+            tokenized.parse()
+            if not tokenized.mark_sequence:
+                self._print(text, file=file, flush=flush, sep=sep, end=end)
+            else:
+                try:
+                    size = os.get_terminal_size()
+                except OSError:
+                    size = 80, 25
+                sh = shape(size)
+                sh.text[1][0,0] = text
+                output = sh.render()
+                self._print(output, file=file, flush=flush, sep=sep, end="")
+            first_text = False
+        self._print(end, file=file, flush=flush, end="")
 
         self.set_colors(*original_attributes, file=file)
 
