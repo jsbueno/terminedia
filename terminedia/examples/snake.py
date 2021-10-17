@@ -50,7 +50,7 @@ class Snake:
                 game.eat_item((rx, y))
 
     def check_dead(self, game):
-        if game.scr.high.get_at(self.pos):
+        if game.scr.square.get_at(self.pos):
             raise GameOver()
 
     def draw(self, scr):
@@ -74,7 +74,7 @@ def main():
         except GameOver:
             pass
 
-    print("Você bateu!\n\n")
+    print("You died!\n\n")
 
 
 class Game:
@@ -104,7 +104,7 @@ class Game:
                 self.snake.direction = D.LEFT
 
             self.snake.update(self)
-            self.snake.draw(self.scr.high)
+            self.snake.draw(self.scr.square)
 
             self.maybe_create_item()
             self.show_status()
@@ -113,7 +113,7 @@ class Game:
             self.tick += 1
 
     def start_scene(self):
-        scr = self.scr.high
+        scr = self.scr.square
         width, height = scr.get_size()
 
         scr.context.color = 1, 0, 1
