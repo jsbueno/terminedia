@@ -207,6 +207,14 @@ class ShapeApiMixin:
         self.has_sprites = True
         return SpriteContainer(self)
 
+    @property
+    def full(self):
+        return self
+
+    def at_parent(self, pos):
+        """emulate high-resolution `at_parent` coordinate transform method: a NOP at full resolution"""
+        return V2(pos)
+
     has_sprites = False
 
     def get_size(self):

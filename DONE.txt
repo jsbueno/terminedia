@@ -2,6 +2,8 @@
     - Refactor Widgets
     - Add size propert to Rect and Sprite
     - Add 'zindex' property and raise_ method to sprites; fix sprite display order: position 0 in sprite list is bottommost
+    - Add 'full' resolution as an alias for the "full character", non namespaced resolution
+    - Updates to terminedia-snake
 
 version 0.4.2
 ==============

@@ -80,6 +80,8 @@ class Screen:
     def __init__(self, size=(), clear_screen=True, backend="ansi", interactive=True):
         from terminedia import context as root_context
 
+        self.interactive = interactive
+
         if not size:
             self.get_size = lambda: V2(os.get_terminal_size())
             try:
@@ -101,8 +103,12 @@ class Screen:
         #: ``color``, ``background``, ``direction``, ``effects`` and ``char``.
         self.context = Context()
 
-        self.width, self.height = self.size = size
-        self.interactive = interactive
+        width, height = size
+
+        # Main data structure with image information:
+        self.shape = self.data = FullShape.new(size)
+        # Synchronize context for data and screen painting.
+        self.data.context = self.context
 
         #: Namespace to allow high-resolution drawing using a :any:`HighRes` instance
         #: One should either use the public methods in HighRes or the methods on the
@@ -118,6 +124,7 @@ class Screen:
         self.sextant = HighRes(
             self, block_class=SextantChars, block_width=2, block_height=3
         )
+        self.full = self
 
         self.text = terminedia.text.TextPlane(self)
 
@@ -134,18 +141,28 @@ class Screen:
         #: various output operations in a single block that is rendered at once.
         self.commands = CommandsClass()
         self.clear_screen = clear_screen
-        self.shape = self.data = FullShape.new((self.width, self.height))
+
         self.shape.isroot = True
 
         #: Namespace for drawing methods, containing an instance of the :any:`Drawing` class
         self.draw = Drawing(self.set_at, self.reset_at, self.get_at, self.get_size, self.context)
 
-        # Synchronize context for data and screen painting.
-        self.data.context = self.context
         self.sprites = self.data.sprites
         self.root_context = root_context
         self._last_setitem = 0
         self._init_event_system()
+
+    @property
+    def size(self):
+        return self.shape.size
+
+    @property
+    def width(self):
+        return self.shape.width
+
+    @property
+    def height(self):
+        return self.shape.height
 
     def accelerate(self):
         """makes drawing less interactive, but faster
@@ -355,6 +372,10 @@ class Screen:
         """
         """Prints text picking at the last position that were printed to."""
         self.text[1].print(text)
+
+    def at_parent(self, pos):
+        """emulate high-resolution `at_parent` coordinate transform method: a NOP at full resolution"""
+        return V2(pos)
 
     def __getitem__(self, pos):
         """Retrieves character data at pos
