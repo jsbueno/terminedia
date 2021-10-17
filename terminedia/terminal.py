@@ -428,7 +428,10 @@ class ScreenCommands(BackendColorContextMixin):
 
         color = color or context.color
         background = background or context.background
-        effects = effects or context.effects
+        if effects is None:
+            effects = context.effects
+        elif isinstance(effects, str):
+            effects = Effects(effects) if effects else Effects.none
 
         self.set_colors(color, background, effects, file=file)
 

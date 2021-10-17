@@ -354,4 +354,7 @@ class RetrieveFromNameEnumMeta(EnumMeta):
             return final_val
         return super().__call__(val, *args, **kw)
 
+    def __repr__(cls):
+        return f"<{cls.__name__}>: [{', '.join(member for member in cls.__members__)}]"
+
 
