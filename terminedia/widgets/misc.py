@@ -341,14 +341,14 @@ class ScreenMenu(Widget):
     The main idea is get a multilevel dictionary  mapping
     shortcuts to app actions, or submenus, or simply labels.
 
-    Each key in the dictionary shoul dmap to a two-tuple, where the first
+    Each key in the dictionary should map to a two-tuple, where the first
     element is an optional callable action - if given as None, the command is
     ignored and non clickable: other parts of the app should handle that shortcut.
     The second element of the tuple is the description for the action
 
     If the key maps to a dictionary, that is used as another menu-level.
 
-    The menu visibility is optional toggable  if an action in the current level is the string "toggle":
+    The menu visibility is optionally toggable  if an action in the current level is the string "toggle":
     shortcuts remain active when the menu is toggled off.
 
     Example dictionary derived from the one used on the 0th version of terminedia-paint:

@@ -2,11 +2,26 @@ Targeted for release (0.5):
 =================================
 
     - create an ANSI Sequence parser based on the MLTkenizer parser.
+    - "with Screen()" behavior will change to automatically enable mouse capture and real-time keyboard
+        - i.e. "with TM.Screen() as sc:" will become equivalent to 0.4 "with TM.Screen() as sc, TM.keyboard, TM.mouse:"
 
 
 Targeted for minor 0.4 releases:
 ================================
     - bug: ANSI renderer skips empty text lines (breaks terminedia-paint save files) (v)
+    - improve text-entry widgets: allow edited text size to be larger than editing window, via auto-scroll
+        - needed for a functional file-selector
+        - add a textsize kwarg, with default=size. On "None" or numeric, limit the
+            logical text-entry to that size.
+        - use an "offset" internal value, keep "value"as a plain string, and
+            have the properties and operators that currently yield the value
+            to modify value[self.offset, self.offset + size]  only.
+            - this approach should suffice to avoid delving into the editor inner-guts
+        - "back" from beggining position and "forward" from last position should scroll text
+            - try making this  work at least with plain vertical text besides normal left-to-right layout.
+        - implement "begin" and "end" cursor movement behavior
+    -file-selector widget [WIP] (see bellow)
+
 
 
 Targeted for release (0.4):
@@ -96,7 +111,8 @@ Targeted for release (0.4):
                     - don't take several frames to re-rerender
                 - make fileselector "modal" by default.
                 - Add a title-line (for the purpose of the file picking)
-
+                - ensure text-entries size won 't limit file-navigation
+                    - (currently, text entrys physical size constrains the logical text size)
 
 
 

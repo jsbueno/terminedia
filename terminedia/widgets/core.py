@@ -103,7 +103,7 @@ class WidgetEventReactor:
                             callback(local_event)
                         except EventSuppressFurtherProcessing:
                             break
-                # FIXME: not quite right. maybe check all hitted sprites first, then execute callbacks in reverse "z-order"
+                # FIXME: not quite right. maybe check all hit sprites first, then execute callbacks in reverse "z-order"
                 if not isinstance(widget, Container):
                     raise EventSuppressFurtherProcessing()
 
@@ -187,6 +187,9 @@ class Widget:
             self.shape.context = context
         # initialize size property without triggering events
         self._set_size(self.shape.size)
+
+        if isinstance(parent, Sprite):
+            parent = parent.shape
 
         self.parent = parent
         self.click_callbacks = [self._default_click]
