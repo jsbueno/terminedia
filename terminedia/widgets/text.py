@@ -463,7 +463,7 @@ class Editable:
 
     @property
     def value(self):
-        return "\n".join(self.lines.soft_lines)
+        return "\n".join(line for line in self.lines.soft_lines if line)
         #return ''.join(c.char for c in self.raw_value if c.mask is not _UNUSED)
 
     @property
