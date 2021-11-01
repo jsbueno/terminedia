@@ -85,6 +85,7 @@ class _PosixKeyboard(KeyboardBase):
         super().__init__()
         self._last_pressed_after_ESC = False
         self.not_consumed = deque()
+        self.fake_stdin = False
 
     def __enter__(self):
         """
@@ -99,7 +100,14 @@ class _PosixKeyboard(KeyboardBase):
         same "with" block.
 
         """
-        self.fd = sys.stdin.fileno()
+        try:
+            self.fd = sys.stdin.fileno()
+        except IOError:
+            #  non tty stdin: skip fcntl configs
+            self.fake_stdin = True
+            self.enabled +=1
+            return self
+        self.fake_stdin = False
         # save old state
         if self.enabled == 0:
             self.flags_save = fcntl.fcntl(self.fd, fcntl.F_GETFL)
@@ -140,6 +148,8 @@ class _PosixKeyboard(KeyboardBase):
 
 
     def reset(self):
+        if self.fake_stdin:
+            return
         if hasattr(self, "attrs_save"):
             termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.attrs_save)
             fcntl.fcntl(self.fd, fcntl.F_SETFL, self.flags_save)

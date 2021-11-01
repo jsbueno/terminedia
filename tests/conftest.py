@@ -1,5 +1,6 @@
 import io
 from unittest import mock
+import sys
 
 import terminedia as TM
 from terminedia.utils import combine_signatures
@@ -46,13 +47,14 @@ def rendering_test(func):
         stdout = io.StringIO()
 
         fn = func(*args, **kwargs)
+        orig_stdout = sys.stdout
         with mock.patch("sys.stdout", stdout):
             next(fn)
 
             while True:
 
                 if DISPLAY:
-                    print(stdout.getvalue())
+                    print(stdout.getvalue(), file=orig_stdout)
                     TM.pause(DELAY)
                 try:
                     fn.send(stdout.getvalue())

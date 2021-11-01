@@ -89,7 +89,12 @@ class UnblockTTY:
     """
 
     def __enter__(self):
-        self.fd = sys.stdin.fileno()
+        try:
+            self.fd = sys.stdin.fileno()
+        except IOError:
+            self.fake_stdin = True
+            return self
+        self.fake_stdin = False
         # save old state
         self.flags_save = fcntl.fcntl(self.fd, fcntl.F_GETFL)
         #self.attrs_save = termios.tcgetattr(self.fd)
@@ -98,7 +103,8 @@ class UnblockTTY:
 
     def __exit__(self, *args):
         #termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.attrs_save)
-        fcntl.fcntl(self.fd, fcntl.F_SETFL, self.flags_save)
+        if not self.fake_stdin:
+            fcntl.fcntl(self.fd, fcntl.F_SETFL, self.flags_save)
 
 
 class ScreenCommands(BackendColorContextMixin):
