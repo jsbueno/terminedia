@@ -102,7 +102,7 @@ class FileSelector(VBox):
 
     @property
     def value(self):
-        return Path(self.main_entry.value)
+        return Path(self.folder_entry.value) / self.main_entry.value
 
     def complete(self, widget=None, event=None):
         if self.callback:
