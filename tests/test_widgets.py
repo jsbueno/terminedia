@@ -36,15 +36,15 @@ def test_entry_widget_sequence_write(typed, expected, extra_kw):
 
 @pytest.mark.parametrize(*fast_render_mark)
 @pytest.mark.parametrize(
-    ("typed", "expected", "extra_kw"), [
-        ("ABC", "ABC", None),
-        (f"ABC{K.LEFT}D", "ABDC", None),
-        (f"ABC{K.LEFT + K.INSERT}D", "ABD", None),
-        (f"ABC\nDEF", "ABD\nDEF", None),
+    ("typed", "expected", "extra_kw", "shapped"), [
+        ("ABC", "ABC", None, None),
+        (f"ABC{K.LEFT}D", "ABDC", None, None),
+        (f"ABC{K.LEFT + K.INSERT}D", "ABD", None, None),
+        (f"ABC\rDEF", "ABC\nDEF", None, "ABC \nDEF \n    \n    "),
     ]
 )
 @rendering_test
-def test_text_widget_sequence_write(typed, expected, extra_kw):
+def test_text_widget_sequence_write(typed, expected, extra_kw, shapped):
     stdin = io.StringIO()
     with patch("sys.stdin", stdin):
         sc = TM.Screen()
@@ -57,4 +57,10 @@ def test_text_widget_sequence_write(typed, expected, extra_kw):
 
             yield None
             sc.update()
+    #if "\r" in typed:
+        #import rpdb; rpdb.set_trace()
+        ##os.system("reset"); breakpoint()
     assert w.value == expected
+    if shapped:
+        value = TM.image.ShalowShapeRepr(w.shape).text()
+        assert value == shapped

@@ -1508,6 +1508,14 @@ class ShalowShapeRepr:
             shape[pos] = value
         return shape
 
+    def text(self):
+        size = self.size
+        lines = []
+        offset = 0
+        for y in range(size.y):
+            lines.append("".join(pixel[0] if pixel[0] not in (CONTINUATION, TRANSPARENT) else " " for pixel in self.data[size.x * y: size.x * (y + 1)]))
+        return "\n".join(lines)
+
 
 
 def shape(data, color_map=None, promote=False, resolution=None, **kwargs):
