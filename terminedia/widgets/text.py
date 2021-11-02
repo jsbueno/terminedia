@@ -521,7 +521,7 @@ class Editable:
         # TBD: add support for certain control for line editing characters, like ctrl + k, ctrl + j, ctrl + a...
 
 
-        if key is not KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x1b):
+        if key != KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x1b):
             valid_symbol = False
 
 
