@@ -10,6 +10,10 @@
         - Terminedia Effects can be used as strings
         - accept markup strings (just like screen.text[1])
     - Terminedia effects repr now list all available effects
+    - Widgets changed so they can also accept a Sprite as parent (active shape will be used)
+    - tm.image.ShallowRepr(shape).text() method returns a rectangular string (with  "\n" for line breaks)
+        with the plain text contents of a shape.
+        - shape.text[plane].shaped_str property returns a similar string for the text contents of the given plane.
 
 version 0.4.2
 ==============

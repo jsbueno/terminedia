@@ -7,7 +7,7 @@ import threading
 from terminedia.image import Shape, PalettedShape, shape
 from terminedia.unicode import split_graphemes
 from terminedia.utils import contextkwords, V2, Rect, ObservableProperty, get_current_tick
-from terminedia.values import Directions, EMPTY, TRANSPARENT, RETAIN_POS
+from terminedia.values import Directions, EMPTY, TRANSPARENT, RETAIN_POS, CONTINUATION
 from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX
 
 from .fonts import render
@@ -627,6 +627,24 @@ class TextPlane:
                 context.transformers.append(transform)
             self.owner.draw.blit(V2(self.pad_left, self.pad_top) - (pad_level, pad_level), border_shape)
 
+    @property
+    def shaped_str(self):
+        lines = []
+        prev_y = None
+        line = []
+        for x, y in Rect(self.size).iter_cells():
+            if y != prev_y:
+                if line:
+                    lines.append("".join(line))
+                line =  []
+                prev_y = y
+            char = self[x, y]
+            line.append(char if char not in (CONTINUATION, TRANSPARENT) else EMPTY)
+        lines.append("".join(line))
+        return "\n".join(lines)
+
+    # FUTURE: an "as_shape" property? (could be blitted on other shapes, and "change text size")
+    # FUTURE: a "linear_str" property? (all printed text linearly following marks for direction change and teleportations)
 
     @contextkwords(context_path="owner.context")
     def print(self, text):

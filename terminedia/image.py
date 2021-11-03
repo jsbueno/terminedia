@@ -1479,6 +1479,7 @@ class FullShape(RasterUndo, Shape):
 
         return new_shape
 
+
 class ShalowShapeRepr:
     def __init__(self, original: Shape):
         """The final visible pixel data of a shape as a simple pickleable object
