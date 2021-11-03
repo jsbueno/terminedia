@@ -463,7 +463,16 @@ class Editable:
 
     @property
     def value(self):
-        return "\n".join(line for line in self.lines.soft_lines if line)
+        result = ""
+        empty_counter = 0
+        for i, line in enumerate(self.lines.soft_lines):
+            if not line:
+                empty_counter += 1
+                continue
+            result += "\n" * empty_counter + line
+            empty_counter = 1
+        return result
+        # return "\n".join(line for line in self.lines.soft_lines if line)
         #return ''.join(c.char for c in self.raw_value if c.mask is not _UNUSED)
 
     @property
