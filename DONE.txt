@@ -12,6 +12,7 @@ version 0.4.3
         - Terminedia Effects can be used as strings
         - accept markup strings (just like screen.text[1])
     - Terminedia effects repr now list all available effects
+
     - Better constructor signatures for color and gradients
         - colors: allow 3 sequential parameters as RGB components instead of requiring a sequence in the first parameter
         - Gradients: the "stop position" for each gradient stop is now optional, if not given, values passed are evenly distributed
@@ -27,6 +28,12 @@ version 0.4.3
     - fix border size for sextant-sized Widgets
     - fix cursor showing past last line of text widgets
     - fix overwrite cursor for big-text editing
+
+    - Widgets changed so they can also accept a Sprite as parent (active shape will be used)
+    - tm.image.ShallowRepr(shape).text() method returns a rectangular string (with  "\n" for line breaks)
+        with the plain text contents of a shape.
+        - shape.text[plane].shaped_str property returns a similar string for the text contents of the given plane.
+    (Text planes characters can be read back as a \n shaped string. Extra tests)
 
 version 0.4.2
 ==============
