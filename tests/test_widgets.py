@@ -46,7 +46,7 @@ def test_entry_widget_sequence_write(typed, expected, extra_kw):
         (f"ABC\rDEF{K.UP}G", "ABCG\nDEF", None, "ABCG\nDEF \n    \n    "),
         (f"ABC\rDEF{K.UP + K.LEFT}G", "ABGC\nDEF", None, "ABGC\nDEF \n    \n    "),
         (f"ABC\rDEF{K.UP + K.LEFT + K.INSERT}G", "ABG\nDEF", None, "ABG \nDEF \n    \n    "),
-        # (f"{K.DOWN + K.DOWN}ABC", "\n\nABC", None, "    \n    \nABC \n    "), ## Failing - tough it works interactivelly. Maybe somethinbg meant to deduplicate keystrokes is removing the second Down arrow??. Returns "\nABC"
+        (f"{K.DOWN + K.DOWN}ABC", "\n\nABC", None, "    \n    \nABC \n    "), ## Failing - tough it works interactivelly. Maybe somethinbg meant to deduplicate keystrokes is removing the second Down arrow??. Returns "\nABC"
         (f"{K.DOWN + K.INSERT + K.INSERT + K.DOWN}ABC", "\n\nABC", None, "    \n    \nABC \n    "), # Workaround for the previous test: don't send 2 K.DOWN in sequence.
         (f"{K.DOWN + ' ' + K.DOWN}ABC", "\n \nABC", None, "    \n    \nABC \n    "),
     ]
