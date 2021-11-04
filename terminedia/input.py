@@ -71,8 +71,7 @@ class _posix_KeyCodes:
     LEFT = "\x1b[D"
     TAB = "\t"
     SHIFT_TAB = "\x1b[Z"
-
-    codes = mirror_dict(locals())
+    codes = {v:k for k, v in locals().items() if k.isupper()}
 
 
 class _PosixKeyboard(KeyboardBase):
@@ -83,9 +82,9 @@ class _PosixKeyboard(KeyboardBase):
 
     def __init__(self):
         super().__init__()
-        self._last_pressed_after_ESC = False
-        self.not_consumed = deque()
         self.fake_stdin = False
+        self.buffer = []
+        self.max_code_len = max(len(c) for c in _posix_KeyCodes.codes.keys())
 
     def __enter__(self):
         """
@@ -155,37 +154,30 @@ class _PosixKeyboard(KeyboardBase):
             fcntl.fcntl(self.fd, fcntl.F_SETFL, self.flags_save)
         self.enabled = 0
         self._last_pressed_after_ESC = ""
+        self.buffer[:] = []
 
-    def _scan_code(self, stream):
+    def _tokenize_input(self, raw_data):
+        tokens = []
+        while raw_data:
+            if raw_data[0] == "\x1b":
+                if mouse.enabled:
+                    m, mouse_token_len = mouse.match(raw_data)
+                    if m:
+                        raw_data = raw_data[mouse_token_len:]
+                        continue
+                extended_code = False
+                for i in range(self.max_code_len + 1, 0, -1):
+                    if raw_data[0:i] in self.keycodes.codes:
+                        tokens.append(raw_data[0:i])
+                        raw_data = raw_data[i:]
+                        extended_code = True
+                        break
+                if extended_code:
+                    continue
+            tokens.append(raw_data[0])
+            raw_data = raw_data[1:]
 
-        composed = ""
-        while True:
-            # read byte by byte, so that no extra input is consumed from stdin
-            if self._last_pressed_after_ESC:
-                next_char = self._last_pressed_after_ESC
-            else:
-                next_char = stream.read(1)
-            if not next_char:
-                return composed, True
-            # There is one special case, when "ESC" is pressed in non-clearing mode:
-            # we should not have read the next token, but it is already fetched by now.
-            if len(composed) == 2 and composed[0] == "\x1b" and composed[1] != "[":
-                self._last_pressed_after_ESC = composed[1]
-                return composed[0], False
-
-            self._last_pressed_after_ESC = ""
-            composed += next_char
-            if composed == "\x1b":
-                continue
-            if len(composed) == 1 or composed in self.keycodes.codes or len(composed) > 30:
-                return composed, False
-
-            # "mouse" is a module alias for the singleton of the posix-mouse reader, defined bellow.
-            if mouse.enabled:
-                # mouse.match consumes the token
-                m = mouse.match(composed)
-                if m:
-                    return "", False
+        return tokens
 
 
     def inkey(self, break_=True, clear=True, consume=True):
@@ -210,7 +202,7 @@ class _PosixKeyboard(KeyboardBase):
         - consume: remove the received key from keypresses. When using an event-based
                 approach, this function is responsible for dispatching the events, and
                 have to be called. The default behavior, however, will make keypresses
-                go missing when "inkey" is called to read the keyboard with the even system on.
+                go missing when "inkey" is called to read the keyboard with the event system on.
                 TL;DR: the calls to inkey made by the inner event system should pass
                 False to this parameter, otherwise leave it as is.
 
@@ -233,39 +225,25 @@ class _PosixKeyboard(KeyboardBase):
         if not self.enabled:
             raise RuntimeError("keyboard context manager must be entered to enable non-blocking keyboard reads")
 
-        if self.not_consumed and consume:
-            return self.not_consumed.popleft()
+        new_keys = self._tokenize_input(sys.stdin.read(10000))
 
-        last_emitted = old_keycode = ""
-
-        if not clear:
-            buffer = sys.stdin
-        else:
-            # read all buffer, generate events for all tokens
-            # but return only the last event
-            # (so, the caller to "inkey" have info on the last pressed key)
-            buffer = io.StringIO(sys.stdin.read(10000))
-            buffer.seek(0)
-
-        while True:
-            keycode, stream_eof = self._scan_code(buffer)
-            if stream_eof and not keycode:
-                keycode = old_keycode
+        for keycode in new_keys:
             if keycode == '\x03' and break_:
                 raise KeyboardInterrupt()
-            if keycode and list_subscriptions(EventTypes.KeyPress):
-                if not(last_emitted == keycode and old_keycode == keycode):
-                    Event(EventTypes.KeyPress, key=keycode)
-                last_emitted = keycode
-            if not clear or stream_eof:
-                # next characters will be consumed in next calls
-                break
-            old_keycode = keycode
-        if not consume:
-            self.not_consumed.append(keycode)
+            if list_subscriptions(EventTypes.KeyPress):
+                Event(EventTypes.KeyPress, key=keycode)
+
+        if clear:
+            self.buffer.clear()
+            del new_keys[:-1]
+
+        self.buffer.extend(new_keys)
+
         if mouse.enabled and mouse.on_hold_clicks:
-            mouse.flush_clicks()
-        return keycode
+            mouse.flush_clicks
+
+        if self.buffer and consume:
+            return self.buffer.pop(0)
 
     keycodes = _posix_KeyCodes
 
@@ -495,10 +473,11 @@ class _Mouse:
 
     def match(self, sequence):
         # The ANSI sequence for a mouse event in mode 1006 is '<ESC>[B;Col;RowM' (last char is 'm' if button-release)
-        m = re.match(r"\x1b\[\<(?P<button>\d+);(?P<column>\d+);(?P<row>\d+)(?P<press>[Mm])", sequence)
+        m = re.search(r"^\x1b\[\<(?P<button>\d+);(?P<column>\d+);(?P<row>\d+)(?P<press>[Mm])", sequence)
         if not m:
-            return None
+            return None, 0
         params = m.groupdict()
+        match_size = m.span()[1]
         pressed = params["press"] == "M"
         button = _button_map.get(int(params["button"]) & (~0x20), None)
         moving = bool(int(params["button"]) & 0x20)
@@ -524,7 +503,7 @@ class _Mouse:
                     Event(EventTypes.MouseDoubleClick, pos=V2(col, row), buttons=button, time=ts)
                 self.last_click = (ts, button,)
 
-        return event
+        return event, match_size
 
     def flush_clicks(self):
         to_kill = []
