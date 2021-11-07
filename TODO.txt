@@ -20,10 +20,14 @@ Targeted for minor 0.4 releases:
         - "back" from beggining position and "forward" from last position should scroll text
             - try making this  work at least with plain vertical text besides normal left-to-right layout.
         - implement "begin" and "end" cursor movement behavior
+
     - file-selector widget [WIP] (see bellow)
     - More pre-built transformers in the library
     - turn-off cursor transformer on out-of-focus widgets (should improve caching)
-    - change cursor-transform on overwrite mode for big-text to blink[wip]
+
+        - implement place text-cursor at pointer click position on text-widgets.
+
+
 
 
 Targeted for release (0.4):
