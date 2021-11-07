@@ -16,6 +16,8 @@ import os, io
         (f"ABC{K.LEFT}D", "ABDC", None),
         (f"ABC{K.LEFT + K.INSERT}D", "ABD", None),
         (f"ABC{K.LEFT + K.LEFT}D", "ADBC", None),
+        (f"ABCDEF", "ABCDE", None),
+        (f"ABCDE{K.INSERT}FG", "ABCDG", None),
     ]
 )
 @rendering_test

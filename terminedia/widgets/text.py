@@ -548,9 +548,11 @@ class Editable:
                     return
             else:
                 index = self.lines.set(index, key)
-            self.pos = self.indexes_from[index]
+            next_pos = self.indexes_from[index]
             if key != KeyCodes.ENTER:
-                self.pos = self.get_next_pos_from(self.pos)
+                next_pos = self.get_next_pos_from(next_pos)
+            if next_pos in self.text.rect:
+                self.pos = next_pos
 
             self.regen_text()
 

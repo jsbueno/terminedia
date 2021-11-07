@@ -212,6 +212,10 @@ class TextPlane:
     def height(self):
         return self.size[1]
 
+    @property
+    def rect(self):
+        return Rect(self.size)
+
     def pos_to_text_cell(self, pos):
         """Given a 1-block coordinate on screen, return the cordinate of the matchng text cell
         on the current plane, taking in account padding.
