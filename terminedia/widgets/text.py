@@ -553,7 +553,7 @@ class Editable:
                     return
             else:
                 index = self.lines.set(index, key)
-            self.pos = self.indexes_from[index]
+            next_pos = self.indexes_from[index]
             if key != KeyCodes.ENTER:
                 new_pos = self.get_next_pos_from(self.pos)
                 if new_pos in Rect(self.text.size):
