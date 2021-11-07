@@ -15,9 +15,9 @@ import click
 
 from terminedia import Screen, pause, Rect
 
-# Adds common trignometric functions to global namespace
+# Adds common mathematic functions to global namespace
 # so that they are available for the "func" passed as command line option
-from math import sin, cos, tan
+from math import *
 
 
 def arange(start, stop=None, step=1):
@@ -85,7 +85,7 @@ def plot(sc, func, domain=(-2, 2)):
 @click.option(
     "--func",
     type=str,
-    help="Function to draw. It should be given as a Python expression using 'x' as a variable.",
+    help="Function to draw. It should be given as a Python expression using 'x' as a variable. Names on the 'math' module are available for use in the expression.",
 )
 def main(func=None, domain=(-2, 2)):
     if func is None:
