@@ -496,11 +496,6 @@ class Editable:
 
         self.tick += 1
 
-        #if event.key == KeyCodes.ENTER and self.enter_callback:
-            #self.enter_callback(self)
-        #if event.key == KeyCodes.ESC and self.esc_callback:
-            #self.esc_callback(self)
-
         key = event.key
         valid_symbol = True
 
@@ -537,7 +532,6 @@ class Editable:
 
         if key != KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x1b):
             valid_symbol = False
-
 
         if valid_symbol:
             index = self.indexes_to.get(self.pos, _UNUSED)
