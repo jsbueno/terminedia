@@ -9,15 +9,18 @@ from conftest import rendering_test, fast_render_mark, fast_and_slow_render_mark
 from unittest.mock import patch
 import os, io
 
-@pytest.mark.parametrize(*fast_render_mark)
+P = pytest.param
+
+@pytest.mark.parametrize(*fast_render_mark, ids=["fast"])
 @pytest.mark.parametrize(
     ("typed", "expected", "extra_kw"), [
-        ("ABC", "ABC", None),
-        (f"ABC{K.LEFT}D", "ABDC", None),
-        (f"ABC{K.LEFT + K.INSERT}D", "ABD", None),
-        (f"ABC{K.LEFT + K.LEFT}D", "ADBC", None),
-        (f"ABCDEF", "ABCDE", None),
-        (f"ABCDE{K.INSERT}FG", "ABCDG", None),
+        P("ABC", "ABC", None, id="plain"),
+        P(f"ABC{K.LEFT}D", "ABDC", None, id="left_movement_insert"),
+        P(f"ABC{K.LEFT + K.INSERT}D", "ABD", None,id="left_movement_replace"),
+        P(f"ABC{K.LEFT + K.LEFT}D", "ADBC", None, id="double_left_movement"),
+        P(f"A{K.LEFT + K.LEFT}BCD", "BCDA", None, id="double_left_movement_hit_start"),
+        P(f"ABCDEF", "ABCDE", None, id="overflow"),
+        P(f"ABCDE{K.INSERT}FG", "ABCDG", None, id="overflow_replace_last"),
     ]
 )
 @rendering_test
@@ -37,20 +40,20 @@ def test_entry_widget_sequence_write(typed, expected, extra_kw):
     assert w.value == expected
 
 
-@pytest.mark.parametrize(*fast_render_mark)
+@pytest.mark.parametrize(*fast_render_mark, ids=["fast"])
 @pytest.mark.parametrize(
     ("typed", "expected", "extra_kw", "shaped"), [
-        ("ABC", "ABC", None, None),
-        (f"ABC{K.LEFT}D", "ABDC", None, None),
-        (f"ABC{K.LEFT + K.INSERT}D", "ABD", None, None),
-        (f"ABC\rDEF", "ABC\nDEF", None, "ABC \nDEF \n    \n    "),
-        (f"ABC\rDEF", "ABC\nDEF", {"text_plane": 4}, "ABC \nDEF \n    \n    "),
-        (f"ABC\rDEF{K.UP}G", "ABCG\nDEF", None, "ABCG\nDEF \n    \n    "),
-        (f"ABC\rDEF{K.UP + K.LEFT}G", "ABGC\nDEF", None, "ABGC\nDEF \n    \n    "),
-        (f"ABC\rDEF{K.UP + K.LEFT + K.INSERT}G", "ABG\nDEF", None, "ABG \nDEF \n    \n    "),
-        (f"{K.DOWN + K.DOWN}ABC", "\n\nABC", None, "    \n    \nABC \n    "),
-        (f"{K.DOWN + K.INSERT + K.INSERT + K.DOWN}ABC", "\n\nABC", None, "    \n    \nABC \n    "),
-        (f"{K.DOWN + ' ' + K.DOWN}ABC", "\n \nABC", None, "    \n    \nABC \n    "),
+        P("ABC", "ABC", None, None, id="plain_single_line"),
+        P(f"ABC{K.LEFT}D", "ABDC", None, None, id="left_movement_insert"),
+        P(f"ABC{K.LEFT + K.INSERT}D", "ABD", None, None,id="left_movement_replace"),
+        P(f"ABC\rDEF", "ABC\nDEF", None, "ABC \nDEF \n    \n    ", id="plain_line_break"),
+        P(f"ABC\rDEF", "ABC\nDEF", {"text_plane": 4}, "ABC \nDEF \n    \n    ", id="plain_single_line_plane_4"),
+        P(f"ABC\rDEF{K.UP}G", "ABCG\nDEF", None, "ABCG\nDEF \n    \n    ", id="line_break_up_movement_insert"),
+        P(f"ABC\rDEF{K.UP + K.LEFT}G", "ABGC\nDEF", None, "ABGC\nDEF \n    \n    ", id="line_break_up_left_movement_insert"),
+        P(f"ABC\rDEF{K.UP + K.LEFT + K.INSERT}G", "ABG\nDEF", None, "ABG \nDEF \n    \n    ", id="line_break_up_left_movement_replace"),
+        P(f"{K.DOWN + K.DOWN}ABC", "\n\nABC", None, "    \n    \nABC \n    ", id="down_movement_line_break"),
+        P(f"{K.DOWN + K.INSERT + K.INSERT + K.DOWN}ABC", "\n\nABC", None, "    \n    \nABC \n    ", id="down_movement_line_break_roundtrip_insert"),
+        P(f"{K.DOWN + ' ' + K.DOWN}ABC", "\n \nABC", None, "    \n    \nABC \n    ", id="stepped_down_movement_line_break"),
     ]
 )
 @rendering_test
