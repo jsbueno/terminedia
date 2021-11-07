@@ -1,8 +1,23 @@
-import time
+"""Example app for naivelly plotting a graph to the terminal
+
+Evolving this is an invite for explorers of the
+library - a straightforward roadmap includes:
+
+    - Refactor color use and add command line switches for plot colors
+    - Add command line switches for terminedia resolution
+        (check terminedia-text (file text.py here) for examples on these 2
+    - Add command line switches for custom domain and y-offset
+    - Fix y-offset ticks so that they display "rounder" numbers
+    - Plot more than one function on the same graph
+"""
 
 import click
 
 from terminedia import Screen, pause, Rect
+
+# Adds common trignometric functions to global namespace
+# so that they are available for the "func" passed as command line option
+from math import sin, cos, tan
 
 
 def arange(start, stop=None, step=1):
@@ -27,19 +42,20 @@ def plot(sc, func, domain=(-2, 2)):
     sc.high.draw.line((w // 2, 0), (w // 2, h - 1))
 
     scale_x = 1 / w * (domain[1] - domain[0])
-    domain_center = (domain[1] + domain[0]) / 2
+    domain_center = (domain[0] + domain[1]) / 2
 
     data_points = [f(domain_center + scale_x * (x - w // 2)) for x in range(w)]
 
     image = min(data_points), max(data_points)
     scale_y = h * 1 / (image[1] - image[0])
-    physical_min_y = -(h / 2) / scale_y
+    physical_min_y = -(h / 2)
+    offset_y = h / 2 - (image[0] * scale_y - physical_min_y)
 
     sc.context.color = 1, 0.5, 0
 
     rect = Rect((w,h))
     for x, y in zip(range(w), data_points):
-        screen_y = int(y * scale_y)
+        screen_y = int(y * scale_y + offset_y)
         if (x, screen_y) in rect:
             sc.high.draw.set((x, screen_y))
 
