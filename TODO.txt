@@ -20,6 +20,7 @@ Targeted for minor 0.4 releases:
         - "back" from beggining position and "forward" from last position should scroll text
             - try making this  work at least with plain vertical text besides normal left-to-right layout.
         - implement "begin" and "end" cursor movement behavior
+        - implement place text-cursor at pointer click position on text-widgets.
     -file-selector widget [WIP] (see bellow)
 
 
