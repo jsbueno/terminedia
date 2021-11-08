@@ -61,6 +61,9 @@ def test_entry_widget_sequence_write(typed, expected, extra_kw):
         P(f"ABCDEFGHI", "ABCDEFGHI", None, "ABCD\nEFGH\nI   \n    ", id="plain_three_lines_no_break"),
         P(f"ABCDEFGHIJKLMNOPQ", "ABCDEFGHIJKLMNOP", None, "ABCD\nEFGH\nIJKL\nMNOP", id="plain_full_widget_typed_no_break"),
         P(f"ABCDEFGHI", "ABCDEF", {"marks": {(2,0): M(direction="down")}}, "ABC \n  D \n  E \n  F ", id="embeded_direction_change_turn_down"),
+        P(f"A\rBCDEFGHI", "A\nBCDE", {"marks": {(2,0): M(direction="down")}}, "A B \n  C \n  D \n  E ", id="embeded_direction_change_turn_down_with_line_break"),
+        P(f"ABCD{K.BACK + K.BACK}EF", "ABEF", {"marks": {(2,0): M(direction="down")}}, "ABE \n  F \n    \n    ", id="embeded_direction_change_turn_down_backspace"),
+        P(f"A\rB{K.BACK + K.BACK}CDEF", "ACDEF", {"marks": {(2,0): M(direction="down")}}, "ACD \n  E \n  F \n    ", id="embeded_direction_change_turn_down_line_break_backspace"),
     ]
 )
 @rendering_test
