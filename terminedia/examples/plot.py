@@ -31,7 +31,7 @@ def arange(start, stop=None, step=1):
 def plot(sc, func, domain=(-2, 2)):
 
     if isinstance(func, str):
-        f = eval(f"lambda x: -({func})")
+        f = eval(f"lambda x: {func}")
     else:
         f = func
 
@@ -47,15 +47,15 @@ def plot(sc, func, domain=(-2, 2)):
     data_points = [f(domain_center + scale_x * (x - w // 2)) for x in range(w)]
 
     image = min(data_points), max(data_points)
-    scale_y = h * 1 / (image[1] - image[0])
+    scale_y = (h - 2) * 1 / (image[1] - image[0])
     physical_min_y = -(h / 2)
-    offset_y = h / 2 - (image[0] * scale_y - physical_min_y)
+    offset_y = h / 2 - (image[0] * scale_y - physical_min_y) + 2
 
     sc.context.color = 1, 0.5, 0
 
     rect = Rect((w,h))
     for x, y in zip(range(w), data_points):
-        screen_y = int(y * scale_y + offset_y)
+        screen_y = h - int(y * scale_y + offset_y)
         if (x, screen_y) in rect:
             sc.high.draw.set((x, screen_y))
 
@@ -76,6 +76,7 @@ def plot(sc, func, domain=(-2, 2)):
 
         sc.print_at((w // 4 + 1, y // 2), f"{y_tick:0.02f}")
 
+    sc.print_at((0,0), f"{image}")
     sc.print_at(
         (w // 2 - 33, 0), f"f(x) = {func.replace('**3', '³').replace('**2', '²')}"
     )
@@ -83,7 +84,7 @@ def plot(sc, func, domain=(-2, 2)):
 
 @click.command()
 @click.option(
-    "--func",
+    "--func", "-f",
     type=str,
     help="Function to draw. It should be given as a Python expression using 'x' as a variable. Names on the 'math' module are available for use in the expression.",
 )
