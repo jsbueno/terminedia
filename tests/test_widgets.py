@@ -46,7 +46,7 @@ def test_entry_widget_sequence_write(typed, expected, extra_kw):
 
 @pytest.mark.parametrize(*fast_render_mark, ids=["fast"])
 @pytest.mark.parametrize(
-    ("typed", "expected", "extra_kw", "shaped"), [
+    ("typed", "expected", "extra_kw", "rendered"), [
         P("ABC", "ABC", None, None, id="plain_single_line"),
         P(f"ABC{K.LEFT}D", "ABDC", None, None, id="left_movement_insert"),
         P(f"ABC{K.LEFT + K.INSERT}D", "ABD", None, None,id="left_movement_replace"),
@@ -67,7 +67,7 @@ def test_entry_widget_sequence_write(typed, expected, extra_kw):
     ]
 )
 @rendering_test
-def test_text_widget_sequence_write(typed, expected, extra_kw, shaped):
+def test_text_widget_sequence_write(typed, expected, extra_kw, rendered):
     extra_kw = extra_kw or {}
     stdin = io.StringIO()
     marks = extra_kw.pop("marks", None)
@@ -91,6 +91,44 @@ def test_text_widget_sequence_write(typed, expected, extra_kw, shaped):
             sc.update()
     if expected:
         assert w.value == expected
-    if shaped:
+    if rendered:
         value = w.shape.text[extra_kw.get("text_plane", 1)].shaped_str
-        assert value == shaped
+        assert value == rendered
+
+
+
+s_opt = ["AAA", "BBB", "CCC"]
+
+
+@pytest.mark.parametrize(*fast_render_mark, ids=["fast"])
+@pytest.mark.parametrize(
+    ("options", "typed", "expected", "extra_kw", "rendered"), [
+        P(s_opt, K.ENTER, "AAA", None, None, id="imediate"),
+        P(s_opt, f"{K.DOWN + K.ENTER}", "BBB", None, None, id="second_opt"),
+        P(s_opt, f"{K.DOWN * 3 + K.ENTER}", "CCC", None, None, id="stop_on_last_opt"),
+        P(s_opt, f"{K.DOWN * 3 + K.UP + K.ENTER}", "BBB", None, None, id="move_back_up"),
+    ]
+)
+@rendering_test
+def test_selector_widget(options, typed, expected, extra_kw, rendered):
+    extra_kw = extra_kw or {}
+    stdin = io.StringIO()
+    max_height = extra_kw.pop("max_height", 4)
+    max_width = extra_kw.pop("max_width", 5)
+    with patch("sys.stdin", stdin):
+        sc = TM.Screen()
+        with sc, TM.keyboard:
+            w = TM.widgets.Selector(sc, options, pos=(0,0), max_height=max_height, max_width=max_width,**(extra_kw  or {}))
+            sc.update()
+            stdin.write(typed)
+            stdin.seek(0)
+            sc.update()
+
+            yield None
+            sc.update()
+    if expected:
+        assert w.value == expected
+    if rendered:
+        value = w.shape.text[extra_kw.get("text_plane", 1)].shaped_str
+        assert value == rendered
+

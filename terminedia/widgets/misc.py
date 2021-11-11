@@ -135,7 +135,6 @@ class Selector(Widget):
         self.redraw()
 
         self.selected_row = selected_row
-        self.selected_row = selected_row
         self.transformer = SelectorTransformer(self)
         self.callback = callback
 
