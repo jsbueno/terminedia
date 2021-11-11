@@ -107,6 +107,10 @@ s_opt = ["AAA", "BBB", "CCC"]
         P(s_opt, f"{K.DOWN + K.ENTER}", "BBB", None, None, id="second_opt"),
         P(s_opt, f"{K.DOWN * 3 + K.ENTER}", "CCC", None, None, id="stop_on_last_opt"),
         P(s_opt, f"{K.DOWN * 3 + K.UP + K.ENTER}", "BBB", None, None, id="move_back_up"),
+        P(s_opt, "", None, None, "AAA\nBBB\nCCC", id="adaptive_min_width"),
+        P(s_opt, "", None, {"min_width": 5}, " AAA \n BBB \n CCC ", id="center_align"),
+        P(s_opt, "", None, {"min_width": 5, "align":"left"}, "AAA  \nBBB  \nCCC  ", id="left_align"),
+        P(s_opt, "", None, {"min_width": 5, "align":">"}, "  AAA\n  BBB\n  CCC", id="right_align"),
     ]
 )
 @rendering_test
