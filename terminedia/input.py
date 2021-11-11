@@ -187,8 +187,8 @@ class _PosixKeyboard(KeyboardBase):
         and also the heart of the keybard input system.
 
         Args:
-        - break\_ (bool): Boolean parameter specifying whether "CTRL + C"
-            (\x03) should raise KeyboardInterrupt or be returned as a
+        - break\\_ (bool): Boolean parameter specifying whether "CTRL + C"
+            (\\x03) should raise KeyboardInterrupt or be returned as a
             keycode. Defaults to True.
         - clear (bool): clears the keyboard buffer contents.
                 If False, queued keyboard codes are returned in order, for each call
@@ -310,8 +310,8 @@ class _WindowsKeyboard(KeyboardBase):
         """Return currently pressed key as a string
 
         Args:
-        - break\_ (bool): Boolean parameter specifying whether "CTRL + C"
-            (\x03) should raise KeyboardInterrupt or be returned as a
+        - break\\_ (bool): Boolean parameter specifying whether "CTRL + C"
+            (\\x03) should raise KeyboardInterrupt or be returned as a
             keycode. Defaults to True.
         - clear (bool): clears the keyboard buffer contents
 

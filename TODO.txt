@@ -210,10 +210,10 @@ Targeted for release (0.4):
     - Accept friendlier parameter names when constructiong a TM.Mark object. [V]
         - (currently all context-attributes hav to be inside an "attributes" dictionary passed as parameter - it should accept keyword parameters for each context attribute)
 
-    - make Rich Text markup  usable by standalone "terminedia.print" (terminedia.print should work without an underlying shape) [future]:
-            - parse text, and create a transient shape if markup is used
-            - test negative Y offsets on transient shape
-            - render transient shape at cursor position, clipped to generated content extents.
+    - make Rich Text markup  usable by standalone "terminedia.print" (terminedia.print should work without an underlying shape) [future]: [v]
+            - parse text, and create a transient shape if markup is used  [v]
+            - test negative Y offsets on transient shape [x]
+            - render transient shape at cursor position, clipped to generated content extents.[v]
                 - Consider if the character data in each plane (text_plane.plane dictionary) is worth keeping. consider that:
                     - static characters are stored there without any attributes
                     - they are reflected on the owner shape data anyway (keeping the attributes)
@@ -245,7 +245,7 @@ Targeted for release (0.4):
     - Cache TextPlane size data - it is a property called several times per cell position when rendering, and does a big mess going back to self.root.size
 
     - pickle terminedia.unicode.CHAR_BASE as part of setup.py install (?)
-    - enable re-shapping of TextPlane or Shape triggering re-flowing of textual content.
+    - enable re-shapping of TextPlane or Shape triggering re-flowing of textual content. [v]
 
     - Implement "trans-dimensional-mark" - mechanism to allow text-flow to continue
             in another TextPlane object, entirely.
