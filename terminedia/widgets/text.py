@@ -73,10 +73,10 @@ def _ensure_sequence(mark):
 ##############
 
 def map_text(text, pos, direction):
-    """Given a text plane, maps out the way that each reachable cell can be acessed
+    """Used internally by "Editable". Given a text plane, maps out the way that each reachable cell can be acessed
 
-    The map re-interprets the Marks that affect text flow found on the text plan -
-    but Marks with "special_index" and other kind of dynamic marks will likely
+    The map re-interprets the Marks that affect text flow found on the text plane -
+    but Marks with "special_index" and other kinds of dynamic marks will likely
     be missed by this mapping.
 
 
@@ -400,7 +400,7 @@ class Editable:
     You may re-initialize the widget.editable instance if you make layout changes
     to the underlying shape (text-flow Marks) after the widget is instantiated.
     """
-    def __init__(self, text_plane, parent=None, value="", pos=None, line_sep="\n", text_size=None):
+    def __init__(self, text_plane, parent=None, value="", pos=None, line_sep="\n", text_size=None, offset=0):
         self.focus = True
         self.initial_pos = self.pos = pos or V2(0, 0)
         self.text = text_plane
@@ -417,6 +417,18 @@ class Editable:
 
         self.impossible_pos = False
 
+        # properties used to edit text larger than the display-size:
+        self.full_text = value
+        self.display_size = len(self.text_path_map) - 1
+        if text_size is None:
+            text_size = self.display_size - 1
+        self.text_size = text_size
+
+        self.text_offset = offset
+        if len(value) > self.display_size:
+            value = value[offset: offset + self.display_size]
+
+        # resume building initial internal-state
         self.build_value_indexes()
         self.lines = Lines(value, self)
         self.tick = 0
@@ -426,7 +438,7 @@ class Editable:
         pos = self.initial_pos
         indexes_to = {}
         indexes_from = {}
-        new_line_indices = [0]
+        new_line_indexes = [0]
         count = 0
         index_counted = False
         while True:
@@ -438,15 +450,15 @@ class Editable:
             except KeyError:
                 break
             if cell.flow_changed: #not cell.is_used:
-                new_line_indices.append(count)
+                new_line_indexes.append(count)
                 index_counted = True
             else:
                 index_counted = False
             pos = cell.to_pos
         if not index_counted:
-            new_line_indices.append(count - 1)
+            new_line_indexes.append(count - 1)
         self.raw_value = " " * len(indexes_from)
-        self.line_indexes = RangeMap(new_line_indices)
+        self.line_indexes = RangeMap(new_line_indexes)
         self.indexes_from = indexes_from
         self.indexes_to = indexes_to
 
@@ -460,7 +472,7 @@ class Editable:
         return self.text_path_map[pos][0].to_pos
 
     @property
-    def value(self):
+    def _displayed_value(self):
         result = ""
         empty_counter = 0
         for i, line in enumerate(self.lines.soft_lines):
@@ -470,8 +482,20 @@ class Editable:
             result += "\n" * empty_counter + line
             empty_counter = 1
         return result
-        # return "\n".join(line for line in self.lines.soft_lines if line)
-        #return ''.join(c.char for c in self.raw_value if c.mask is not _UNUSED)
+
+    def reset_full_text(self):
+
+        value = self.full_text[:self.offset]
+        value += self._displayed_value
+        value += self.full_text[self.offset + self.display_size:]
+        self.full_text = value
+
+    @property
+    def value(self):
+        if self.text_size > self.display_size:
+            return self.full_text
+        else:
+            return self._displayed_value
 
     @property
     def shaped_value(self):
@@ -536,9 +560,11 @@ class Editable:
                 try:
                     index = self.lines.insert(index, key)
                 except TextDoesNotFit:
+                    # WIP: take in account text_size and larger-than display text here
                     self.events(OVERFILL)
                     return
             else:
+                # WIP: take in account text_size here
                 index = self.lines.set(index, key)
             next_pos = self.indexes_from[index]
             if key != KeyCodes.ENTER:
@@ -555,6 +581,7 @@ class Editable:
         with self.text.recording as text_data:
             self.text.at(self.initial_pos, escape(self.raw_value))
         self.last_text_data = text_data
+        self.reset_full_text()
 
     def kill(self):
         self.focus = False
