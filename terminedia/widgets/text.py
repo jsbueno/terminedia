@@ -398,27 +398,25 @@ class Lines:
 
 
 class Editable:
-    """Internal class to widgets -
+    """Internal class to text widgets -
     responsible for managing a keyboard-event-echo-in-text-plane
     pattern. Use text-editing subclasses of Widget instead of this.
 
     You may re-initialize the widget.editable instance if you make layout changes
     to the underlying shape (text-flow Marks) after the widget is instantiated.
     """
-    def __init__(self, text_plane, parent=None, value="", pos=None, line_sep="\n"):
+    def __init__(self, text_plane, parent=None, value="", pos=None, line_sep="\n", text_size=None):
         self.focus = True
         self.initial_pos = self.pos = pos or V2(0, 0)
         self.text = text_plane
         self.parent = parent
         self.line_sep = line_sep
-        #self.enter_callback = enter_callback
-        #self.esc_callback = esc_callback
         self.insertion = True
         self.context = self.text.owner.context
         self.initial_direction = self.context.direction
 
         if parent:
-            self.parent.sprite.transformers.append(CursorTransformer(self)) # overwrite_effect="underline" if self.text.char_size==1 else "blink"))
+            self.parent.sprite.transformers.append(CursorTransformer(self))
         self.last_rendered_cursor = None
         self.last_text_data = []
         self.text_pathto_map, self.text_path_map = map_text(self.text, self.initial_pos, self.context.direction)
@@ -428,6 +426,7 @@ class Editable:
         self.build_value_indexes()
         self.lines = Lines(value, self)
         self.tick = 0
+        self.text_size = text_size
 
     def build_value_indexes(self):
         pos = self.initial_pos
@@ -547,7 +546,7 @@ class Editable:
                     return
             else:
                 index = self.lines.set(index, key)
-            next_pos = self.indexes_from[index]
+
             if key != KeyCodes.ENTER:
                 new_pos = self.get_next_pos_from(self.pos)
                 if new_pos in Rect(self.text.size):
@@ -574,7 +573,35 @@ class Editable:
 
 class Text(Widget):
 
-    def __init__(self, parent, size=None, label="", value="", pos=(0,0), text_plane=1, sprite=None, border=None, click_callback=(), **kwargs):
+    def __init__(self, parent, size=None, label="", value="", *, pos=(0,0), text_plane=1, sprite=None, border=None, click_callback=(), text_size=None, **kwargs):
+        """Multiline text-editing Widget
+
+        (roughly the same role as HTML's "textarea" form input).
+        Creates a new sprite attached to parent, and, when focused, display an emulated cursor,
+        which captures all key-presses and composes text, allowing free movement
+        with arrow-keys.
+
+        Use the ".value" property to retrieve typed-in contents.
+
+        Args:
+            - parent (Union[Screen, Shape, Sprite]: container where the widget is to be added as a sprite
+            - size (V2): Widget size in cell positions. Defaults to parent text-size at the choosen text-resolution
+            - label (str): Widget label [TBD]
+            - value (str): initial text contents
+            - pos (V2): where on parent to draw the widget
+            - text_plane (Union(int, str)): which text-plane from Sprite to build the widget in (1, 4, 6, 8, ...)
+            - sprite (Optional[Sprite]): pre-created sprite which will serve as the widget itself.
+                Do not pass "size" if sprite is given. Can be used custom-prepared :any:`TextPlane` with
+                Marks pre-set, including direction-changing and teleporting Marks. The widget
+                is capable of editing text with arbitrary text-flows composed by custom Marks.
+            - border (Bool): whether to draw a border around the widget rectangle. Border size is in addition
+                to given size.
+            - click_callback (callable): callback for a mouse-click event
+            - text_size (int): [WIP] Maximum text size that should be allowed to be typed in. By default "None",
+                meaning the maximum value is size.x * size.y characters.
+            - **kwargs: arguments passed unfiltered to : any:Widget base class.
+
+        """
 
         click_callbacks = [self.click]
         _ensure_extend(click_callbacks, click_callback)
@@ -593,7 +620,7 @@ class Text(Widget):
                          **kwargs)
         text = self.sprite.shape.text[self.text_plane]
 
-        self.editable = Editable(text, parent=self, value=value)
+        self.editable = Editable(text, parent=self, value=value, text_size=text_size)
 
     def get(self):
         return self.editable.value
@@ -619,6 +646,7 @@ class Text(Widget):
 
     @value.setter
     def value(self, text):
+        # FIXME: fix this for text_size != None. Thid has  to go through Editable, and "lines" should not be touched here.
         self.editable.lines.reload(text)
         self.editable.lines._hard_load_from_soft_lines()
         # self.editable.raw_value = text
@@ -626,7 +654,7 @@ class Text(Widget):
 
 
 class Entry(Text):
-    def __init__(self, parent, width, label="", value="", enter_callback=None, pos=(0, 0), text_plane=1, **kwargs):
+    def __init__(self, parent, width, label="", value="", *, enter_callback=None, pos=(0, 0), text_plane=1, **kwargs):
         super().__init__(parent, (width, 1), label=label, value=value, pos=pos, text_plane=text_plane, enter_callback=enter_callback, **kwargs)
         self.done = False
 

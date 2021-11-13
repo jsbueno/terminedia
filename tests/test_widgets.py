@@ -25,6 +25,9 @@ P = pytest.param
         P(f"ABCDE{K.INSERT}FG", "ABCDG", None, id="overflow_replace_last"),
         P(f"{K.RIGHT * 3}ABCD", "ABCD", None, id="insert_from_midle_of_line_collapses_white_space_at_left"),
         P(f"{K.RIGHT * 3 + K.INSERT}ABCD", "   AD", None, id="replace_from_midle_of_line_preserves_white_space_at_left"),
+        P("ABCDEFG", "ABCDEFG", {"text_size": 10}, id="larger_than_displayed_text_entry"),
+        P(f"ABCDEFG{K.LEFT*7}HI", "HIABCDEFG", {"text_size": 10}, id="larger_than_displayed_text_entry_can_edit_first_position"),
+        P(f"ABCDEFG{K.LEFT*7}HI{K.RIGHT*6}JKL", "HIABCDEFJKLG", {"text_size": 15}, id="larger_than_displayed_text_entry_can_edit_first_position_and_go_back_to_end"),
     ]
 )
 @rendering_test
@@ -64,6 +67,7 @@ def test_entry_widget_sequence_write(typed, expected, extra_kw):
         P(f"A\rBCDEFGHI", "A\nBCDE", {"marks": {(2,0): M(direction="down")}}, "A B \n  C \n  D \n  E ", id="embeded_direction_change_turn_down_with_line_break"),
         P(f"ABCD{K.BACK + K.BACK}EF", "ABEF", {"marks": {(2,0): M(direction="down")}}, "ABE \n  F \n    \n    ", id="embeded_direction_change_turn_down_backspace"),
         P(f"A\rB{K.BACK + K.BACK}CDEF", "ACDEF", {"marks": {(2,0): M(direction="down")}}, "ACD \n  E \n  F \n    ", id="embeded_direction_change_turn_down_line_break_backspace"),
+        P(f"ABCDEFGHIJKLMNOPQ", "ABCDEFGHIJKLMNOPQRST", {"text_size": 20}, "EFGH\nIJKL\nMNOP\nQRST", id="text_size_larger_than_displayed"),
     ]
 )
 @rendering_test
@@ -111,6 +115,7 @@ s_opt = ["AAA", "BBB", "CCC"]
         P(s_opt, "", None, {"min_width": 5}, " AAA \n BBB \n CCC ", id="center_align"),
         P(s_opt, "", None, {"min_width": 5, "align":"left"}, "AAA  \nBBB  \nCCC  ", id="left_align"),
         P(s_opt, "", None, {"min_width": 5, "align":">"}, "  AAA\n  BBB\n  CCC", id="right_align"),
+        P([TM.Color("red"), TM.Color("green")], f"{K.DOWN + K.ENTER}", TM.Color("green"), {"min_width": 5}, None, id="color_select"),
     ]
 )
 @rendering_test
