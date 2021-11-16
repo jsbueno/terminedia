@@ -19,12 +19,13 @@ class Transformer:
         The parameters for __init__ are slots that will generate or transform the corresponding
         value on the final pixel
 
-        Each slot can be None, a static value, or a callable.
+        Each slot can be None, a static value, or a callable. Instead of passing callables on initialization,
+        one may subclass `Transformer` and write the slot as a regular method instead.
 
         Each of these callables can have in the signature named parameters with any combination of
 
             "self, "value", "char", "foreground", "background", "effects", "pixel", "pos", "source", "context", "tick"
-            Each of these named parameters will be injected as an argument when the
+            Each of these named parameters will be injected as an argument when
             it is called.
                 - "self": Transformer instance (it is, as the others, optional)
                 - "value": the current value for this channel
