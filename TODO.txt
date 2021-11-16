@@ -281,7 +281,8 @@ make way for 6x3 block core transformers in order to use half-triangle character
      - implement "reversed"
      - have "remove" and other altering methods to use the cast-hook for proper element matching
      (suggestions by Serhiy Storchaka)
-- Efficient MutableString/struct container to replace "list" as main data storage [WIP]:
+- Efficient MutableString/struct container to replace "list" as main data storage [X]:
+    - ended up using a mapping-based (dict) approach instead o all of the following:
     - backed by bytearray
     - use abc.MutableSequence for and store utf-32-le data for characters
     - slice set/get uses strings
