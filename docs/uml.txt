@@ -1,0 +1,1861 @@
+Generated with pynsource opensource, on commit 1d5832ab
+
++------------------------+
+|         Widget         |
+|------------------------|
+| __dict__               |
+| active                 |
+| cancellable            |
+| cancelled              |
+| click_callbacks        |
+| done                   |
+| double_click_callbacks |
+| enter_callbacks        |
+| esc_callbacks          |
+| focus                  |
+| focus_transformer      |
+| infocus                |
+| keypress_callbacks     |
+| parent                 |
+| shape                  |
+| size                   |
+| sprite                 |
+| subscriptions          |
+| tab_callbacks          |
+| terminated             |
+| text_plane             |
+|------------------------|
+| __await__              |
+| __init__               |
+| _default_click         |
+| _default_enter         |
+| _default_escape        |
+| _default_tab           |
+| _set_size              |
+| _sprite_from_text_size |
+| keypress               |
+| kill                   |
+| move_to_focus_position |
++------------------------+
+       .
+      /_\
+       |                       [ Widget ]                                                  [ Widget ]                                           [ Widget ]                                [ Widget ]
+       |                           .                                                           .                                                    .                                         .
+       |                          /_\                                                         /_\                                                  /_\                                       /_\
+       |                           |                                                           |                                                    |                                         |
+       |                           |                                                           |                                                    |                                         |
++----------------+       +----------------------+                                       +----------------+                                     +------------+                            +------------+
+|   Container    |       |       Selector       |                                       |   ScreenMenu   |                                     |    Text    |                            |   Button   |
+|----------------|       |----------------------|                                       |----------------|                                     |------------|                            |------------|
+|                |       | __dict__             |  ---->  [ SelectorTransformer ]       | _enabled       |  ---->  [ terminedia.Sprite ]       | editable   |  ---->  [ Editable ]       | _text      |
++----------------+       | _align               |  ---->  [ V2 ]                        | _shape_cache   |                                     | has_border |                            | border     |
+       |                 | _scroll_mark_down    |                                       | active         |                                     | value      |                            | has_border |
+       |                 | _scroll_mark_up      |                                       | active_keys    |                                     |------------|                            | text       |
+       |                 | align                |                                       | active_mapping |                                     | __init__   |                            | text_line  |
+       |                 | border               |                                       | bread_crumbs   |                                     | click      |                            |------------|
+       |                 | callback             |                                       | columns        |                                     | get        |                            | __init__   |
+       |                 | done                 |                                       | custom_context |                                     | handle_key |                            +------------+
+       |                 | has_border           |                                       | enabled        |                                     | kill       |
+       |                 | max_height           |                                       | focus          |                                     +------------+
+       |                 | max_option_width     |                                       | gravity        |
+       |                 | max_width            |                                       | mapping        |
+       |                 | min_height           |                                       | max_col_width  |
+       |                 | min_width            |                                       | parent         |
+       |                 | offset               |                                       | sh             |
+       |                 | options              |                                       | sprite         |
+       |                 | selected_row         |                                       | toggle_key     |
+       |                 | size                 |                                       | visible        |
+       |                 | str_options          |                                       | width          |
+       |                 | text                 |                                       |----------------|
+       |                 | transformer          |                                       | __init__       |
+       |                 | value                |                                       | _set_mapping   |
+       |                 |----------------------|                                       | _set_shape     |
+       |                 | __delitem__          |                                       | handle_key     |
+       |                 | __getitem__          |                                       +----------------+
+       |                 | __init__             |
+       |                 | __len__              |
+       |                 | __setitem__          |
+       |                 | _get_clicked_option  |
+       |                 | _poschange           |
+       |                 | _prechange           |
+       |                 | _select_click        |
+       |                 | _select_double_click |
+       |                 | _stripped_opt        |
+       |                 | change               |
+       |                 | insert               |
+       |                 | load_options         |
+       |                 | redraw               |
+       |                 +----------------------+
+       |
+       .
+      /_\
+       |
+       |
+       |
+       |
+       |
++----------------+
+|      _Box      |
+|----------------|
+| _fixed_size    |
+| axis           |
+| border         |
+| children       |
+| focus          |
+| padding        |
+| register_child |
+| size           |
+|----------------|
+| __init__       |
+| _child_resized |
+| add            |
+| reorganize     |
++----------------+
+          .
+         /_\
+          |                    [ _Box ]
+          |                      .
+          |                     /_\
+          |                      |
+          |                      |
++----------------------+       +------+
+|         VBox         |       | HBox |
+|----------------------|       |------|
+| axis                 |       | axis |
++----------------------+       +------+
+          .
+         /_\
+          |
+          |
+          |
+          |
+          |
++----------------------+
+|     FileSelector     |
+|----------------------|
+| _fixed_size          |  ---->  [ Entry ]
+| _last_selected       |  ---->  [ Selector ]
+| allow_create_folder  |
+| allow_new            |
+| callback             |
+| can_move_to_parent   |
+| constrain_navigation |
+| done                 |
+| folder               |
+| folder_entry         |
+| initial_folder       |
+| main_entry           |
+| main_selector        |
+| preferred_folders    |
+| value                |
+|----------------------|
+| __init__             |
+| _default_enter       |
+| _file_list           |
+| _list_selected       |
+| _update              |
+| complete             |
++----------------------+
+
+
+
+
+    [ Text ]             +------------------------+       [ ShapeDirtyMixin ][ ShapeApiMixin ][ ABC ]       [ ShapeApiMixin ]
+       .                 |     ShapeApiMixin      |                 .                                               .
+      /_\                |------------------------|                /_\                                             /_\
+       |                 | __slots__              |                 |                                               |
+       |                 | _data_func             |                 |                                               |
++----------------+       | context                |       +----------------------+                          +------------------+
+|     Entry      |       | full                   |       |        Shape         |                          |    ShapeView     |
+|----------------|       | has_sprites            |       |----------------------|                          |------------------|
+| done           |       | size                   |       | PixelCls             |  ---->  [ Rect ]         | __iter__         |  ---->  [ Rect ]
+|----------------|       |------------------------|       | _default_bg          |                          | __slots__        |
+| __init__       |       | _get_drawing           |       | data                 |                          | get_size         |
+| _default_enter |       | _get_highres           |       | height               |                          | height           |
+| value          |       | _get_text              |       | isroot               |                          | isroot           |
++----------------+       | at_parent              |       | rect                 |                          | original         |
+                         | braille                |       | width                |                          | roi              |
+                         | clear                  |       |----------------------|                          | width            |
+                         | context                |       | __getitem__          |                          |------------------|
+                         | draw                   |       | __iter__             |                          | __getattribute__ |
+                         | get_size               |       | __repr__             |                          | __getitem__      |
+                         | high                   |       | __setitem__          |                          | __init__         |
+                         | sextant                |       | _render_using_screen |                          | __repr__         |
+                         | spaces_to_transparency |       | _resize_data         |                          | __setitem__      |
+                         | sprites                |       | _resize_data_one     |                          +------------------+
+                         | square                 |       | concat               |
+                         | text                   |       | get_data_offset      |
+                         +------------------------+       | get_raw              |
+                                                          | load_data            |
+                                                          | new                  |
+                                                          | render               |
+                                                          | resize               |
+                                                          +----------------------+
+       .
+      /_\
+       |
+       |
+       |
+       |
+       |
++----------------+
+|   ValueShape   |
+|----------------|
+| PixelCls       |
+| _allowed_types |
+| _data_func     |
+| color_map      |
+| data           |
+|----------------|
+| __getitem__    |
+| __init__       |
+| __setitem__    |
+| _raw_setitem   |
++----------------+
+
+
+
+
+[ Shape ][ RasterUndo ]                            [ Shape ]
+       .                                               .
+      /_\                                             /_\
+       |                                               |
+       |                                               |
++----------------+                             +-----------------+
+|   FullShape    |                             |  PalettedShape  |
+|----------------|                             |-----------------|
+| PixelCls       |  ---->  [ Pixel ]           | PixelCls        |
+| _default_bg    |  ---->  [ PixelDict ]       | _default_bg     |
+| context        |  ---->  [ Rect ]            | arbitrary_chars |
+| data           |                             | background      |
+| height         |                             | color_map       |
+| rect           |                             | data            |
+| undo_active    |                             | effects         |
+| width          |                             | foreground      |
+|----------------|                             | height          |
+| __getitem__    |                             | width           |
+| __init__       |                             |-----------------|
+| __setitem__    |                             | __getitem__     |
+| _data_func     |                             | __init__        |
+| _raw_setitem   |                             | __setitem__     |
+| _resize_data   |                             | _raw_setitem    |
+| get_raw        |                             | load_paletted   |
+| load_data      |                             +-----------------+
+| promote        |
++----------------+
+       .
+      /_\
+       |                  [ ValueShape ]
+       |                        .
+       |                       /_\
+       |                        |
+       |                        |
++----------------+       +----------------+
+|   ImageShape   |       |    PGMShape    |
+|----------------|       |----------------|
+| PixelCls       |       | PixelCls       |
+| _allowed_types |       | _allowed_types |
+| _data_func     |       | data           |
+| data           |       | width          |
+| width          |       |----------------|
+|----------------|       | _decode_pnm    |
+| _raw_setitem   |       | load_data      |
+| clear          |       +----------------+
+| get_raw        |
+| load_data      |
+| resize         |
++----------------+
+
+
+
+
++---------------------------------+                                   +-----+
+|         ShapeDirtyMixin         |                                   | ABC |
+|---------------------------------|                                   |-----|
+| dirty_last_clear                |  ---->  [ OrderedRegistry ]       |     |
+| dirty_pixels                    |                                   +-----+
+| dirty_rects                     |
+| dirty_registry                  |
+| dirty_saved_sprite_rects        |
+| dirty_sprite_rects_saved_at     |
+|---------------------------------|
+| __init__                        |
+| dirty_clear                     |
+| dirty_mark_pixel                |
+| dirty_save_current_sprite_rects |
+| dirty_set                       |
+| dirty_update                    |
++---------------------------------+
+
+
+
+
++--------------+
+|    tuple     |
+|--------------|
+|              |
++--------------+
+      .
+     /_\
+      |                 [ tuple ]
+      |                     .
+      |                    /_\
+      |                     |
+      |                     |
++--------------+       +------------+
+|      V2      |       |   Pixel    |
+|--------------|       |------------|
+| __radd__     |       | __slots__  |
+| __rmul__     |       |------------|
+| __slots__    |       | __new__    |
+| area         |       | get_values |
+| as_int       |       +------------+
+| x            |
+| y            |
+|--------------|
+| __abs__      |
+| __add__      |
+| __floordiv__ |
+| __init__     |
+| __mul__      |
+| __new__      |
+| __repr__     |
+| __rsub__     |
+| __sub__      |
+| __truediv__  |
+| max          |
+| min          |
++--------------+
+      .
+     /_\
+      |                  [ V2 ]
+      |                    .
+      |                   /_\
+      |                    |
+      |                    |
++--------------+       +----------+
+|   NamedV2    |       | CrossV2  |
+|--------------|       |----------|
+| name         |       | V2       |
+| owner_name   |       | axis     |
+|--------------|       | cross    |
+| __get__      |       | length   |
+| __init__     |       | width    |
+| __repr__     |       |----------|
+| __set_name__ |       | __init__ |
+| __str__      |       | __new__  |
++--------------+       +----------+
+
+
+
+
++-----------------+
+| MutableSequence |
+|-----------------|
+|                 |
++-----------------+
+           .
+          /_\
+           |
+           |
+           |
+           |
+           |
++-----------------------+
+|        HookList       |
+|-----------------------|
+| data                  |
+|-----------------------|
+| __copy__              |
+| __delitem__           |
+| __eq__                |
+| __getitem__           |
+| __init__              |
+| __len__               |
+| __repr__              |
+| __setitem__           |
+| copy                  |
+| insert                |
+| insert_hook           |
++-----------------------+
+           .
+          /_\
+           |                       [ HookList ]
+           |                            .
+           |                           /_\
+           |                            |
+           |                            |
++-----------------------+       +-----------------+
+| TransformersContainer |       | SpriteContainer |
+|-----------------------|       |-----------------|
+| stack                 |       | killed_sprites  |
+|-----------------------|       | owner           |
+| __init__              |       |-----------------|
+| bake                  |       | __init__        |
+| build_args            |       | _set_zindex     |
+| insert_hook           |       | add             |
+| process               |       | get_at          |
+| remove                |       | insert_hook     |
++-----------------------+       | remove          |
+                                +-----------------+
+
+
+
+
++--------------+
+|   IntFlag    |
+|--------------|
+|              |
++--------------+
+         .
+        /_\
+         |
+         |
+         |
+         |
+         |
++--------------------+
+|    IterableFlag    |
+|--------------------|
+| __add__            |
+| __contains__       |
+| __iter__           |
+| __len__            |
+| __sub__            |
++--------------------+
+         .
+        /_\
+         |
+         |
+         |
+         |
+         |
++--------------------+
+|     EventTypes     |
+|--------------------|
+| Custom             |
+| KeyPress           |
+| MouseClick         |
+| MouseDoubleClick   |
+| MouseMove          |
+| MousePress         |
+| MouseRelease       |
+| Phrase             |
+| QuitLoop           |
+| TerminalSizeChange |
+| Tick               |
+| WidgetResize       |
++--------------------+
+
+
+
+
+[ OrableByNameEnumMixin ][ IterableFlag ]
+        .
+       /_\
+        |
+        |
++------------------+
+|     Effects      |
+|------------------|
+| blink            |
+| bold             |
+| conceal          |
+| crossed_out      |
+| double_struck    |
+| double_underline |
+| encircled        |
+| faint            |
+| fast_blink       |
+| fraktur          |
+| framed           |
+| fullwidth        |
+| italic           |
+| math_bold        |
+| math_bold_italic |
+| negative_circled |
+| negative_squared |
+| none             |
+| overlined        |
+| parenthesized    |
+| reverse          |
+| squared          |
+| super_bold       |
+| super_script     |
+| underline        |
+| upside_down      |
++------------------+
+
+
+
+
++--------------------------+
+| BackendColorContextMixin |
+|--------------------------|
+| active_unicode_effects   |  ---->  [ Color ]
+| current_background       |
+| current_foreground       |
+| next_background          |
+| next_effects             |
+| next_foreground          |
+|--------------------------|
+| apply_unicode_effects    |
+| reset_colors             |
+| set_bg_color             |
+| set_colors               |
+| set_effects              |
+| set_fg_color             |
++--------------------------+
+            .
+           /_\
+            |                     [ BackendColorContextMixin ]                         [ BackendColorContextMixin ]
+            |                                  .                                                  .
+            |                                 /_\                                                /_\
+            |                                  |                                                  |
+            |                                  |                                                  |
++-------------------------+       +---------------------------+                        +------------------------+
+| JournalingCommandsMixin |       |       ScreenCommands      |                        |      HTMLCommands      |
+|-------------------------|       |---------------------------|                        |------------------------|
+| current_background      |       | RCP                       |  ---->  [ Lock ]       | active_unicode_effects |  ---->  [ Color ]
+| current_color           |       | SCP                       |  ---->  [ V2 ]         | current_background     |  ---->  [ V2 ]
+| current_effect          |       | absolute_movement         |                        | current_effects        |
+| current_pos             |       | active_unicode_effects    |                        | current_foreground     |
+| in_block                |       | alternate_terminal_buffer |                        | dirty                  |
+| journal                 |       | force_newlines            |                        | last_pos               |
+| last_pos                |       | last_pos                  |                        | next_background        |
+| tick                    |       | locks                     |                        | next_effects           |
+|-------------------------|       |---------------------------|                        | next_foreground        |
+| __enter__               |       | CSI                       |                        | next_pos               |
+| __exit__                |       | SGR                       |                        | tag_is_open            |
+| __init__                |       | __init__                  |                        |------------------------|
+| _set                    |       | __repr__                  |                        | __init__               |
+| print_at                |       | _fast_render              |                        | _print                 |
+| replay                  |       | _print                    |                        | clear                  |
+| set_bg_color            |       | apply_unicode_effects     |                        | moveto                 |
+| set_effects             |       | clear                     |                        | print_at               |
+| set_fg_color            |       | cursor_hide               |                        | update_state           |
+| stop_journal            |       | cursor_show               |                        +------------------------+
++-------------------------+       | down                      |
+                                  | fast_render               |
+                                  | home                      |
+                                  | left                      |
+                                  | moveto                    |
+                                  | print                     |
+                                  | print_at                  |
+                                  | reset_colors              |
+                                  | restore_cursor_position   |
+                                  | right                     |
+                                  | save_cursor_position      |
+                                  | set_bg_color              |
+                                  | set_effects               |
+                                  | set_fg_color              |
+                                  | toggle_buffer             |
+                                  | up                        |
+                                  +---------------------------+
+
+
+
+
+[ JournalingCommandsMixin ][ HTMLCommands ]       [ ScreenCommands ][ JournalingCommandsMixin ]
+           .                                                  .
+          /_\                                                /_\
+           |                                                  |
+           |                                                  |
++------------------------+                        +--------------------------+
+| JournalingHTMLCommands |                        | JournalingScreenCommands |
+|------------------------|                        |--------------------------|
+| replay                 |                        |                          |
++------------------------+                        +--------------------------+
+
+
+
+
++--------------+
+|  Exception   |
+|--------------|
+|              |
++--------------+
+               .
+              /_\
+               |                           [ Exception ]
+               |                                 .
+               |                                /_\
+               |                                 |
+               |                                 |
++--------------------------------+       +-----------------+
+|          EventMessage          |       | WidgetCancelled |
+|--------------------------------|       |-----------------|
+|                                |       |                 |
++--------------------------------+       +-----------------+
+               .
+              /_\
+               |
+               |
+               |
+               |
+               |
++--------------------------------+
+| EventSuppressFurtherProcessing |
+|--------------------------------|
+|                                |
++--------------------------------+
+
+
+
+
++---------------------+
+|       Context       |
+|---------------------|
+| _dirty              |  ---->  [ TransformersContainer ]
+| _locals             |  ---->  [ threading.local ]
+| background          |
+| char                |
+| color               |
+| direction           |
+| effects             |
+| fill                |
+| font                |
+| foreground          |
+| pretransformers     |
+| transformers        |
+|---------------------|
+| __call__            |
+| __copy__            |
+| __dir__             |
+| __enter__           |
+| __exit__            |
+| __getattr__         |
+| __init__            |
+| __iter__            |
+| __repr__            |
+| __setattr__         |
+| _clear              |
+| _update             |
+| _update_from_global |
++---------------------+
+        .
+       /_\
+        |
+        |
+        |
+        |
+        |
++------------------+
+|   _RootContext   |
+|------------------|
+| _default_bg      |  ---->  [ Color ]
+| _default_fg      |
+| default_bg       |
+| default_fg       |
+| interactive_mode |
+|------------------|
+| __init__         |
++------------------+
+
+
+
+
++----------------------------------+
+|            RasterUndo            |
+|----------------------------------|
+| _undo_registry                   |
+| data                             |
+| max_undo_steps                   |
+| redo_data                        |
+| undo_active                      |
+|----------------------------------|
+| __init__                         |
+| __undo_exit                      |
+| _inner_undoable                  |
+| redo                             |
+| undo                             |
+| undo_clear                       |
+| undo_group_end                   |
+| undo_group_start                 |
+| undo_wrapper                     |
+| undoable                         |
+| verify_and_merge_max_undo_groups |
++----------------------------------+
+
+
+
+
++-------------+
+|   ChainMap  |
+|-------------|
+|             |
++-------------+
+      .
+     /_\
+      |
+      |
+      |
+      |
+      |
++-------------+
+|  PixelDict  |
+|-------------|
+| _sentinel   |
+| cache       |
+| maps        |
+|-------------|
+| __getitem__ |
+| __init__    |
+| __setitem__ |
+| clear       |
+| pop         |
+| push        |
++-------------+
+
+
+
+
++-----------------------+
+| OrableByNameEnumMixin |
+|-----------------------|
+| __or__                |
++-----------------------+
+
+
+
+
++--------------------+
+|   MutableMapping   |
+|--------------------|
+|                    |
++--------------------+
+         .
+        /_\
+         |                                                   [ MutableMapping ]                                     [ MutableMapping ]
+         |                                                           .                                                    .
+         |                                                          /_\                                                  /_\
+         |                                                           |                                                    |
+         |                                                           |                                                    |
++--------------------+                                  +---------------------------+                               +-------------+
+|     TaggedDict     |                                  |          MarkMap          |                               |   LazyDict  |
+|--------------------|                                  |---------------------------|                               |-------------|
+| _counter           |  ---->  [ threading.Lock ]       | _concrete_special         |  ---->  [ UnknownType ]       | __delitem__ |
+| _filtering_keys    |                                  | data                      |                               | __iter__    |
+| _keys              |                                  | is_rendering_copy         |                               | __len__     |
+| _lock              |                                  | pos                       |                               | __setitem__ |
+| data               |                                  | relative_data             |                               | data        |
+| key                |                                  | seq_data                  |                               |-------------|
+|--------------------|                                  | sequence_index            |                               | __dir__     |
+| __delitem__        |                                  | special                   |                               | __getattr__ |
+| __getitem__        |                                  | text_plane                |                               | __getitem__ |
+| __init__           |                                  | tick                      |                               | __init__    |
+| __iter__           |                                  |---------------------------|                               | __repr__    |
+| __len__            |                                  | __delitem__               |                               +-------------+
+| __repr__           |                                  | __getitem__               |
+| __setitem__        |                                  | __init__                  |
+| _get_local_keys    |                                  | __iter__                  |
+| _get_resolved_keys |                                  | __len__                   |
+| add                |                                  | __repr__                  |
+| remove             |                                  | __setitem__               |
+| values             |                                  | abs_get                   |
+| view               |                                  | clear                     |
++--------------------+                                  | concretize_relative_marks |
+                                                        | concretize_special_marks  |
+                                                        | gen                       |
+                                                        | get_full                  |
+                                                        | move_along_marks          |
+                                                        | new_line_start            |
+                                                        | prepare                   |
+                                                        +---------------------------+
+
+
+
+
++-------------+
+|     dict    |
+|-------------|
+|             |
++-------------+
+      .
+     /_\
+      |                   [ dict ]                 [ dict ]
+      |                      .                        .
+      |                     /_\                      /_\
+      |                      |                        |
+      |                      |                        |
++-------------+       +---------------+       +-----------------+
+|  FrozenDict |       | CharPlaneData |       | _ContextTracker |
+|-------------|       |---------------|       |-----------------|
+| __setitem__ |       | __slots__     |       | _get            |
+| __slots__   |       | active        |       | get             |
+| update      |       | height        |       | pop             |
+|-------------|       | width         |       | push            |
+| __hash__    |       |---------------|       +-----------------+
+| __repr__    |       | __getitem__   |
+| __setitem__ |       | __init__      |
++-------------+       | __new__       |
+                      | __setitem__   |
+                      | _update_size  |
+                      +---------------+
+
+
+
+
++--------------------------+
+|         EnumMeta         |
+|--------------------------|
+|                          |
++--------------------------+
+            .
+           /_\
+            |
+            |
+            |
+            |
+            |
++--------------------------+
+| RetrieveFromNameEnumMeta |
+|--------------------------|
+| __call__                 |
+| __repr__                 |
++--------------------------+
+
+
+
+
++-------------------------+
+|   _ComponentDescriptor  |
+|-------------------------|
+| name                    |
+| position                |
+|-------------------------|
+| __delete__              |
+| __get__                 |
+| __init__                |
+| __set__                 |
+| __set_name__            |
++-------------------------+
+            .
+           /_\
+            |
+            |
+            |
+            |
+            |
++-------------------------+
+| _ComponentHSVDescriptor |
+|-------------------------|
+| __get__                 |
+| __set__                 |
++-------------------------+
+
+
+
+
++-------------------+
+|       Color       |
+|-------------------|
+| __slots__         |  ---->  [ ColorCompat ]
+| _components       |
+| alpha             |
+| blue              |
+| components        |
+| green             |
+| hsv               |
+| html              |
+| hue               |
+| name              |
+| normalized        |
+| red               |
+| saturation        |
+| special           |
+| value             |
+|-------------------|
+| __add__           |
+| __eq__            |
+| __getitem__       |
+| __init__          |
+| __iter__          |
+| __len__           |
+| __repr__          |
+| __setitem__       |
+| __sub__           |
+| _from_html        |
+| isclose           |
+| normalize_color   |
++-------------------+
+         .
+        /_\
+         |
+         |
+         |
+         |
+         |
++-------------------+
+|    SpecialColor   |
+|-------------------|
+| __slots__         |
+| component_source  |
+| components        |
+| name              |
+| special           |
+|-------------------|
+| __eq__            |
+| __getnewargs_ex__ |
+| __getstate__      |
+| __init__          |
+| __new__           |
++-------------------+
+
+
+
+
++---------------+
+|    Gradient   |
+|---------------|
+| BASE_TYPE     |  ---->  [ UnknownType ]
+| parent        |
+| root          |
+| scale_factor  |
+| stops         |
+|---------------|
+| __getitem__   |
+| __init__      |
+| __repr__      |
+| __setitem__   |
+| interpolate   |
+| scale         |
++---------------+
+       .
+      /_\
+       |
+       |
+       |
+       |
+       |
++---------------+
+| ColorGradient |
+|---------------|
+| BASE_TYPE     |
+|---------------|
+| interpolate   |
++---------------+
+
+
+
+
++-------------------+
+|        Mark       |
+|-------------------|
+| __slots__         |  ---->  [ UnknownType ]
+| affects_text_flow |  ---->  [ V2 ]
+| attributes        |
+| moveto            |
+| pop_attributes    |
+| rmoveto           |
+|-------------------|
+| __init__          |
+| __repr__          |
+| merge             |
++-------------------+
+      .
+     /_\
+      |
+      |
+      |
+      |
+      |
++-------------+
+| SpecialMark |
+|-------------|
+| __slots__   |
+| index       |
+|-------------|
+| __init__    |
++-------------+
+
+
+
+
++---------------------------+
+|         Tokenizer         |
+|---------------------------|
+|                           |
++---------------------------+
+             .
+            /_\
+             |                                                  [ Tokenizer ]
+             |                                                        .
+             |                                                       /_\
+             |                                                        |
+             |                                                        |
++---------------------------+                                  +---------------+
+|        MLTokenizer        |                                  | ANSITokenizer |
+|---------------------------|                                  |---------------|
+| _parser                   |  ---->  [ Mark ]                 |               |
+| mark_sequence             |  ---->  [ StyledSequence ]       +---------------+
+| parsed_text               |
+| raw_text                  |
+| styled_sequence           |
+|---------------------------|
+| __call__                  |
+| __init__                  |
+| _old_regexp_based_parse   |
+| _tokens_to_marks          |
+| annotate_and_strip_tokens |
+| escape                    |
+| expand                    |
+| parse                     |
+| update                    |
++---------------------------+
+
+
+
+
++-------------------+
+|    Transformer    |
+|-------------------|
+| channels          |
+| signatures        |
+|-------------------|
+| __init__          |
+| __repr__          |
+| __setattr__       |
+| _build_signature  |
++-------------------+
+         .
+        /_\
+         |                     [ Transformer ]               [ Transformer ]             [ Transformer ]
+         |                            .                             .                        .
+         |                           /_\                           /_\                      /_\
+         |                            |                             |                        |
+         |                            |                             |                        |
++-------------------+       +---------------------+       +----------------------+       +----------+
+| KernelTransformer |       | GradientTransformer |       | ThresholdTransformer |       | AddAlpha |
+|-------------------|       |---------------------|       |----------------------|       |----------|
+| kernel            |       | channel             |       | invert               |       | pixel    |
+| mask_diags        |       | direction           |       | threshold            |       +----------+
+| policy            |       | gradient            |       |----------------------|
+|-------------------|       | offset              |       | __init__             |
+| __init__          |       | repeat              |       | char                 |
+| char              |       | size                |       +----------------------+
+| kernel_match      |       |---------------------|
++-------------------+       | __init__            |
+                            | _engine             |
+                            | engine              |
+                            | get_gradient_pos    |
+                            +---------------------+
+
+
+
+
++---------------------+
+|    BaseException    |
+|---------------------|
+|                     |
++---------------------+
+          .
+         /_\
+          |
+          |
+          |
+          |
+          |
++---------------------+
+| _GradientOutOfRange |
+|---------------------|
+|                     |
++---------------------+
+
+
+
+
++--------------+
+| HighResBase  |
+|--------------|
+| block_class  |  ---->  [ Drawing ]
+| block_height |
+| block_width  |
+| context      |
+| draw         |
+| height       |
+| parent       |
+| size         |
+| width        |
+|--------------|
+| __init__     |
+| at_parent    |
+| get_at       |
+| get_size     |
+| operate      |
+| print_at     |
+| reset_at     |
+| set_at       |
++--------------+
+    .
+   /_\
+    |
+    |
+    |
+    |
+    |
++----------+
+|  Square  |
+|----------|
+| PixelCls |
+| parent   |
+|----------|
+| __init__ |
+| get_at   |
+| reset_at |
+| set_at   |
++----------+
+
+
+
+
++---------------------+
+|     Subscription    |
+|---------------------|
+| callback            |
+| guard               |
+| queue               |
+| resolution          |
+| subscriptions       |
+| terminated          |
+| types               |
+|---------------------|
+| __aiter__           |
+| __anext__           |
+| __bool__            |
+| __init__            |
+| __repr__            |
+| kill                |
+| prioritize          |
++---------------------+
+          .
+         /_\
+          |
+          |
+          |
+          |
+          |
++---------------------+
+| _SystemSubscription |
+|---------------------|
+| subscriptions       |
++---------------------+
+
+
+
+
++------------------+
+|   KeyboardBase   |
+|------------------|
+| enabled          |
+|------------------|
+| __call__         |
+| __enter__        |
+| __exit__         |
+| __init__         |
+| inkey            |
++------------------+
+        .
+       /_\
+        |                       [ KeyboardBase ]
+        |                              .
+        |                             /_\
+        |                              |
+        |                              |
++------------------+       +-------------------------+
+| _WindowsKeyboard |       |      _PosixKeyboard     |
+|------------------|       |-------------------------|
+| keycodes         |       | _last_pressed_after_ESC |
+|------------------|       | attrs_save              |
+| __enter__        |       | buffer                  |
+| __exit__         |       | enabled                 |
+| inkey            |       | fake_stdin              |
++------------------+       | fd                      |
+                           | flags_save              |
+                           | flush_clicks            |
+                           | keycodes                |
+                           | max_code_len            |
+                           |-------------------------|
+                           | __enter__               |
+                           | __exit__                |
+                           | __init__                |
+                           | _tokenize_input         |
+                           | inkey                   |
+                           | reset                   |
+                           +-------------------------+
+
+
+
+
++----------------+
+|  enum.IntFlag  |
+|----------------|
+|                |
++----------------+
+       .
+      /_\
+       |
+       |
+       |
+       |
+       |
++----------------+
+|  MouseButtons  |
+|----------------|
+| Button1        |
+| Button2        |
+| Button3        |
+| Button4        |
+| Button5        |
+| Button6        |
+| Button7        |
+| MouseWheelDown |
+| MouseWheelUp   |
++----------------+
+
+
+
+
++-----------------------------------------------------+
+|                      SubPixels                      |
+|-----------------------------------------------------|
+| bit_size                                            |
+| block_height                                        |
+| block_width                                         |
+|-----------------------------------------------------|
+| __contains__                                        |
+| __init_subclass__                                   |
+| _op                                                 |
+| get_at                                              |
+| reset                                               |
+| set                                                 |
++-----------------------------------------------------+
+                          .
+                         /_\
+                          |                                     [ SubPixels ]              [ SubPixels ]             [ SubPixels ]
+                          |                                           .                          .                         .
+                          |                                          /_\                        /_\                       /_\
+                          |                                           |                          |                         |
+                          |                                           |                          |                         |
++-----------------------------------------------------+       +------------------+       +------------------+       +---------------+
+|                     BlockChars_                     |       |  SextantChars_   |       |    HalfChars_    |       | BrailleChars_ |
+|-----------------------------------------------------|       |------------------|       |------------------|       |---------------|
+| EMPTY                                               |       | EMPTY            |       | EMPTY            |       | EMPTY         |
+| FULL_BLOCK                                          |       | FULL_BLOCK       |       | FULL_BLOCK       |       | bit_size      |
+| LEFT_HALF_BLOCK                                     |       | LEFT_HALF_BLOCK  |       | LOWER_HALF_BLOCK |       | block_height  |
+| LOWER_HALF_BLOCK                                    |       | RIGHT_HALF_BLOCK |       | UPPER_HALF_BLOCK |       | block_width   |
+| QUADRANT_LOWER_LEFT                                 |       | bit_size         |       | bit_size         |       | char          |
+| QUADRANT_LOWER_RIGHT                                |       | block_height     |       | block_height     |       | locals        |
+| QUADRANT_UPPER_LEFT                                 |       | block_width      |       | block_width      |       |---------------|
+| QUADRANT_UPPER_LEFT_AND_LOWER_LEFT_AND_LOWER_RIGHT  |       | char             |       |------------------|       | _op           |
+| QUADRANT_UPPER_LEFT_AND_LOWER_RIGHT                 |       | locals           |       | _op              |       +---------------+
+| QUADRANT_UPPER_LEFT_AND_UPPER_RIGHT_AND_LOWER_LEFT  |       +------------------+       +------------------+
+| QUADRANT_UPPER_LEFT_AND_UPPER_RIGHT_AND_LOWER_RIGHT |
+| QUADRANT_UPPER_RIGHT                                |
+| QUADRANT_UPPER_RIGHT_AND_LOWER_LEFT                 |
+| QUADRANT_UPPER_RIGHT_AND_LOWER_LEFT_AND_LOWER_RIGHT |
+| RIGHT_HALF_BLOCK                                    |
+| UPPER_HALF_BLOCK                                    |
+| block_height                                        |
+| block_width                                         |
++-----------------------------------------------------+
+
+
+
+
++-----------+
+|    str    |
+|-----------|
+|           |
++-----------+
+     .
+    /_\
+     |
+     |
+     |
+     |
+     |
++-----------+
+| Character |
+|-----------|
+| __slots__ |
+| category  |
+| code      |
+| name      |
+| width     |
+|-----------|
+| __new__   |
+| __repr__  |
++-----------+
+
+
+
+
++------------+
+|    type    |
+|------------|
+|            |
++------------+
+     .
+    /_\
+     |
+     |
+     |
+     |
+     |
++------------+
+| IterableNS |
+|------------|
+| __iter__   |
++------------+
+
+
+
+
++----------------+
+|      Enum      |
+|----------------|
+|                |
++----------------+
+       .
+      /_\
+       |                        [ Enum ]
+       |                           .
+       |                          /_\
+       |                           |
+       |                           |
++----------------+       +---------------------+
+| SpecialColors  |       | _TextStyleSentinels |
+|----------------|       |---------------------|
+| CONTEXT_COLORS |       | RETAIN_POS          |
+| DEFAULT_BG     |       |---------------------|
+| DEFAULT_FG     |       | __repr__            |
+| TRANSPARENT    |       +---------------------+
++----------------+
+
+
+
+
++------------------------+
+| terminedia.Transformer |
+|------------------------|
+|                        |
++------------------------+
+        .
+       /_\
+        |                  [ terminedia.Transformer ]       [ terminedia.Transformer ]
+        |                           .                                 .
+        |                          /_\                               /_\
+        |                           |                                 |
+        |                           |                                 |
++------------------+       +-------------------+            +---------------------+
+| FocusTransformer |       | CursorTransformer |            | SelectorTransformer |
+|------------------|       |-------------------|            |---------------------|
+| bg_color         |       | blink_cycle       |            | effect              |  ---->  [ terminedia.Effects ]
+|------------------|       | effect_table      |            | parent              |
+| background       |       | parent            |            |---------------------|
++------------------+       |-------------------|            | __init__            |
+                           | __init__          |            | effects             |
+                           | effects           |            +---------------------+
+                           +-------------------+
+
+
+
+
++----------------+
+|   ValueError   |
+|----------------|
+|                |
++----------------+
+       .
+      /_\
+       |
+       |
+       |
+       |
+       |
++----------------+
+| TextDoesNotFit |
+|----------------|
+|                |
++----------------+
+
+
+
+
++---------------------------------+                                             +---------------+       +-----------+
+|              Screen             |                                             | CommandsClass |       | time.time |
+|---------------------------------|                                             |---------------|       |-----------|
+| _event_subscriptions            |  ---->  [ CommandsClass ]                   |               |       |           |
+| _inkey_called_since_last_update |  ---->  [ Context ]                         +---------------+       +-----------+
+| _last_setitem                   |  ---->  [ Drawing ]
+| backend                         |  ---->  [ FullShape ]
+| braille                         |  ---->  [ HighRes ]
+| clear_screen                    |  ---->  [ V2 ]
+| commands                        |  ---->  [ terminedia.text.TextPlane ]
+| context                         |  ---->  [ time.time ]
+| data                            |
+| draw                            |
+| dynamic_size                    |
+| full                            |
+| get_size                        |
+| height                          |
+| high                            |
+| interactive                     |
+| last_background                 |
+| last_color                      |
+| last_effects                    |
+| lock                            |
+| pos                             |
+| root_context                    |
+| sextant                         |
+| shape                           |
+| size                            |
+| sprites                         |
+| square                          |
+| text                            |
+| width                           |
+| x                               |
+|---------------------------------|
+| __del__                         |
+| __enter__                       |
+| __exit__                        |
+| __getitem__                     |
+| __init__                        |
+| __repr__                        |
+| __setitem__                     |
+| _init_event_system              |
+| _inkey_pressed_check            |
+| _size_change                    |
+| accelerate                      |
+| at_parent                       |
+| blit                            |
+| clear                           |
+| context                         |
+| get_at                          |
+| get_raw                         |
+| line_at                         |
+| print                           |
+| print_at                        |
+| process_events                  |
+| reset_at                        |
+| set_at                          |
+| update                          |
++---------------------------------+
+
+
+
+
++---------------------------+       +-----------------+       +---------+
+| terminedia.text.TextPlane |       |     Drawing     |       | HighRes |
+|---------------------------|       |-----------------|       |---------|
+|                           |       | _size           |       |         |
++---------------------------+       | context         |       +---------+
+                                    | get             |
+                                    | reset           |
+                                    | set             |
+                                    | size            |
+                                    |-----------------|
+                                    | __init__        |
+                                    | _empty_ellipse  |
+                                    | _filled_ellipse |
+                                    | _link_prev      |
+                                    | bezier          |
+                                    | blit            |
+                                    | ellipse         |
+                                    | fill            |
+                                    | floodfill       |
+                                    | line            |
+                                    | rect            |
+                                    +-----------------+
+
+
+
+
++-----------------+       +------------------+       +------------------------+
+| OrderedRegistry |       | _UNDO_START_MARK |       | _UNDO_IN_PROGRESS_MARK |
+|-----------------|       |------------------|       |------------------------|
+| data            |       |                  |       |                        |
+| rects           |       +------------------+       +------------------------+
+| sources         |
+| untie           |
+|-----------------|
+| __init__        |
+| __iter__        |
+| __repr__        |
+| push            |
+| reset           |
+| reset_to        |
++-----------------+
+
+
+
+
++-----------------+                         +--------------+                      +-----------------+
+| ShalowShapeRepr |                         |     Rect     |                      | Grapheme2DArray |
+|-----------------|                         |--------------|                      |-----------------|
+| cls             |  ---->  [ Shape ]       | __slots__    |  ---->  [ V2 ]       | data            |  ---->  [ V2 ]
+| data            |                         | _c1          |                      | encoding        |
+| size            |                         | _c2          |                      | linear_size     |
+|-----------------|                         | area         |                      | size            |
+| __init__        |                         | as_int       |                      | wordsize        |
+| restore         |                         | as_tuple     |                      |-----------------|
+| text            |                         | bottom       |                      | __delitem__     |
++-----------------+                         | c1           |                      | __getitem__     |
+                                            | c2           |                      | __init__        |
+                                            | center       |                      | __repr__        |
+                                            | height       |                      | __setitem__     |
+                                            | left         |                      +-----------------+
+                                            | right        |
+                                            | size         |
+                                            | top          |
+                                            | width        |
+                                            | width_height |
+                                            |--------------|
+                                            | __add__      |
+                                            | __contains__ |
+                                            | __eq__       |
+                                            | __init__     |
+                                            | __iter__     |
+                                            | __len__      |
+                                            | __repr__     |
+                                            | __sub__      |
+                                            | collide      |
+                                            | intersection |
+                                            | iter_cells   |
+                                            +--------------+
+
+
+
+
++----------------+       +-------------+       +------------------+
+| threading.Lock |       | ColorCompat |       | LazyBindProperty |
+|----------------|       |-------------|       |------------------|
+|                |       |             |       | initializer      |
++----------------+       +-------------+       | name             |
+                                               | type             |
+                                               |------------------|
+                                               | __call__         |
+                                               | __get__          |
+                                               | __init__         |
+                                               | __set__          |
+                                               | __set_name__     |
+                                               +------------------+
+
+
+
+
++--------------------+                                     +----------------+                                     +-------------------+
+| ObservableProperty |                                     |   ClassCache   |                                     | WeakKeyDictionary |
+|--------------------|                                     |----------------|                                     |-------------------|
+| callbacks          |  ---->  [ WeakKeyDictionary ]       | cached_methods |  ---->  [ WeakKeyDictionary ]       |                   |
+| fdel               |                                     | instances      |                                     +-------------------+
+| fget               |                                     |----------------|
+| fset               |                                     | __init__       |
+| name               |                                     | cached         |
+| next_handler_id    |                                     | cached_prop    |
+| owner              |                                     | invalidate     |
+| registry           |                                     | wrapper        |
+|--------------------|                                     +----------------+
+| __delete__         |
+| __get__            |
+| __init__           |
+| __repr__           |
+| __set__            |
+| __set_name__       |
+| _default_deleter   |
+| _default_getter    |
+| _default_setter    |
+| _simple_storage    |
+| deleter            |
+| eraser             |
+| execute            |
+| register           |
+| setter             |
+| unregister         |
++--------------------+
+
+
+
+
++-------------+                               +-------------+       +---------+
+|   RangeMap  |                               | UnknownType |       | Layouts |
+|-------------|                               |-------------|       |---------|
+| stops       |  ---->  [ UnknownType ]       |             |       | normal  |
+|-------------|                               +-------------+       +---------+
+| __getitem__ |
+| __init__    |
+| __repr__    |
++-------------+
+
+
+
+
++-------------------+                              +------------------+                                   +------------+
+| _RecordingControl |                              |    TextPlane     |                                   | RenderData |
+|-------------------|                              |------------------|                                   |------------|
+| active            |  ---->  [ RenderData ]       | _render_lock     |  ---->  [ threading.Lock ]        |            |
+| data              |                              | height           |  ---->  [ threading.RLock ]       +------------+
+|-------------------|                              | locals           |
+| __bool__          |                              | lock             |
+| __enter__         |                              | owner            |
+| __exit__          |                              | pad_left         |
+| __init__          |                              | padding          |
+| register          |                              | planes           |
++-------------------+                              | rect             |
+                                                   | size             |
+                                                   | transformers_map |
+                                                   | width            |
+                                                   |------------------|
+                                                   | __getitem__      |
+                                                   | __init__         |
+                                                   | __setitem__      |
+                                                   | _build_plane     |
+                                                   | _checkplane      |
+                                                   | at               |
+                                                   | extents          |
+                                                   | pos_to_text_cell |
+                                                   | reset_marks      |
+                                                   | reset_padding    |
+                                                   +------------------+
+
+
+
+
++-----------------+       +-----------------------+                                   +-----------------+
+| threading.RLock |       |     StyledSequence    |                                   | threading.local |
+|-----------------|       |-----------------------|                                   |-----------------|
+|                 |       | _active_transformers  |  ---->  [ Context ]               |                 |
++-----------------+       | _last_index_processed |  ---->  [ V2 ]                    +-----------------+
+                          | _parent_context_data  |  ---->  [ threading.local ]
+                          | _sanity_counter       |
+                          | context               |
+                          | cooked_text           |
+                          | current_position      |
+                          | locals                |
+                          | mark_sequence         |
+                          | marks                 |
+                          | parent_context        |
+                          | starting_point        |
+                          | text                  |
+                          | text_plane            |
+                          |-----------------------|
+                          | __init__              |
+                          | __iter__              |
+                          | _context_push         |
+                          | _enter_iteration      |
+                          | _get_position_at      |
+                          | _prepare_context      |
+                          | _process_to           |
+                          | _remove_transformers  |
+                          | _reprocess_from_start |
+                          | _reset_context        |
+                          | render                |
+                          +-----------------------+
+
+
+
+
++--------------+       +-----------+                             +-----------------+
+|  ContextVar  |       |   Event   |                             | _posix_KeyCodes |
+|--------------|       |-----------|                             |-----------------|
+| default      |       | tick      |  ---->  [ time.time ]       | BACK            |
+| name         |       | timestamp |                             | DELETE          |
+| type         |       | type      |                             | DOWN            |
+|--------------|       |-----------|                             | END             |
+| __get__      |       | __init__  |                             | ENTER           |
+| __init__     |       | __repr__  |                             | ESC             |
+| __set__      |       | copy      |                             | F1              |
+| __set_name__ |       +-----------+                             | F10             |
++--------------+                                                 | F11             |
+                                                                 | F12             |
+                                                                 | F2              |
+                                                                 | F3              |
+                                                                 | F4              |
+                                                                 | F5              |
+                                                                 | F6              |
+                                                                 | F7              |
+                                                                 | F8              |
+                                                                 | F9              |
+                                                                 | HOME            |
+                                                                 | INSERT          |
+                                                                 | LEFT            |
+                                                                 | PGDOWN          |
+                                                                 | PGUP            |
+                                                                 | RIGHT           |
+                                                                 | SHIFT_TAB       |
+                                                                 | TAB             |
+                                                                 | UP              |
+                                                                 | codes           |
+                                                                 +-----------------+
+
+
+
+
++-----------------+       +------------------------+       +---------------------+
+| _win32_KeyCodes |       |         _Mouse         |       |        Sprite       |
+|-----------------|       |------------------------|       |---------------------|
+| BACK            |       | CLICK_THRESHOLD        |       | __dict__            |  ---->  [ TransformersContainer ]
+| DELETE          |       | DOUBLE_CLICK_THRESHOLD |       | _pos                |  ---->  [ V2 ]
+| DOWN            |       | enabled                |       | absrect             |
+| END             |       | keyboard               |       | active              |
+| ENTER           |       | last_click             |       | anchor              |
+| ESC             |       | last_press             |       | dirty_previous_rect |
+| F1              |       | on_hold_clicks         |       | dirty_rects         |
+| F10             |       |------------------------|       | pos                 |
+| F11             |       | __call__               |       | rect                |
+| F12             |       | __enter__              |       | shape               |
+| F2              |       | __exit__               |       | shapes              |
+| F3              |       | __init__               |       | size                |
+| F4              |       | flush_clicks           |       | tick_cycle          |
+| F5              |       | match                  |       | transformers        |
+| F6              |       +------------------------+       | zindex              |
+| F7              |                                        |---------------------|
+| F8              |                                        | __init__            |
+| F9              |                                        | _check_and_promote  |
+| HOME            |                                        | get_at              |
+| INSERT          |                                        | kill                |
+| LEFT            |                                        | owner_coords        |
+| PGDOWN          |                                        | raise_              |
+| PGUP            |                                        +---------------------+
+| RIGHT           |
+| SHIFT_TAB       |
+| TAB             |
+| UP              |
+| codes           |
++-----------------+
+
+
+
+
++------------+                               +-------------+       +------+
+| UnblockTTY |                               | fcntl.fcntl |       | Lock |
+|------------|                               |-------------|       |------|
+| fake_stdin |  ---->  [ fcntl.fcntl ]       |             |       |      |
+| fd         |                               +-------------+       +------+
+| flags_save |
+|------------|
+| __enter__  |
+| __exit__   |
++------------+
+
+
+
+
++---------------------+       +------------+       +-------------------+
+|     GraphemeIter    |       | Directions |       | RelativeMarkIndex |
+|---------------------|       |------------|       |-------------------|
+| __dict__            |       | DOWN       |       | name              |
+| _current_char       |       | LEFT       |       | offset            |
+| _current_grapheme   |       | RIGHT      |       |-------------------|
+| text                |       | UP         |       | __add__           |
+|---------------------|       |------------|       | __eq__            |
+| __init__            |       | __iter__   |       | __hash__          |
+| __iter__            |       +------------+       | __init__          |
+| __len__             |                            | __radd__          |
+| iter_cooked_indexes |                            | __repr__          |
+| text_setter         |                            | __rsub__          |
++---------------------+                            | __sub__           |
+                                                   | evaluate          |
+                                                   | evaluate_position |
+                                                   +-------------------+
+
+
+
+
++--------------+       +-------------------------+                          +-----------+
+| WidgetEvents |       |    WidgetEventReactor   |                          | ModalMisc |
+|--------------|       |-------------------------|                          |-----------|
+| OVERFILL     |       | _focus                  |  ---->  [ Widget ]       | __init__  |
+| UNREACHABLE  |       | focus                   |                          +-----------+
++--------------+       | focus_order             |
+                       | last_focused_index      |
+                       | main_mouse_subscription |
+                       | registry                |
+                       |-------------------------|
+                       | __delitem__             |
+                       | __init__                |
+                       | _tab_change_focus       |
+                       | focus_next              |
+                       | focus_previous          |
+                       | inner_click             |
+                       | move_to_focus_position  |
+                       | register                |
+                       | screen_click            |
+                       | screen_double_click     |
+                       +-------------------------+
+
+
+
+
++--------------------+       +-------------------+       +-----------------------------------------+
+| terminedia.Effects |       | terminedia.Sprite |       |                  Lines                  |
+|--------------------|       |-------------------|       |-----------------------------------------|
+|                    |       |                   |       | _last_event                             |
++--------------------+       +-------------------+       | parent                                  |
+                                                         | soft_lines                              |
+                                                         |-----------------------------------------|
+                                                         | __init__                                |
+                                                         | _count_empty_hardlines                  |
+                                                         | _hard_line_capacity_for_given_soft_line |
+                                                         | _hard_load_from_soft_lines              |
+                                                         | _set                                    |
+                                                         | _soft_line_exceeded_space               |
+                                                         | _soft_lines_spams                       |
+                                                         | del_                                    |
+                                                         | get_index_in_soft_line                  |
+                                                         | hard_line_indexes                       |
+                                                         | hard_line_map                           |
+                                                         | hard_line_number                        |
+                                                         | hard_lines                              |
+                                                         | insert                                  |
+                                                         | len_hard_lines                          |
+                                                         | reload                                  |
+                                                         | set                                     |
+                                                         | soft_line_map                           |
+                                                         | soft_lines_spams                        |
+                                                         +-----------------------------------------+
+
+
+
+
++---------------------+
+|       Editable      |
+|---------------------|
+| _displayed_value    |  ---->  [ Lines ]
+| context             |  ---->  [ RangeMap ]
+| display_size        |
+| focus               |
+| full_text           |
+| impossible_pos      |
+| indexes_from        |
+| indexes_to          |
+| initial_direction   |
+| initial_pos         |
+| insertion           |
+| last_text_data      |
+| line_indexes        |
+| line_sep            |
+| lines               |
+| parent              |
+| pos                 |
+| raw_value           |
+| shaped_value        |
+| text                |
+| text_offset         |
+| text_pathto_map     |
+| text_size           |
+| text_space          |
+| tick                |
+| value               |
+|---------------------|
+| __init__            |
+| build_value_indexes |
+| change              |
+| events              |
+| get_next_pos_from   |
+| keypress            |
+| kill                |
+| regen_text          |
+| reset_full_text     |
++---------------------+
