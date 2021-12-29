@@ -1459,6 +1459,7 @@ class FullShape(RasterUndo, Shape):
 
             if offset2:
                 self.data[offset2, pos[1]] = pixel2
+            # If undo is inactive, `pixel` is an mutable list that had already changed inplace.
 
     def _resize_data(self, new_size):
         return
@@ -1483,6 +1484,16 @@ class FullShape(RasterUndo, Shape):
         draw.blit((0,0), other_shape)
 
         return new_shape
+
+    def clear(self, transparent=False):
+        # fast clear implementation.
+        # Default path blits a shape-sized rectangle with multiple calls
+        # NB: clear resets to EMPTY, DEFAULT_FG, DEFAULT_BG, NONE always,
+        # context values are not taken in account
+        if not transparent and not self.undo_active:
+            self.data.clear()
+            return
+        super().clear(transparent=transparent)
 
 
 class ShalowShapeRepr:
