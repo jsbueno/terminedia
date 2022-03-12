@@ -126,7 +126,6 @@ class ScreenCommands(BackendColorContextMixin):
         self.__class__.last_pos = None
         self.absolute_movement = absolute_movement
         self.force_newlines = force_newlines
-        self._rendering = False  # to be externally set as an workaround when clonning another image to a file
 
     def __repr__(self):
         return "".join(
@@ -392,11 +391,7 @@ class ScreenCommands(BackendColorContextMixin):
 
                 if delta_x > 0:
                     self.right(delta_x, file=file)
-                elif delta_x < 0 and not self._rendering:
-                    # FIXME: something if off by one when blitting a source image
-                    # generating erroneous delta_x = -1 here.
-                    # working around by skipping these left movements when rendering to an external file.
-                    # (._rendering flag is set in .image.Shape._render_using_screen
+                elif delta_x < 0:
                     self.left(-delta_x, file=file)
 
 

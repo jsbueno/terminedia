@@ -149,6 +149,8 @@ class JournalingCommandsMixin(BackendColorContextMixin):
             return
 
         self.in_block -= 1
+        if self.in_block < 0:
+            self.in_block = 0
         if self.in_block == 0:
             self.replay()
 
@@ -177,7 +179,7 @@ class JournalingCommandsMixin(BackendColorContextMixin):
         text sequence in an optmized top-left to bottom-right stream with the appropriate backend commands
         to position each character (and set colors, etc...).
         (note it should be a text-file, if any of the characters to be rendered
-        is not valid in the file inner encoding, it will rase an UnicodeEncode error).
+        is not valid in the file inner encoding, it will raise an UnicodeEncode error).
 
         """
         last_color = last_bg = None
@@ -218,8 +220,13 @@ class JournalingCommandsMixin(BackendColorContextMixin):
 
             writer(char)
 
-            width = (char_width(char), 0)
-            last_pos += width
+            last_pos += 1, 0
+            # TODO: decide what to do with larger than 1 block characters.
+            # Advance "last_pos"? Pad with an empty space?
+            # the code bellow resulted in a bug when rendering otherwise well behaved "shade" blocks that
+            # are listed as havin an unconventional width:
+            # width = (char_width(char), 0)
+            # last_pos += width, 0
             self.__class__.last_pos = last_pos
 
         if not original_file and single_write:
