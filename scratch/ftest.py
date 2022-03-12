@@ -17,4 +17,19 @@ def main():
 
     print(picker.value)
 
-main()
+
+def done(widget, event):
+    sc.clear()
+    TM.print_at((0, 0), widget.value)
+    TM.events.Event(TM.events.QuitLoop)
+
+def main_entry():
+    global sc
+    sc = TM.Screen()
+    e = TM.widgets.Entry(sc, pos=(0,0), width=5, text_plane=4, enter_callback=lambda w, event: print(w.value), text_size=10, value="012345678", offset=4)
+    loop = asyncio.run(TM.terminedia_main(sc))
+
+
+
+if __name__ == "__main__":
+    main_entry()

@@ -491,9 +491,9 @@ class Editable:
 
     def reset_full_text(self):
 
-        value = self.full_text[:self.offset]
+        value = self.full_text[:self.text_offset]
         value += self._displayed_value
-        value += self.full_text[self.offset + self.display_size:]
+        value += self.full_text[self.text_offset + self.display_size:]
         self.full_text = value
 
     @property
@@ -567,7 +567,17 @@ class Editable:
                     index = self.lines.insert(index, key)
                 except TextDoesNotFit:
                     # WIP: take in account text_size and larger-than display text here
-                    self.events(OVERFILL)
+                    if self.full_text >= self.text_size:
+                        self.events(OVERFILL)
+                    else:
+                        if self.pos == (self.text.size(-1, -1)):
+                            # change full_text offset, re-render and insert char at end
+                            # WIP
+                            pass
+                        else:
+                            # WIP: push full text forward
+                            # insert charater at position
+                            pass
                     return
             else:
                 # WIP: take in account text_size here
