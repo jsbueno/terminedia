@@ -21,7 +21,10 @@ Targeted for minor 0.4 releases:
             - try making this  work at least with plain vertical text besides normal left-to-right layout.
         - implement "begin" and "end" cursor movement behavior
     -file-selector widget [WIP] (see bellow)
-
+    - Better constructors for
+        - color [wip]
+        - gradients
+    - More pre-built transformers in the library
 
 
 Targeted for release (0.4):

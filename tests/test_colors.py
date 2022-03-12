@@ -1,4 +1,5 @@
 import inspect
+import math
 from inspect import signature
 
 import pytest
@@ -16,6 +17,18 @@ def test_color_by_int_works():
 
 def test_color_by_float_works():
     c = Color((1.0, 0, 0))
+    assert tuple(c.components) == (255, 0, 0)
+    c = Color((0.5, 0, 0))
+    assert math.isclose(tuple(c.components)[0], 127, abs_tol=1)
+    assert tuple(c.components)[1] == 0
+    assert tuple(c.components)[2] == 0
+
+def test_color_by_int_three_component_works():
+    c = Color(255, 0, 0)
+    assert tuple(c.components) == (255, 0, 0)
+
+def test_color_by_float_three_component_works():
+    c = Color(1.0, 0, 0)
     assert tuple(c.components) == (255, 0, 0)
 
 def test_color_by_hex3_works():
