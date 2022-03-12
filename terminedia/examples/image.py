@@ -85,12 +85,6 @@ def main(image_paths, size=None, output="", backend="", resolution=""):
                 original_sp.transformers.append(Shade())
 
             if output:
-                if shaded:  # Rendering to output would ignore sprites and transformers:
-                            # pre-render:
-                    new_img = shape(img.size)
-                    new_img.draw.blit((0,0), img)
-                    # img.sprites[0].transformers.bake(original, target=new_img)
-                    img = new_img
                 img.render(output=output_file, backend=backend)
                 output_file.write("\n")
             else:

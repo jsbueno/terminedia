@@ -690,6 +690,7 @@ class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
             sc.commands.__class__.last_pos = V2(0, 0)
             sc.commands.absolute_movement = False
             sc.commands.force_newlines = True
+            sc.commands._rendering = True
         # Starts recording all image operations on the internal journal
         sc.commands.__enter__()
         sc.blit((0, 0), self)
