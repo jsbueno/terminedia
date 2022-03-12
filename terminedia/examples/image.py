@@ -4,7 +4,7 @@ import click
 
 from terminedia import shape, Screen, pause, Effects, V2
 from terminedia.utils import size_in_pixels, size_in_blocks
-from terminedia.transformers.library import ThresholdTransformer
+from terminedia.transformers.library import ThresholdTransformer, Shade
 
 
 basepath = Path(__file__).parent
@@ -45,11 +45,17 @@ class DummyCtx:
     "resolution",
     "--resolution",
     "-r",
-    type=click.Choice(['square', 'high', 'sextant', 'braille', ''], case_sensitive=False),
+    type=click.Choice(['square', 'high', 'sextant', 'braille', 'shade', ''], case_sensitive=False),
     default="",
-    help="Text resolution to load image"
+    help="Text resolution to load image."
 )
-def main(image_paths, size=None, output="", backend="", resolution=""):
+@click.option(
+    "gradient",
+    "--gradient",
+    default="",
+    help="When rendering to 'shade', optional string with character gradient to simulate color values"
+)
+def main(image_paths, size=None, output="", backend="", resolution="", gradient=""):
     """Displays an image, given in a path, on the terminal.
     """
     # TODO add more options to control the output,
@@ -64,9 +70,10 @@ def main(image_paths, size=None, output="", backend="", resolution=""):
     if output:
         output_file = open(output, "wt", encoding="utf-8")
         context = DummyCtx()
+    shaded = resolution == "shade"
     with context:
         for img_path in image_paths:
-            if not resolution:
+            if not resolution or resolution == "shade":
                 img = shape(img_path, size=size)
             elif resolution == "square":
                 img = shape(img_path, size=size, promote=True, resolution=resolution)
@@ -76,6 +83,12 @@ def main(image_paths, size=None, output="", backend="", resolution=""):
                 img = shape(size_in_blocks(size, resolution))
                 preliminar_img.context.transformers.append(ThresholdTransformer(invert=False))
                 getattr(img, resolution).draw.blit((0, 0), preliminar_img)
+
+            if shaded:
+                original = img
+                img = shape(img.size)
+                original_sp = img.sprites.add(original)
+                original_sp.transformers.append(Shade(*([] if not gradient else [gradient])))
 
             if output:
                 img.render(output=output_file, backend=backend)

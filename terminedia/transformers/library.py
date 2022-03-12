@@ -119,6 +119,29 @@ class AddAlpha(Transformer):
 AddAlpha = AddAlpha()
 Dilate = KernelTransformer(kernel_dilate)
 
+class Shade(Transformer):
 
+    def __init__(self, char_gradient=' ░▒▓█', grayscale=False, reverse=False):
+        self.char_gradient = char_gradient
+        self.grayscale = grayscale
+        self.reverse = reverse
+        super().__init__()
 
+    def foreground(self, foreground):
+        if self.grayscale:
+            return values.DEFAULT_FG
+        else:
+            if not isinstance(foreground, Color):
+                foreground = Color(foreground)
+            foreground.value = 1
+            return foreground
+
+    def char(self, foreground):
+        if not isinstance(foreground, Color):
+                foreground = Color(foreground)
+        scale = len(self.char_gradient) - 1
+        return self.char_gradient[int(round(foreground.value * scale))]
+
+# keep around to play with checker-coarseness at some point:
+# scale = ' ░▒🮖▞▚🮕▒▓█'
 del Transformer, kernel_table_ascii, variant, LazyDict

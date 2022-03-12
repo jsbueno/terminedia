@@ -1,6 +1,7 @@
 import math
-import numbers
 import typing as T
+from collections.abc import Sequence, Iterable
+from numbers import Real
 
 from colorsys import rgb_to_hsv, hsv_to_rgb
 
@@ -62,15 +63,17 @@ class _ComponentHSVDescriptor(_ComponentDescriptor):
         instance.hsv = hsv
 
 
-ColorCompat = T.Union["Color", T.Sequence[numbers.Real], str]
-
-
 class Color:
     """One Color class to Rule then all
 
       Args:
         - value: 3-sequence with floats in 0-1.0 range, or int in 0-255 range, or a string with
-                 color in HTML hex notation (3 or 6 digits) or HTML (css) color name
+                 color in HTML hex notation (3 or 6 digits) or HTML (css) color name, or
+                 single number for red component
+        - g: single number for green component
+        - b: single number for blue component
+        - alpha:
+        - hsv: 3-sequence with HSV value for color (other components must be left blank)
 
     """
 
@@ -93,13 +96,32 @@ class Color:
             self._components[i] = value
         self.name = ""
 
-    def __init__(self, value: ColorCompat=None, hsv=None):
+
+    # temptative typehinting.
+    @T.overload
+    def __init__(self, value: T.Union[Sequence[Real] | Iterable[Real]]): pass
+    @T.overload
+    def __init__(self, value: Real): pass
+    @T.overload
+    def __init__(self, red: Real, green: Real, blue: Real, alpha: T.Optional[Real], /): pass
+    @T.overload
+    def __init__(self, *, hsv: T.Union[Sequence[Real] | Iterable[Real]]): pass
+
+    def __init__(self, value=None, g=None, b=None, alpha=None, /, *, hsv=None):
         self._components = bytearray(b"\x00\x00\x00\xff")
         self.special = None
         self.name = ""
-        if value is None and hsv is not None:
-            self.hsv = hsv
-            return
+        if not hasattr(value, "__len__") and not hasattr(value, "__iter__"):
+            if g is not None and b is not None:
+                value = (value, g, b, alpha or 0xff)
+            elif value is None and hsv is not None:
+                self.hsv = hsv
+                return
+            elif isinstance(value, Real) and g is None and b is None:
+                value = (value, value, value)  # use passed value as a gray-level
+            else:
+                raise ValueError("Pass either 3-components or a sequence of 3/4 components to create a color")
+
         if isinstance(value, Color):
             self.components = value.components
             self.special = value.special
@@ -173,15 +195,14 @@ class Color:
         returns: Color constant, or 3-sequence normalized to 0-255 range.
         """
 
-        if isinstance(components, (int, float)):
-            components = (components, components, components)
-        else:
-            components = tuple(components)
+        components = tuple(components)
         if isinstance(components, tuple) and components in _colors_cache:
             return _colors_cache[components]
 
-        if all(0 <= c <= 1.0 for c in components):
-            color = tuple(int(c * 255) for c in components)
+        if all(0 <= c <= 1.0 for c in components[:3]):
+            color = tuple(int(c * 255) for c in components[:3])
+            if len(components) == 4:
+                color += ((components[3] if isinstance(components[3], int) else int(components[3] * 255)) ,)
         else:
             color = components
         _colors_cache[tuple(components)] = color
@@ -213,7 +234,7 @@ class Color:
     def hsv(self, values):
         self.components = self.normalize_color(hsv_to_rgb(*values))
 
-    def isclose(self, other: ColorCompat, abs_tol=3) -> bool:
+    def isclose(self, other, abs_tol=3) -> bool:
         """Returns True if the other color components are close to this color.
 
         The RGB components are compared, using the 0-255 number range

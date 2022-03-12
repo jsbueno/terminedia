@@ -8,6 +8,7 @@ from terminedia import Color
 from terminedia.utils import combine_signatures, TaggedDict, HookList
 from terminedia.utils.descriptors import ObservableProperty
 from terminedia.utils import Rect, V2, ColorGradient, Gradient, EPSILON
+from terminedia.utils.gradient import _unit_stops
 
 
 def test_gradient_works():
@@ -17,6 +18,22 @@ def test_gradient_works():
     assert gr[0] == Color((0, 0, 0))
     assert gr[1] == Color((1, 1, 1))
     assert gr[.5] == Color((0.5, 0.5, 0.5))
+
+
+def test_gradient_works_with_implicit_stops():
+    gr = ColorGradient([(0, 0, 0), (1, 1, 1)])
+
+    assert isinstance(gr[0], Color)
+    assert gr[0] == Color((0, 0, 0))
+    assert gr[1] == Color((1, 1, 1))
+    assert gr[.5] == Color((0.5, 0.5, 0.5))
+
+    gr = ColorGradient([(0, 0, 0), (1, 1, 1), (255, 0, 0)])
+
+    assert isinstance(gr[0], Color)
+    assert gr[0] == Color((0, 0, 0))
+    assert gr[0.5] == Color((255, 255, 255))
+    assert gr[1.0] == Color((255, 0, 0))
 
 
 def test_gradient_with_single_stop_works_after_stop():
@@ -145,3 +162,9 @@ def test_gradient_scale_works_in_already_scaled_gradients():
     gr2 = gr.scale(10)
     gr3 = gr2.scale(10)
     assert gr3.scale_factor == 100
+
+
+def test__unit_stops():
+    assert list(_unit_stops(2)) == [0, 1]
+    assert list(_unit_stops(3)) == [0, .5, 1]
+    assert list(_unit_stops(5)) == [0, .25, .5, .75, 1]
