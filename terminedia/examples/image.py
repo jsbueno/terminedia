@@ -49,7 +49,13 @@ class DummyCtx:
     default="",
     help="Text resolution to load image."
 )
-def main(image_paths, size=None, output="", backend="", resolution=""):
+@click.option(
+    "gradient",
+    "--gradient",
+    default="",
+    help="When rendering to 'shade', optional string with character gradient to simulate color values"
+)
+def main(image_paths, size=None, output="", backend="", resolution="", gradient=""):
     """Displays an image, given in a path, on the terminal.
     """
     # TODO add more options to control the output,
@@ -82,7 +88,7 @@ def main(image_paths, size=None, output="", backend="", resolution=""):
                 original = img
                 img = shape(img.size)
                 original_sp = img.sprites.add(original)
-                original_sp.transformers.append(Shade())
+                original_sp.transformers.append(Shade(*([] if not gradient else [gradient])))
 
             if output:
                 img.render(output=output_file, backend=backend)
