@@ -21,9 +21,9 @@ Targeted for minor 0.4 releases:
             - try making this  work at least with plain vertical text besides normal left-to-right layout.
         - implement "begin" and "end" cursor movement behavior
     -file-selector widget [WIP] (see bellow)
-    - Better constructors for
-        - color [wip]
-        - gradients
+    - Better constructors for [wip]
+        - color [v]
+        - gradients [v]
     - More pre-built transformers in the library
 
 
@@ -37,7 +37,7 @@ Targeted for release (0.4):
     - [bug] 'add_border' in text planes only working for plane[1] [v]
     - [bug] top level ScreenMenu being redrawn everyframe. App gets slugish: [v]
         - dirty_rect clear on display shape was not propagating to the sprites shapes [v]
-            - sprites with "tick" transforms are stil always dirty [v]
+            - sprites with "tick" transforms are still always dirty [v]
 ========================================
 
 

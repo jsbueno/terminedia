@@ -11,16 +11,25 @@ from .colors import Color
 #: color immediatelly after or immediatelly before an existing stop:
 EPSILON = .0000001
 
+def _unit_stops(n):
+    if n <= 1:
+        yield 1
+        return
+    f  = (1 / (n -1)) / (1 / n)
+    for i in range(n):
+        yield round((i / n) * f, 7)
 
 class Gradient:
 
     BASE_TYPE = float
 
-    def __init__(self, stops: T.Sequence[T.Tuple[float, T.Any]]):
+    def __init__(self, stops: T.Sequence[T.Union[T.Tuple[float, T.Any], T.Any]]):
         """Define a gradient.
         Args:
-           stops: list where each component is a 2-tuple - the first item
-           is a 0<= numbr <= 1, the second is a value of the type to be interpolated.
+           stops: list where each component is either a 2-tuple where the first item
+           is a 0<= numbr <= 1, the second is a value of the type to be interpolated,
+           or just a list of types to be interpolated (the type must not have __len__ or have a length!= 2):
+           the stop points from 0 to 1 will be evenly spaced.
            The base Gradient class works with float numbers. Subclasses like
            ColorGradient interpolate other kind of values.
 
@@ -28,6 +37,10 @@ class Gradient:
         """
         # Promote stops[1] to proper colors:
         self.parent = None
+        stops = list(stops)
+        if len(stops) and (not hasattr(stops[0], "__len__") or len(stops[0]) != 2):
+            stops = zip(_unit_stops(len(stops)), stops)
+
         stops = [(stop[0], self.BASE_TYPE(stop[1]), *stop[2:]) for stop in stops]
         self.stops = sorted(stops, key=lambda stop: (stop[0], stops.index(stop)))
         # "root" gradients are always 0-1 range. Use the .scale method to get
