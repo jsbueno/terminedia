@@ -120,6 +120,16 @@ AddAlpha = AddAlpha()
 Dilate = KernelTransformer(kernel_dilate)
 
 class Shade(Transformer):
+    """Will output a character from a given sequence based on the input pixel
+    foreground color. The idea is that the highest the color value, The
+    most "filled" the character.
+
+    Args:
+        - char_gradient: a string sequence with the characters to be used on the mapping
+        - grayscale (bool): whether to keep the original hue (and set value to 1) or use the context color for all pixels
+        - reverse; whether to reverse the gradient being used
+
+    """
 
     def __init__(self, char_gradient=' ░▒▓█', grayscale=False, reverse=False):
         self.char_gradient = char_gradient
@@ -127,9 +137,9 @@ class Shade(Transformer):
         self.reverse = reverse
         super().__init__()
 
-    def foreground(self, foreground):
+    def foreground(self, foreground, context):
         if self.grayscale:
-            return values.DEFAULT_FG
+            return context.foreground
         else:
             if not isinstance(foreground, Color):
                 foreground = Color(foreground)

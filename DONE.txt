@@ -10,6 +10,12 @@
         - Terminedia Effects can be used as strings
         - accept markup strings (just like screen.text[1])
     - Terminedia effects repr now list all available effects
+    - Better constructor signatures for color and gradients
+        - colors: allow 3 sequential parameters as RGB components instead of requiring a sequence in the first parameter
+        - Gradients: the "stop position" for each gradient stop is now optional, if not given, values passed are evenly distributed
+    - TM.transformers.library.Shade will convert the color values of an image to a corresponding character in a given string.
+            (the most classic "asciiartification" effect)
+
 
 version 0.4.2
 ==============

@@ -1,7 +1,7 @@
 Targeted for release (0.5):
 =================================
 
-    - create an ANSI Sequence parser based on the MLTkenizer parser.
+    - create an ANSI Sequence parser based on the MLTokenizer parser.
     - "with Screen()" behavior will change to automatically enable mouse capture and real-time keyboard
         - i.e. "with TM.Screen() as sc:" will become equivalent to 0.4 "with TM.Screen() as sc, TM.keyboard, TM.mouse:"
 
@@ -20,10 +20,7 @@ Targeted for minor 0.4 releases:
         - "back" from beggining position and "forward" from last position should scroll text
             - try making this  work at least with plain vertical text besides normal left-to-right layout.
         - implement "begin" and "end" cursor movement behavior
-    -file-selector widget [WIP] (see bellow)
-    - Better constructors for [wip]
-        - color [v]
-        - gradients [v]
+    - file-selector widget [WIP] (see bellow)
     - More pre-built transformers in the library
 
 
