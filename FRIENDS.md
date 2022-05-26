@@ -18,7 +18,7 @@ that are used as pixels.
 # Install this for best experience with Unicode 13.0 Sextant characters
 https://github.com/rbanffy/3270font
 
-# CMDER terminl emulator
+# CMDER terminal emulator
 https://cmder.net/
 Rather complete terminal experience made available under Windows.
 AMong other things, allow easy configuring of the fonts to be used
@@ -27,7 +27,21 @@ simply won´t work.
 
 
 And now for some similar projects
-=======================================
+======================================
+
+#   - textual
+Textual is a TUI (Text User Interface) framework for Python inspired by modern web development.
+https://pypi.org/project/textual/
+
+# python-prompt-toolkit
+Mature project for creating terminal GUI with mouse support and widgets -
+(including, for examle, a Python VIM clone)
+https://github.com/prompt-toolkit/python-prompt-toolkit
+
+#   - gemini engine
+a monospace 2D ASCII rendering engine. It includes collisions, layers, inputs and the ability to handle solid objects as well as ascii art.
+https://github.com/redpenguinyt/GeminiEngine
+
 
 # Plotting using Braille characters (Lua)
 https://github.com/asciimoo/lua-drawille
@@ -44,9 +58,12 @@ https://github.com/kovidgoyal/kitty
 # Colored and ANSI effects printing on terminal:
 
 #   - termcolor
+Old project for simplify colored and terminal effects output
 https://pypi.org/project/termcolor/
 
 #   - rich
+Easy to use colors and terminal effects, colorization of all kinds of
+outputs, base for a lot of other projects
 https://pypi.org/project/rich/
 
 #   - colorama
@@ -54,10 +71,7 @@ https://pypi.org/project/colorama/
 (NB: Colorama is usd by terminedia itself on Windows, as has a "low level" api that makes
 the ANSI codes interface seamlessly available on that system)
 
-# python-prompt-toolkit
-Mature project for creating terminal GUI with mouse support and widgets -
-(including, for examle, a Python VIM clone)
-https://github.com/prompt-toolkit/python-prompt-toolkit
+
 
 Simpler projects dealing with subsets of character/effect mangling
 ===================================================================
