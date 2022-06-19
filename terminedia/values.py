@@ -103,7 +103,7 @@ class Effects(OrableByNameEnumMixin, IterableFlag, metaclass=RetrieveFromNameEnu
     fullwidth = 2 ** 18
     math_bold = 2 ** 19
     math_bold_italic = 2 ** 20
-    super_bold = 2 ** 21
+    regional_indicator = 2 ** 21
     super_script = 2 ** 22
     upside_down = 2 ** 23
     double_struck = 2 ** 24
@@ -120,7 +120,7 @@ unicode_effects_set = {
     Effects.fullwidth,
     Effects.math_bold,
     Effects.math_bold_italic,
-    Effects.super_bold,
+    Effects.regional_indicator,
     Effects.super_script,
     Effects.upside_down,
     Effects.double_struck,

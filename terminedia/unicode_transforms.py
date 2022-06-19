@@ -205,7 +205,7 @@ def translate_chars(text, unicode_effects, convert=True):
         Effects.fullwidth: text_to_fullwidth,
         Effects.math_bold: text_to_san_serif_bold,
         Effects.math_bold_italic: text_to_san_serif_bold_italic,
-        Effects.super_bold: text_to_regional_indicator_symbol,
+        Effects.regional_indicator: text_to_regional_indicator_symbol,
         Effects.super_script: text_to_modifier_letter,
         Effects.upside_down: text_to_upside_down,
         Effects.double_struck: text_to_double_struck,
