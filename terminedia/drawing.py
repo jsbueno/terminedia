@@ -250,6 +250,7 @@ class Drawing:
             x = round(rx * cos(t) + cx)
             y = round(ry * sin(t) + cy)
             if abs(x - ox) > 1 or abs(y - oy) > 1:
+                x, y = ox, oy
                 t -= step
                 step *= 1 - factor
                 factor *= 0.8
