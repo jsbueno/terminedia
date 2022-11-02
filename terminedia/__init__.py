@@ -9,10 +9,6 @@ non-blocking keyboard reading.
 from terminedia.contexts import Context, _RootContext
 import sys
 
-if sys.platform == "win32":
-    import colorama
-    colorama.init(convert=True)
-
 from terminedia.input import keyboard, mouse, inkey, pause, KeyCodes, getch, input as sinput
 from terminedia.utils import Color, Rect, V2, Gradient, ColorGradient
 from terminedia.sprites import Sprite
