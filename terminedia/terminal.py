@@ -1,8 +1,6 @@
 import re
 import time
 import sys
-
-import fcntl
 import os
 
 from functools import lru_cache
@@ -76,35 +74,43 @@ unicode_effect_cache = {}
 
 
 
-class UnblockTTY:
-    """When changing the terminal to raw mode, stdin and stdout it become "unblocking"
-    meaning that a large amount of output might raise an IO Error
-    (BlockingIOError) when refreshing the output.
+if sys.platform != "win32":
+    import fcntl
+    class UnblockTTY:
+        """When changing the terminal to raw mode, stdin and stdout it become "unblocking"
+        meaning that a large amount of output might raise an IO Error
+        (BlockingIOError) when refreshing the output.
 
-    Any code using realtime keyboard reading (using "with terminedia.keyboard:", or
-    the main_loop) make this change to raw mode. (code for that is on the terminedia.input file)
+        Any code using realtime keyboard reading (using "with terminedia.keyboard:", or
+        the main_loop) make this change to raw mode. (code for that is on the terminedia.input file)
 
-    This allows screen refreshing code to temporarily disable
-    the non-blocking nature of the files to avoid this error
-    """
+        This allows screen refreshing code to temporarily disable
+        the non-blocking nature of the files to avoid this error
+        """
 
-    def __enter__(self):
-        try:
-            self.fd = sys.stdin.fileno()
-        except IOError:
-            self.fake_stdin = True
-            return self
-        self.fake_stdin = False
-        # save old state
-        self.flags_save = fcntl.fcntl(self.fd, fcntl.F_GETFL)
-        #self.attrs_save = termios.tcgetattr(self.fd)
-        flags = self.flags_save & ~os.O_NONBLOCK
-        fcntl.fcntl(self.fd, fcntl.F_SETFL, flags)
+        def __enter__(self):
+            try:
+                self.fd = sys.stdin.fileno()
+            except IOError:
+                self.fake_stdin = True
+                return self
+            self.fake_stdin = False
+            # save old state
+            self.flags_save = fcntl.fcntl(self.fd, fcntl.F_GETFL)
+            #self.attrs_save = termios.tcgetattr(self.fd)
+            flags = self.flags_save & ~os.O_NONBLOCK
+            fcntl.fcntl(self.fd, fcntl.F_SETFL, flags)
 
-    def __exit__(self, *args):
-        #termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.attrs_save)
-        if not self.fake_stdin:
-            fcntl.fcntl(self.fd, fcntl.F_SETFL, self.flags_save)
+        def __exit__(self, *args):
+            #termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.attrs_save)
+            if not self.fake_stdin:
+                fcntl.fcntl(self.fd, fcntl.F_SETFL, self.flags_save)
+else:
+    class UnblockTTY:
+        def __enter__(self):
+            pass
+        def __exit__(self, *args):
+            pass
 
 
 class ScreenCommands(BackendColorContextMixin):

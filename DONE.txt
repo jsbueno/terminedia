@@ -1,3 +1,5 @@
+version 0.4.3
+==============
 
     - Refactor Widgets
     - Add size property to Rect and Sprite
@@ -15,7 +17,8 @@
         - Gradients: the "stop position" for each gradient stop is now optional, if not given, values passed are evenly distributed
     - TM.transformers.library.Shade will convert the color values of an image to a corresponding character in a given string.
             (the most classic "asciiartification" effect)
-
+    - fix windows install; drop colorama
+    - Add Py3.11 to supported versions
 
 version 0.4.2
 ==============
