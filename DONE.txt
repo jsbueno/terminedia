@@ -19,6 +19,10 @@ version 0.4.3
             (the most classic "asciiartification" effect)
     - fix windows install; drop colorama
     - Add Py3.11 to supported versions
+    - Subpixel drawing:
+        - .draw namespace "set" and "reset" now are kword-context parametrizable
+        - subpixel namepaces ".square", ".high", etc are now subscriptable:
+            "sc.square[1,1] = True"
 
 version 0.4.2
 ==============

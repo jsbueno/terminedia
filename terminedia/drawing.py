@@ -39,15 +39,25 @@ class Drawing:
         one should optionally accept a terminedia.images.Pixel object,
         and decide how to render it.
         """
-        self.set = set_fn
-        self.get = get_fn
-        self.reset = reset_fn
+        self._set = set_fn
+        self._get = self.get = get_fn
+        self._reset = reset_fn
         self._size = size_fn
         self.context = context
 
     @property
     def size(self):
         return self._size()
+
+    @contextkwords
+    @RasterUndo.undoable
+    def set(self, pos):
+        self._set(pos)
+
+    @contextkwords
+    @RasterUndo.undoable
+    def reset(self, pos):
+        self._reset(pos)
 
     @contextkwords
     @RasterUndo.undoable
@@ -64,7 +74,7 @@ class Drawing:
         The color line is defined in the passed parameter or from the context.
         """
 
-        op = self.reset if erase else self.set
+        op = self._reset if erase else self._set
         pos1 = V2(pos1)
         pos2 = V2(pos2)
 
@@ -141,7 +151,7 @@ class Drawing:
                     Should return 'True' for boundary pixels, False if pixel is to be painted.
         The context attributes are used to fill the target area.
         """
-        seed = self.get(pos)
+        seed = self._get(pos)
         if threshold is None:
             threshold = lambda seed, target, pos: seed != target
 
@@ -157,7 +167,7 @@ class Drawing:
             if pos in visited:
                 continue
             visited.add(pos)
-            if threshold(seed, self.get(pos), pos):
+            if threshold(seed, self._get(pos), pos):
                 continue
             fillable.add(pos)
             for direction in Directions:
@@ -165,17 +175,17 @@ class Drawing:
                 if target in rect:
                     to_check.add(target)
         for pos in fillable:
-            self.set(pos)
+            self._set(pos)
 
 
     def _link_prev(self, pos, i, limits, mask):
         if i < limits[0] - 1:
             for j in range(i, limits[0]):
-                self.set((pos[0] + j, pos[1]))
+                self._set((pos[0] + j, pos[1]))
                 mask[j] = True
         elif i + 1 > limits[1]:
             for j in range(limits[1], i):
-                self.set((pos[0] + j, pos[1]))
+                self._set((pos[0] + j, pos[1]))
                 mask[j] = True
 
     @contextkwords
@@ -224,7 +234,7 @@ class Drawing:
                 d = abs(V2(x - cx, y - cy))
 
                 if d <= r_y:
-                    self.set((x, y))
+                    self._set((x, y))
 
     def _empty_ellipse(self, pos1, pos2):
         from math import sin, cos, pi
@@ -243,7 +253,7 @@ class Drawing:
 
         ox = round(rx + cx)
         oy = round(cy)
-        self.set((ox, oy))
+        self._set((ox, oy))
 
         while t < 2 * pi:
             t += step
@@ -261,7 +271,7 @@ class Drawing:
             else:
                 factor = 0.25
 
-            self.set((x, y))
+            self._set((x, y))
             ox, oy = x, y
 
     @contextkwords
@@ -284,7 +294,7 @@ class Drawing:
 
         t = 0
         step = 1 / (abs(pos4 - pos3) + abs(pos3 - pos2) + abs(pos2 - pos1))
-        self.set((x, y))
+        self._set((x, y))
         while t <= 1.0:
 
             x, y = (
@@ -294,7 +304,7 @@ class Drawing:
                 + pos4 * t ** 3
             )
 
-            self.set((round(x), round(y)))
+            self._set((round(x), round(y)))
             t += step
         if len(extra) >= 3:
             self.bezier(pos4, extra[0], extra[1], extra[2], *extra[3:])
@@ -348,7 +358,7 @@ class Drawing:
             roi = Rect(roi)
             shape = shape[roi]
 
-        direct_pix = len(inspect.signature(self.set).parameters) >= 2
+        direct_pix = len(inspect.signature(self._set).parameters) >= 2
 
         ishape = iter(shape)
         while True:
@@ -390,7 +400,7 @@ class Drawing:
                         values.append(pixel.effects)
 
                     pixel = _cls(*values)
-                self.set(target_pos, pixel)
+                self._set(target_pos, pixel)
             else:
                 if pixel.capabilities.has_foreground:
                     if pixel.foreground == CONTEXT_COLORS:
@@ -404,9 +414,9 @@ class Drawing:
                         self.context.background = pixel.background
 
                 if should_set:
-                    self.set(target_pos)
+                    self._set(target_pos)
                 else:
-                    self.reset(target_pos)
+                    self._reset(target_pos)
 
         self.context.color = self.context.color_stack.pop()
         self.context.background = self.context.background_stack.pop()
@@ -472,7 +482,7 @@ class HighResBase:
         new_block = operation((i_x, i_y), original)
         return graphics, (p_x, p_y), new_block
 
-    def set_at(self, pos):
+    def set_at(self, pos, value=True):
         """Sets pixel at given coordinate
 
         Args:
@@ -481,6 +491,8 @@ class HighResBase:
         To be used as a callback to ``.draw.set`` - but there are no drawbacks
         in being called directly.
         """
+        if not value:
+            return self.reset_at(pos)
         _, gross_pos, new_block = self.operate(pos, self.block_class.set)
         self.parent[gross_pos] = new_block
 
@@ -510,6 +522,8 @@ class HighResBase:
         """
         graphics, _, is_set = self.operate(pos, self.block_class.get_at)
         return is_set if graphics else None
+
+    __getitem__, __setitem__, __delitem__ = get_at, set_at, reset_at
 
     def at_parent(self, pos):
         """Get the equivalent, rounded down, coordinates, at the parent object.
