@@ -328,7 +328,6 @@ class Selector(Widget):
         elif len(value) == 2:
             value = _selector_option(value[0], value[1], self._stripped_opt(value[0]))
         prev_size = self.size
-        # import os; os.system("reset");breakpoint()
         self.options.insert(index, value)
         if self.size != prev_size:
             self.shape.resize(self.size)

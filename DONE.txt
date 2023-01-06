@@ -23,6 +23,8 @@ version 0.4.3
         - .draw namespace "set" and "reset" now are kword-context parametrizable
         - subpixel namepaces ".square", ".high", etc are now subscriptable:
             "sc.square[1,1] = True"
+    - fix working of sextant-sized widgets
+    - fix border size for sextant-sized Widgets
 
 version 0.4.2
 ==============

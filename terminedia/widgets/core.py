@@ -9,7 +9,7 @@ from terminedia import events, V2
 from terminedia.events import EventSuppressFurtherProcessing
 from terminedia.input import KeyCodes
 from terminedia.text import plane_names
-from terminedia.text.planes import relative_char_size
+from terminedia.text.planes import forward_char_size
 
 
 ###############
@@ -327,9 +327,9 @@ class Widget:
     def _sprite_from_text_size(self, text_size, text_plane, pos, padding=(0,0)):
         text_size = V2(text_size)
         text_plane = plane_names[text_plane]
-        size = text_size * (ceil(1/relative_char_size[text_plane][0]), ceil(1/relative_char_size[text_plane][1]))
+        size = (text_size * forward_char_size[text_plane]).ceil
         shape = terminedia.shape(size + padding)
-        sprite =Sprite(shape)
+        sprite = Sprite(shape)
         sprite.pos = pos
         return sprite
 

@@ -552,6 +552,8 @@ class Editable:
         with self.text.recording as text_data:
             self.text.at(self.initial_pos, escape(self.raw_value))
         self.last_text_data = text_data
+        if self.parent.has_border and self.text.char_size[1] == 2.5:
+            self.text.draw_border(roi=Rect((0, self.parent.size.y - 2), self.parent.size))
 
     def kill(self):
         self.focus = False
@@ -569,17 +571,19 @@ class Text(Widget):
         _ensure_extend(click_callbacks, click_callback)
         if border:
             if size:
-                sprite = self._sprite_from_text_size(size, text_plane, pos=pos, padding=(2, 2))
+                padding = (2,2)# if text_plane not in (3, "sextant") else (2,4)
+                sprite = self._sprite_from_text_size(size, text_plane, pos=pos, padding=padding)
                 size = None
             if not isinstance(border, Transformer):
                 border = terminedia.transformers.library.box_transformers["LIGHT_ARC"]
             self.has_border = 1
+            text = sprite.shape.text[text_plane]
+            text.add_border(border)
+            # del text
         super().__init__(parent, size, pos=pos, text_plane=text_plane, sprite=sprite,
                          keypress_callback=self.__class__.handle_key, click_callback=click_callbacks,
                          **kwargs)
         text = self.sprite.shape.text[self.text_plane]
-        if border:
-            text.add_border(border)
 
         self.editable = Editable(text, parent=self, value=value)
 

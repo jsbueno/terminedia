@@ -90,6 +90,15 @@ relative_char_size = {
     8: (0.125, 0.125)
 }
 
+forward_char_size = {
+    1: (1, 1),
+    2: (4, 2),
+    3: (4, 2.67),
+    4: (4, 4),
+    (8, 4): (8, 4),
+    8: (8, 8)
+}
+
 _bordersentinel = object()
 
 class Layouts:
@@ -196,12 +205,12 @@ class TextPlane:
     def size(self):
         current_plane = getattr(self, "current_plane", 1)
         base = V2(self.owner.size)
-        fx, fy = relative_char_size[current_plane]
+        fx, fy = forward_char_size[current_plane]
         size = base - (
             self.pad_left + self.pad_right,
             self.pad_top + self.pad_bottom
         )
-        size = (size * (fx, fy)).as_int
+        size = (size / (fx, fy)).as_int
         return size
 
     @property
@@ -602,7 +611,7 @@ class TextPlane:
                 continue
             concrete_plane.update()
 
-    def draw_border(self, transform=_bordersentinel, context=None, pad_level=1):
+    def draw_border(self, transform=_bordersentinel, context=None, pad_level=1, roi=None):
         """Draws an existing border, without changing the shape pattern
         call this just to redraw the border; A new border should be created by
         calling "add_border"
@@ -612,7 +621,13 @@ class TextPlane:
         elif transform != None:
             self._last_border_transform = transform
 
-        size = (self.size * self.char_size) + (1, 1) * pad_level * 2 + (1, 1)
+        size = ((self.size * self.char_size) + (1, 1) * pad_level * 2 + (1, 1)).ceil
+        # hack for sextant size:
+        #if self.char_size.y == 2.5 and not (self.size.y % 2):
+            #size += (0, 3)
+        size = self.owner.size
+        if pad_level > 1:
+            size -= (pad_level - 1, pad_level - 1) * 2
 
         border_shape = shape(size)
 
@@ -625,7 +640,11 @@ class TextPlane:
             border_shape.draw.rect((0, 0), (size))
             if transform:
                 context.transformers.append(transform)
-            self.owner.draw.blit(V2(self.pad_left, self.pad_top) - (pad_level, pad_level), border_shape)
+            pos = V2(self.pad_left, self.pad_top) - (pad_level, pad_level)
+            if roi:
+                pos += roi.c1
+
+            self.owner.draw.blit(pos, border_shape, roi=roi)
 
 
     @contextkwords(context_path="owner.context")

@@ -1,4 +1,3 @@
-import inspect
 from collections.abc import Sequence
 
 from terminedia.image import RasterUndo

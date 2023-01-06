@@ -1296,6 +1296,7 @@ class FullShape(RasterUndo, Shape):
 
     @staticmethod
     def _data_func(size, context=None):
+        size = V2(size).as_int
         if context is None:
             import terminedia
             context = terminedia.context

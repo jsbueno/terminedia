@@ -1,3 +1,5 @@
+from math import ceil
+
 class V2(tuple):
     """2-component Vector class to ease drawing
 
@@ -93,6 +95,10 @@ class V2(tuple):
     @property
     def as_int(self):
         return self.__class__(int(self.x), int(self.y))
+
+    @property
+    def ceil(self):
+        return self.__class__(ceil(self.x), ceil(self.y))
 
     def __repr__(self):
         return f"V2({self.x}, {self.y})"
