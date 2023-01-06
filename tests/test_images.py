@@ -172,3 +172,27 @@ def test_create_pixel_from_pixel_str_bool_pick_color_discard_effect():
 def test_shape_factory_yields_full_shape_on_size_parameter():
     sh = TM.shape((1,1))
     assert sh.__class__ is TM.image.FullShape
+
+
+@pytest.mark.parametrize("direct_pixel", [True, False])
+def test_fulshape_blit_called_with_pixel_value_on_blit(direct_pixel):
+    import terminedia
+    import unittest
+    from functools import wraps
+    orig = terminedia.image.FullShape.__setitem__
+    @wraps(orig)
+    def new(self, pos, value):
+        assert isinstance(value, terminedia.image.Pixel if direct_pixel else (str, bool))
+        new.called = True
+        return orig(self, pos, value)
+    new.called = False
+    sh = TM.shape((1,1))
+    sh2 = TM.shape((1,1))
+    sh2.draw.set((0,0))
+    with unittest.mock.patch("terminedia.image.FullShape.__setitem__", new):
+        terminedia.image.FullShape.__setitem__ = new
+        target = sh.draw if direct_pixel else sh.high.draw
+        target.blit((0,0), sh2)
+        assert new.called
+
+

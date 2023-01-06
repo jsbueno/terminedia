@@ -20,7 +20,7 @@ class Drawing:
     That is - the typical usage for methods here will be ``screen.draw.line((0,0)-(50,20))``
     """
 
-    def __init__(self, set_fn, reset_fn, get_fn, size_fn, context):
+    def __init__(self, set_fn, reset_fn, get_fn, size_fn, context, direct_pixel=False):
         """Not intented to be instanced directly -
 
         Args:
@@ -44,6 +44,7 @@ class Drawing:
         self._reset = reset_fn
         self._size = size_fn
         self.context = context
+        self.direct_pixel = direct_pixel
 
     @property
     def size(self):
@@ -358,8 +359,6 @@ class Drawing:
             roi = Rect(roi)
             shape = shape[roi]
 
-        direct_pix = len(inspect.signature(self._set).parameters) >= 2
-
         ishape = iter(shape)
         while True:
             pixel_pos, pixel = next(ishape, (None, None))
@@ -381,7 +380,7 @@ class Drawing:
             )
             if not should_set and not erase:
                 continue
-            if direct_pix:
+            if self.direct_pixel:
                 if (
                     pixel.capabilities.has_foreground and pixel.foreground == CONTEXT_COLORS or
                     pixel.capabilities.has_background and pixel.background == CONTEXT_COLORS

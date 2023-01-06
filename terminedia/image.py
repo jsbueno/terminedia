@@ -239,6 +239,7 @@ class ShapeApiMixin:
             get_fn=lambda pos: type(self).get_raw(self, pos),
             size_fn=self.get_size,
             context=self.context,
+            direct_pixel=getattr(self, "direct_pixel", False)
         )
 
     def _get_highres(self, **kw):
@@ -1291,6 +1292,7 @@ class FullShape(RasterUndo, Shape):
         translate_dots=False,
     )
     _default_bg = EMPTY
+    direct_pixel = True
 
     @staticmethod
     def _data_func(size, context=None):

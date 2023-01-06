@@ -37,8 +37,8 @@ from terminedia import Screen, pause, DEFAULT_FG, Color
 Color to use for rendering. Use 3 comma separated numbers as RGB (ex. '-c 255,0,0'). Defaults to default terminal color\
 """,
 )
-@click.option("clear", "--clear", "-l", flag_value=True, help="Clears the screen")
-def main(text, position, size, color, clear, font):
+@click.option("overwrite", "--overwrite", "-o", flag_value=True, help="Does not clear the screen")
+def main(text, position, size, color, overwrite, font):
     """Terminedia example for rendering large text characters
     """
     position = literal_eval(f"({position})")
@@ -50,7 +50,7 @@ def main(text, position, size, color, clear, font):
         size = int(size)
     elif size == "square":
         size = (8, 4)
-    with Screen(clear_screen=clear) as sc:
+    with Screen(clear_screen=not overwrite) as sc:
         sc.context.color = color
         sc.context.font = font
         sc.text[size].at(position, text)

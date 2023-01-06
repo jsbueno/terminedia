@@ -145,7 +145,7 @@ class Screen:
         self.shape.isroot = True
 
         #: Namespace for drawing methods, containing an instance of the :any:`Drawing` class
-        self.draw = Drawing(self.set_at, self.reset_at, self.get_at, self.get_size, self.context)
+        self.draw = Drawing(self.set_at, self.reset_at, self.get_at, self.get_size, self.context, direct_pixel=True)
 
         self.sprites = self.data.sprites
         self.root_context = root_context
