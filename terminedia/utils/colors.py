@@ -99,13 +99,13 @@ class Color:
 
     # temptative typehinting.
     @T.overload
-    def __init__(self, value: T.Union[Sequence[Real] | Iterable[Real]]): pass
+    def __init__(self, value: T.Union[Sequence[Real], Iterable[Real]]): pass
     @T.overload
     def __init__(self, value: Real): pass
     @T.overload
     def __init__(self, red: Real, green: Real, blue: Real, alpha: T.Optional[Real], /): pass
     @T.overload
-    def __init__(self, *, hsv: T.Union[Sequence[Real] | Iterable[Real]]): pass
+    def __init__(self, *, hsv: T.Union[Sequence[Real], Iterable[Real]]): pass
 
     def __init__(self, value=None, g=None, b=None, alpha=None, /, *, hsv=None):
         self._components = bytearray(b"\x00\x00\x00\xff")

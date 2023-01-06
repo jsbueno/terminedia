@@ -1273,6 +1273,8 @@ class RasterUndo:
 class FullShape(RasterUndo, Shape):
     """Shape class carrying all possible data plus kitchen sink
 
+    This class is easier instantiated via the terminedia.shape factory function
+
     Args:
       - data: a sequence with 4 planes (sequences), each a sequence with n-rows
             sequences of m-width elements. The first one should carry character
@@ -1545,7 +1547,7 @@ def shape(data, color_map=None, promote=False, resolution=None, **kwargs):
         elif suffix == "snapshot": # FIXME: find a better way to detect a pickle-file
             import pickle
             obj = pickle.load(open(data, "rb"))
-            # FIXME:  the future full shapes may be pickled, and no need to call  "restore" method
+            # FIXME:  in the future full shapes may be pickled, with no need to call  "restore" method
             return obj.restore()
 
         else:
