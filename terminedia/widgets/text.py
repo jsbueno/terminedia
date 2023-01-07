@@ -1,5 +1,6 @@
 from collections import namedtuple
 from copy import deepcopy
+from math import ceil
 
 import terminedia
 
@@ -28,7 +29,7 @@ BackTrack = namedtuple("BackTrack", "position direction distance_to_closest_mark
 
 
 class CursorTransformer(terminedia.Transformer):
-    blink_cycle = 5
+    blink_cycle = 8
 
     def __init__(self, parent, insert_effect="reverse", overwrite_effect="underline"):
         self.parent = parent
@@ -42,7 +43,8 @@ class CursorTransformer(terminedia.Transformer):
     # FIXME: cursor effects are leaking for the sprite -
     # possible problem in handling the context in text.plane
     def effects(self, value, pos, tick):
-        if not self.parent.parent.focus or not tick % self.blink_cycle:
+        effect = self.effect_table[self.parent.insertion]
+        if effect != terminedia.Effects.blink and (not self.parent.parent.focus or not tick % self.blink_cycle):
             return value
         size = self.parent.text.char_size
         pos -= (self.parent.text.pad_left, self.parent.text.pad_top)
@@ -50,10 +52,13 @@ class CursorTransformer(terminedia.Transformer):
             if pos != self.parent.pos:
                 return value
         else:
-            rect = Rect(self.parent.pos * size, width_height = size)
-            if pos not in rect :
+            rect = Rect(self.parent.pos * size, width_height=size)
+            if pos not in rect:
                 return value
-        return (value if isinstance(value, terminedia.Effects) else 0)| self.effect_table[self.parent.insertion]
+
+            if effect == terminedia.Effects.underline and int(pos.y) != ceil(rect.bottom - 1):
+                return value
+        return (value if isinstance(value, terminedia.Effects) else 0) | effect
 
 
     #def background(self, value, pos, tick):
@@ -413,7 +418,7 @@ class Editable:
         self.initial_direction = self.context.direction
 
         if parent:
-            self.parent.sprite.transformers.append(CursorTransformer(self))
+            self.parent.sprite.transformers.append(CursorTransformer(self)) # overwrite_effect="underline" if self.text.char_size==1 else "blink"))
         self.last_rendered_cursor = None
         self.last_text_data = []
         self.text_pathto_map, self.text_path_map = map_text(self.text, self.initial_pos, self.context.direction)

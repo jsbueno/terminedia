@@ -22,9 +22,8 @@ Targeted for minor 0.4 releases:
         - implement "begin" and "end" cursor movement behavior
     - file-selector widget [WIP] (see bellow)
     - More pre-built transformers in the library
-    - fix border for sextant-sized Widgets [WIP]
-    - override braille-char width to 1 (fix borders, drawing issues)
     - turn-off cursor transformer on out-of-focus widgets (should improve caching)
+    - change cursor-transform on overwrite mode for big-text to blink[wip]
 
 
 Targeted for release (0.4):

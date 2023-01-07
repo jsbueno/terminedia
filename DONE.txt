@@ -26,6 +26,7 @@ version 0.4.3
     - fix working of sextant-sized widgets
     - fix border size for sextant-sized Widgets
     - fix cursor showing past last line of text widgets
+    - fix overwrite cursor for big-text editing
 
 version 0.4.2
 ==============
