@@ -541,7 +541,9 @@ class Editable:
                 index = self.lines.set(index, key)
             self.pos = self.indexes_from[index]
             if key != KeyCodes.ENTER:
-                self.pos = self.get_next_pos_from(self.pos)
+                new_pos = self.get_next_pos_from(self.pos)
+                if new_pos in Rect(self.text.size):
+                    self.pos = new_pos
 
             self.regen_text()
 
@@ -564,15 +566,13 @@ class Editable:
 
 class Text(Widget):
 
-
     def __init__(self, parent, size=None, label="", value="", pos=(0,0), text_plane=1, sprite=None, border=None, click_callback=(), **kwargs):
 
         click_callbacks = [self.click]
         _ensure_extend(click_callbacks, click_callback)
         if border:
             if size:
-                padding = (2,2)# if text_plane not in (3, "sextant") else (2,4)
-                sprite = self._sprite_from_text_size(size, text_plane, pos=pos, padding=padding)
+                sprite = self._sprite_from_text_size(size, text_plane, pos=pos, padding=(2,2))
                 size = None
             if not isinstance(border, Transformer):
                 border = terminedia.transformers.library.box_transformers["LIGHT_ARC"]
