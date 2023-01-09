@@ -59,6 +59,12 @@ Targeted for release (0.4):
         - pointer dependent widgets:
         - Widgets:
             - Entry: one line text editing [v]
+                - larger than screen size text editing: [WIP]
+                    - can pass "text_size" into entry [v]
+                    - type more text than fit in screen [v]
+                    - extra text is pusehd to end side [v]
+                    - extra text typed at end makes displayed text scroll and hide at start side [v]
+                    - arrow keys navigate to not displayed text [wip]
             - Text: multiline text editing [v]
             - List Selection: (Selector) options-selector [v]
                 - refactor to generalize layout
@@ -117,7 +123,7 @@ Targeted for release (0.4):
                     - don't take several frames to re-rerender
                 - make fileselector "modal" by default.
                 - Add a title-line (for the purpose of the file picking)
-                - ensure text-entries size won 't limit file-navigation
+                - ensure text-entries size won 't limit file-navigation [wip]
                     - (currently, text entrys physical size constrains the logical text size)
 
 

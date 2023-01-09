@@ -26,6 +26,7 @@ P = pytest.param
         P(f"{K.RIGHT * 3}ABCD", "ABCD", None, id="insert_from_midle_of_line_collapses_white_space_at_left"),
         P(f"{K.RIGHT * 3 + K.INSERT}ABCD", "   AD", None, id="replace_from_midle_of_line_preserves_white_space_at_left"),
         P("ABCDEFG", "ABCDEFG", {"text_size": 10}, id="larger_than_displayed_text_entry"),
+        P(f"ABCD{K.LEFT * 2}EFG", "ABEFGCD", {"text_size": 10}, id="larger_than_displayed_text_entry_insert_middle"),
         P(f"ABCDEFG{K.LEFT*7}HI", "HIABCDEFG", {"text_size": 10}, id="larger_than_displayed_text_entry_can_edit_first_position"),
         P(f"ABCDEFG{K.LEFT*7}HI{K.RIGHT*6}JKL", "HIABCDEFJKLG", {"text_size": 15}, id="larger_than_displayed_text_entry_can_edit_first_position_and_go_back_to_end"),
     ]

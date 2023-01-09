@@ -489,19 +489,41 @@ class Editable:
             empty_counter = 1
         return result
 
-    def reset_full_text(self):
+    @property
+    def _full_text_partition(self):
+        return (
+            self.full_text[:self.text_offset],
+            self._displayed_value,
+            self.full_text[self.text_offset + self.display_size:]
+        )
 
-        value = self.full_text[:self.text_offset]
-        value += self._displayed_value
-        value += self.full_text[self.text_offset + self.display_size:]
-        self.full_text = value
+
+    def reset_full_text(self):
+        self.full_text = "".join(self._full_text_partition)
+
+        #value = self.full_text[:self.text_offset]
+        #value += self._displayed_value
+        #value += self.full_text[self.text_offset + self.display_size:]
+        #self.full_text = value
 
     @property
     def value(self):
         if self.text_size > self.display_size:
+            self.reset_full_text()
             return self.full_text
         else:
             return self._displayed_value
+
+    @value.setter
+    def value(self, text):
+        off = self.text_offset
+        ds = self.display_size
+        pre, editable, post = text[:off], text[off:off + ds], text[off + ds:]
+        self.lines.reload(editable)
+        self.lines._hard_load_from_soft_lines()
+        # self.editable.raw_value = text
+        self.regen_text()
+        self.full_text = text
 
     @property
     def shaped_value(self):
@@ -566,26 +588,25 @@ class Editable:
                 try:
                     index = self.lines.insert(index, key)
                 except TextDoesNotFit:
-                    # WIP: take in account text_size and larger-than display text here
-                    if self.full_text >= self.text_size:
+                    self.reset_full_text()
+                    if len(self.full_text) >= self.text_size:
                         self.events(OVERFILL)
                     else:
-                        if self.pos == (self.text.size(-1, -1)):
-                            # change full_text offset, re-render and insert char at end
-                            # WIP
-                            pass
-                        else:
-                            # WIP: push full text forward
-                            # insert charater at position
-                            pass
-                    return
+                        # if at last visible_position:
+                        if self.get_next_pos_from(self.pos) not in self.text.rect:
+                            if self.text_offset + index == len(self.full_text) - 1: # edge cases. it is full of edge cases.
+                                index += 1
+                                self.text_offset += 1
+                        new_text = self.full_text[: self.text_offset + index] + key + self.full_text[self.text_offset + index:]
+                        self.value = new_text
+                    #return
             else:
                 # WIP: take in account text_size here
                 index = self.lines.set(index, key)
 
             if key != KeyCodes.ENTER:
                 new_pos = self.get_next_pos_from(self.pos)
-                if new_pos in Rect(self.text.size):
+                if new_pos in Rect(self.text.rect):
                     self.pos = new_pos
 
             self.regen_text()
@@ -597,8 +618,8 @@ class Editable:
         with self.text.recording as text_data:
             self.text.at(self.initial_pos, escape(self.raw_value))
         self.last_text_data = text_data
-        if self.parent.has_border and self.text.char_size[1] == 2.5:
-            self.text.draw_border(roi=Rect((0, self.parent.size.y - 2), self.parent.size))
+        #if self.parent.has_border and self.text.char_size[1] == 2.5:
+            #self.text.draw_border(roi=Rect((0, self.parent.size.y - 2), self.parent.size))
         self.reset_full_text()
 
 
@@ -684,11 +705,7 @@ class Text(Widget):
 
     @value.setter
     def value(self, text):
-        # FIXME: fix this for text_size != None. Thid has  to go through Editable, and "lines" should not be touched here.
-        self.editable.lines.reload(text)
-        self.editable.lines._hard_load_from_soft_lines()
-        # self.editable.raw_value = text
-        self.editable.regen_text()
+        self.editable.value = text
 
 
 class Entry(Text):
