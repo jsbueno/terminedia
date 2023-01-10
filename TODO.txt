@@ -64,8 +64,10 @@ Targeted for release (0.4):
                     - type more text than fit in screen [v]
                     - extra text is pusehd to end side [v]
                     - extra text typed at end makes displayed text scroll and hide at start side [v]
+                    - del key scrolls back post visible area back into visible [wip]
                     - arrow keys navigate to not displayed text [wip]
             - Text: multiline text editing [v]
+                - 'clear' method to Text and Entry widgets [v]
             - List Selection: (Selector) options-selector [v]
                 - refactor to generalize layout
 

@@ -27,6 +27,9 @@ P = pytest.param
         P(f"{K.RIGHT * 3 + K.INSERT}ABCD", "   AD", None, id="replace_from_midle_of_line_preserves_white_space_at_left"),
         P("ABCDEFG", "ABCDEFG", {"text_size": 10}, id="larger_than_displayed_text_entry"),
         P(f"ABCD{K.LEFT * 2}EFG", "ABEFGCD", {"text_size": 10}, id="larger_than_displayed_text_entry_insert_middle"),
+        P(f"ABCDE{K.LEFT * 2}{K.DELETE}", "ABDE", None, id="del_works_for_fitting_text"),
+        P(f"ABCDEFG{K.LEFT * 2}{K.DELETE}", "ABCDFG", {"text_size": 10}, id="del_works_for_larger_than_displayed_text_plain"),
+        P(f"ABCDE{K.LEFT * 2}FG{K.LEFT}{K.DELETE}", "ABFCDE", {"text_size": 10}, id="del_works_for_larger_than_displayed_text_out_of_screen"),
         P(f"ABCDEFG{K.LEFT*7}HI", "HIABCDEFG", {"text_size": 10}, id="larger_than_displayed_text_entry_can_edit_first_position"),
         P(f"ABCDEFG{K.LEFT*7}HI{K.RIGHT*6}JKL", "HIABCDEFJKLG", {"text_size": 15}, id="larger_than_displayed_text_entry_can_edit_first_position_and_go_back_to_end"),
     ]
@@ -46,6 +49,31 @@ def test_entry_widget_sequence_write(typed, expected, extra_kw):
             yield None
             sc.update()
     assert w.value == expected
+
+@pytest.mark.parametrize(*fast_render_mark, ids=["fast"])
+@pytest.mark.parametrize(
+    ("typed", "extra_kw"), [
+        P("ABC", {}, id="plain"),
+        P(f"ABCDE", {}, id="full"),
+        P("ABCDEFG", {"text_size": 10}, id="larger_than_displayed_text_entry_scrolled_left"),
+        P(f"ABCD{K.LEFT * 2}EFG", {"text_size": 10}, id="larger_than_displayed_text_entry_scroleed_right"),
+    ]
+)
+@rendering_test
+def test_entry_widget_clear(typed, extra_kw):
+    stdin = io.StringIO()
+    with patch("sys.stdin", stdin):
+        sc = TM.Screen()
+        with sc, TM.keyboard:
+            w = TM.widgets.Entry(sc, pos=(0,0), width=5, **(extra_kw  or {}))
+            sc.update()
+            stdin.write(typed)
+            stdin.seek(0)
+            sc.update()
+            yield None
+            sc.update()
+    w.clear()
+    assert w.value == ""
 
 
 @pytest.mark.parametrize(*fast_render_mark, ids=["fast"])

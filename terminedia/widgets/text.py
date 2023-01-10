@@ -554,12 +554,17 @@ class Editable:
             elif key == KeyCodes.DOWN and self.pos.y < self.text.size.y - 1:
                 self.pos = self.text.extents(self.pos, " ", direction="down")
         elif key == KeyCodes.DELETE:
+            #import os;os.system("reset");breakpoint()
             index = self.indexes_to.get(self.pos, _UNUSED)
             if index is _UNUSED:
                 self.events(UNREACHABLE, self.pos)
                 return
-            self.lines.del_(index, False)
-            self.regen_text()
+            if len(self.full_text) > self.text_offset + len(self._displayed_value):
+                r_index = index + self.text_offset
+                self.value = self.full_text[:r_index] + self.full_text[r_index + 1:]
+            else:
+                self.lines.del_(index, False)
+                self.regen_text()
         elif key == KeyCodes.BACK and self.indexes_to.get(self.pos, -1) > 0:
             self.pos = self.get_next_pos_from(self.pos, direction="back")
             index = self.indexes_to.get(self.pos, _UNUSED)
@@ -629,10 +634,14 @@ class Editable:
     def events(self, type, *args):
         terminedia.events.Event(terminedia.events.Custom, subtype=type, owner=self, info=args)
 
+    def clear(self):
+        self.value = ""
+        self.pos = self.initial_pos
+
 
 class Text(Widget):
 
-    def __init__(self, parent, size=None, label="", value="", *, pos=(0,0), text_plane=1, sprite=None, border=None, click_callback=(), text_size=None, **kwargs):
+    def __init__(self, parent, size=None, label="", value="", *, pos=(0,0), text_plane=1, sprite=None, border=None, click_callback=(), text_size=None, cursor_pos=None, **kwargs):
         """Multiline text-editing Widget
 
         (roughly the same role as HTML's "textarea" form input).
@@ -679,7 +688,7 @@ class Text(Widget):
                          **kwargs)
         text = self.sprite.shape.text[self.text_plane]
 
-        self.editable = Editable(text, parent=self, value=value, text_size=text_size)
+        self.editable = Editable(text, parent=self, value=value, text_size=text_size, pos=cursor_pos)
 
     def get(self):
         return self.editable.value
@@ -706,6 +715,10 @@ class Text(Widget):
     @value.setter
     def value(self, text):
         self.editable.value = text
+
+    def clear(self):
+        self.editable.clear()
+
 
 
 class Entry(Text):
