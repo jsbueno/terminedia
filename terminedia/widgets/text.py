@@ -545,16 +545,28 @@ class Editable:
         valid_symbol = True
 
         if key in (KeyCodes.UP, KeyCodes.DOWN, KeyCodes.LEFT, KeyCodes.RIGHT):
-            if key == KeyCodes.RIGHT and self.pos.x < self.text.size.x - 1:
-                self.pos = self.text.extents(self.pos, " ", direction="right")
-            if key == KeyCodes.LEFT and self.pos.x > 0:
-                self.pos = self.text.extents(self.pos, " ", direction="left")
+            index = self.indexes_to[self.pos]
+            if key == KeyCodes.RIGHT:
+                if self.pos.x < self.text.size.x - 1:
+                    self.pos = self.text.extents(self.pos, " ", direction="right")
+                else:
+                    if index < len(self.indexes_from) - 1:
+                        new_pos = self.indexes_from[index + 1]
+                        if new_pos in self.text.rect:
+                            self.pos = new_pos
+            if key == KeyCodes.LEFT:
+                if self.pos.x > 0:
+                    self.pos = self.text.extents(self.pos, " ", direction="left")
+                else:
+                    if index > 0:
+                        self.pos = self.indexes_from[index -1]
+
+
             if key == KeyCodes.UP and self.pos.y > 0:
                 self.pos = self.text.extents(self.pos, " ", direction="up")
             elif key == KeyCodes.DOWN and self.pos.y < self.text.size.y - 1:
                 self.pos = self.text.extents(self.pos, " ", direction="down")
         elif key == KeyCodes.DELETE:
-            #import os;os.system("reset");breakpoint()
             index = self.indexes_to.get(self.pos, _UNUSED)
             if index is _UNUSED:
                 self.events(UNREACHABLE, self.pos)
@@ -580,7 +592,7 @@ class Editable:
         # TBD: add support for certain control for line editing characters, like ctrl + k, ctrl + j, ctrl + a...
 
 
-        if key != KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x1b):
+        if key != KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x20):
             valid_symbol = False
 
         if valid_symbol:
@@ -592,6 +604,9 @@ class Editable:
             if self.insertion:
                 try:
                     index = self.lines.insert(index, key)
+                    if index != self.indexes_to[self.pos]:
+                        self.pos = self.indexes_from[index]
+
                 except TextDoesNotFit:
                     self.reset_full_text()
                     if len(self.full_text) >= self.text_size:

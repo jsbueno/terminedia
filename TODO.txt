@@ -68,6 +68,8 @@ Targeted for release (0.4):
                     - arrow keys navigate to not displayed text [wip]
             - Text: multiline text editing [v]
                 - 'clear' method to Text and Entry widgets [v]
+                - "left" and ΅right" navigation keys should change line
+                on line boundaries
             - List Selection: (Selector) options-selector [v]
                 - refactor to generalize layout
 

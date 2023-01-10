@@ -97,6 +97,8 @@ def test_entry_widget_clear(typed, extra_kw):
         P(f"ABCD{K.BACK + K.BACK}EF", "ABEF", {"marks": {(2,0): M(direction="down")}}, "ABE \n  F \n    \n    ", id="embeded_direction_change_turn_down_backspace"),
         P(f"A\rB{K.BACK + K.BACK}CDEF", "ACDEF", {"marks": {(2,0): M(direction="down")}}, "ACD \n  E \n  F \n    ", id="embeded_direction_change_turn_down_line_break_backspace"),
         P(f"ABCDEFGHIJKLMNOPQ", "ABCDEFGHIJKLMNOPQRST", {"text_size": 20}, "EFGH\nIJKL\nMNOP\nQRST", id="text_size_larger_than_displayed"),
+        P(f"ABCDEF{K.LEFT * 4}GHI", "ABGHICDEF", None, "ABGH\nICDE\nF   \n    ", id="navigate_left_arrow_goes_previous_line"),
+        P(f"ABCDEF{K.LEFT * 4}GHI{K.RIGHT * 4}JKL", "ABGHICDEFJKL", None, "ABGH\nICDE\nFJKL\n    ", id="navigate_right_arrow_goes_next_line"),
     ]
 )
 @rendering_test
