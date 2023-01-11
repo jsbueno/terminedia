@@ -439,6 +439,9 @@ class Editable:
         self.lines = Lines(value, self)
         self.tick = 0
         self.text_size = text_size
+        # state to indicate if insertion point at last cell
+        # should be _after_ or _before_ last character
+        self.text_past_end = False
 
     def build_value_indexes(self):
         pos = self.initial_pos
@@ -497,14 +500,8 @@ class Editable:
             self.full_text[self.text_offset + self.display_size:]
         )
 
-
     def reset_full_text(self):
         self.full_text = "".join(self._full_text_partition)
-
-        #value = self.full_text[:self.text_offset]
-        #value += self._displayed_value
-        #value += self.full_text[self.text_offset + self.display_size:]
-        #self.full_text = value
 
     @property
     def value(self):
@@ -521,9 +518,8 @@ class Editable:
         pre, editable, post = text[:off], text[off:off + ds], text[off + ds:]
         self.lines.reload(editable)
         self.lines._hard_load_from_soft_lines()
-        # self.editable.raw_value = text
-        self.regen_text()
         self.full_text = text
+        self.regen_text()
 
     @property
     def shaped_value(self):
@@ -547,20 +543,30 @@ class Editable:
         if key in (KeyCodes.UP, KeyCodes.DOWN, KeyCodes.LEFT, KeyCodes.RIGHT):
             index = self.indexes_to[self.pos]
             if key == KeyCodes.RIGHT:
+                self.text_past_end = False
                 if self.pos.x < self.text.size.x - 1:
                     self.pos = self.text.extents(self.pos, " ", direction="right")
+                elif index < len(self.indexes_from) - 2:
+                    new_pos = self.indexes_from[index + 1]
+                    if new_pos in self.text.rect:
+                        self.pos = new_pos
+                elif len(self.full_text) > self.text_offset + len(self._displayed_value):
+                    text = self.full_text
+                    self.text_offset += 1
+                    self.value = text
+                    self.text_past_end = True
                 else:
-                    if index < len(self.indexes_from) - 1:
-                        new_pos = self.indexes_from[index + 1]
-                        if new_pos in self.text.rect:
-                            self.pos = new_pos
+                    self.text_past_end = True
             if key == KeyCodes.LEFT:
+                self.text_past_end = False
                 if self.pos.x > 0:
                     self.pos = self.text.extents(self.pos, " ", direction="left")
-                else:
-                    if index > 0:
-                        self.pos = self.indexes_from[index -1]
-
+                elif index > 0:
+                    self.pos = self.indexes_from[index -1]
+                elif self.text_offset > 0:
+                    text = self.full_text
+                    self.text_offset -= 1
+                    self.value = text
 
             if key == KeyCodes.UP and self.pos.y > 0:
                 self.pos = self.text.extents(self.pos, " ", direction="up")
@@ -577,20 +583,29 @@ class Editable:
             else:
                 self.lines.del_(index, False)
                 self.regen_text()
-        elif key == KeyCodes.BACK and self.indexes_to.get(self.pos, -1) > 0:
-            self.pos = self.get_next_pos_from(self.pos, direction="back")
-            index = self.indexes_to.get(self.pos, _UNUSED)
-            if index is _UNUSED:
-                self.events(UNREACHABLE, self.pos)
-                return
-            index = self.lines.del_(index, True, self.insertion)
-            self.pos = self.indexes_from[index]
-
+        elif key == KeyCodes.BACK:
+            index = self.indexes_to.get(self.pos, -1)
+            if index > 0:
+                self.pos = self.get_next_pos_from(self.pos, direction="back")
+                index = self.indexes_to.get(self.pos, _UNUSED)
+                if index is _UNUSED:
+                    self.events(UNREACHABLE, self.pos)
+                    return
+                index = self.lines.del_(index, True, self.insertion)
+                self.pos = self.indexes_from[index]
+            elif self.text_offset > 0:
+                pre, displayed, post = self._full_text_partition
+                self.text_offset -= 1
+                self.value = pre[:-1] + displayed + post
             self.regen_text()
+            if self.text_past_end:
+                new_pos = self.get_next_pos_from(self.pos)
+                if new_pos in Rect(self.text.rect):
+                    self.pos = new_pos
+                    self.text_past_end = False
         elif key == KeyCodes.INSERT:
             self.insertion ^= True
         # TBD: add support for certain control for line editing characters, like ctrl + k, ctrl + j, ctrl + a...
-
 
         if key != KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x20):
             valid_symbol = False
@@ -614,12 +629,13 @@ class Editable:
                     else:
                         # if at last visible_position:
                         if self.get_next_pos_from(self.pos) not in self.text.rect:
-                            if self.text_offset + index == len(self.full_text) - 1: # edge cases. it is full of edge cases.
-                                index += 1
-                                self.text_offset += 1
+                            if self.text_offset + index <= len(self.full_text) - 1:
+                                if self.text_past_end:
+                                    self.text_offset += 1
+                                else:
+                                    self.text_past_end = True
                         new_text = self.full_text[: self.text_offset + index] + key + self.full_text[self.text_offset + index:]
                         self.value = new_text
-                    #return
             else:
                 # WIP: take in account text_size here
                 index = self.lines.set(index, key)
@@ -628,6 +644,9 @@ class Editable:
                 new_pos = self.get_next_pos_from(self.pos)
                 if new_pos in Rect(self.text.rect):
                     self.pos = new_pos
+                    self.text_past_end = False
+                else:
+                    self.text_past_end = True
 
             self.regen_text()
 
@@ -638,8 +657,6 @@ class Editable:
         with self.text.recording as text_data:
             self.text.at(self.initial_pos, escape(self.raw_value))
         self.last_text_data = text_data
-        #if self.parent.has_border and self.text.char_size[1] == 2.5:
-            #self.text.draw_border(roi=Rect((0, self.parent.size.y - 2), self.parent.size))
         self.reset_full_text()
 
 

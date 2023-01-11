@@ -31,7 +31,9 @@ P = pytest.param
         P(f"ABCDEFG{K.LEFT * 2}{K.DELETE}", "ABCDFG", {"text_size": 10}, id="del_works_for_larger_than_displayed_text_plain"),
         P(f"ABCDE{K.LEFT * 2}FG{K.LEFT}{K.DELETE}", "ABFCDE", {"text_size": 10}, id="del_works_for_larger_than_displayed_text_out_of_screen"),
         P(f"ABCDEFG{K.LEFT*7}HI", "HIABCDEFG", {"text_size": 10}, id="larger_than_displayed_text_entry_can_edit_first_position"),
-        P(f"ABCDEFG{K.LEFT*7}HI{K.RIGHT*6}JKL", "HIABCDEFJKLG", {"text_size": 15}, id="larger_than_displayed_text_entry_can_edit_first_position_and_go_back_to_end"),
+        P(f"ABCDEFG{K.LEFT*7}HI{K.RIGHT*7}JKL", "HIABCDEFGJKL", {"text_size": 15}, id="larger_than_displayed_text_entry_can_edit_first_position_and_go_back_to_end"),
+        P(f"ABCDEFG{K.LEFT*7}HI{K.RIGHT*5}JKL", "HIABCDEFJKLG", {"text_size": 15}, id="larger_than_displayed_text_entry_can_edit_first_position_and_go_back_to_one_before_end"),
+        P(f"ABCDEFG{K.BACK * 6}", "A", {"text_size": 10}, id="backspace_works_for_larger_than_displayed_text_plain"),
     ]
 )
 @rendering_test
@@ -96,9 +98,9 @@ def test_entry_widget_clear(typed, extra_kw):
         P(f"A\rBCDEFGHI", "A\nBCDE", {"marks": {(2,0): M(direction="down")}}, "A B \n  C \n  D \n  E ", id="embeded_direction_change_turn_down_with_line_break"),
         P(f"ABCD{K.BACK + K.BACK}EF", "ABEF", {"marks": {(2,0): M(direction="down")}}, "ABE \n  F \n    \n    ", id="embeded_direction_change_turn_down_backspace"),
         P(f"A\rB{K.BACK + K.BACK}CDEF", "ACDEF", {"marks": {(2,0): M(direction="down")}}, "ACD \n  E \n  F \n    ", id="embeded_direction_change_turn_down_line_break_backspace"),
-        P(f"ABCDEFGHIJKLMNOPQ", "ABCDEFGHIJKLMNOPQRST", {"text_size": 20}, "EFGH\nIJKL\nMNOP\nQRST", id="text_size_larger_than_displayed"),
+        P(f"ABCDEFGHIJKLMNOPQRST", "ABCDEFGHIJKLMNOPQRST", {"text_size": 20}, "EFGH\nIJKL\nMNOP\nQRST", id="text_size_larger_than_displayed"),
         P(f"ABCDEF{K.LEFT * 4}GHI", "ABGHICDEF", None, "ABGH\nICDE\nF   \n    ", id="navigate_left_arrow_goes_previous_line"),
-        P(f"ABCDEF{K.LEFT * 4}GHI{K.RIGHT * 4}JKL", "ABGHICDEFJKL", None, "ABGH\nICDE\nFJKL\n    ", id="navigate_right_arrow_goes_next_line"),
+        P(f"ABCDEF{K.LEFT * 4}GHI{K.RIGHT * 4}JKL", "ABGHICDEFJKL", None, "ABGH\nICDE\nFJKL\n    ", id="navigate_right_arrow_goes_next:_line"),
     ]
 )
 @rendering_test
