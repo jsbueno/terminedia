@@ -37,7 +37,7 @@ class FileSelector(VBox):
         self.preferred_folders = preferred_folders
         self.callback = callback
 
-        self.main_entry = Entry(self, width=self.size[0] - 2, enter_callback=self.complete)
+        self.main_entry = Entry(self, width=self.size[0] - 2, enter_callback=self.complete, text_size=512)
         self.add(self.main_entry)
 
         self.folder_entry = Entry(self, width=self.size[0] - 2, pos=(0,1), value=self.folder)
