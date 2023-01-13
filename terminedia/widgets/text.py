@@ -442,19 +442,20 @@ class Editable:
 
         self.impossible_pos = False
 
+
         # properties used to edit text larger than the display-size:
-        self.full_text = value
         self.display_size = len(self.text_path_map) - 1
         if text_size is None:
             text_size = self.display_size - 1
         self.text_size = text_size
 
         self.text_offset = offset
-        if len(value) > self.display_size:
-            value = value[offset: offset + self.display_size]
+
+        #if len(value) > self.display_size:
+            #value = value[offset: offset + self.display_size]
 
         # resume building initial internal-state
-        self._build_value_indexes()
+        self._build_shape_indexes()
         self.lines = Lines(value, self)
         self.tick = 0
         self.text_size = text_size
@@ -462,7 +463,9 @@ class Editable:
         # should be _after_ or _before_ last character
         self.text_past_end = False
 
-    def _build_value_indexes(self):
+        self.value = value
+
+    def _build_shape_indexes(self):
         pos = self.initial_pos
         indexes_to = {}
         indexes_from = {}
@@ -526,22 +529,21 @@ class Editable:
     def displayed_value(self):
         return self.lines.displayed_value
 
-    @property
-    def _full_text_partition(self):
-        return (
-            self.full_text[:self.text_offset],
-            self.displayed_value,
-            self.full_text[self.text_offset + self.display_size:]
-        )
+    #@property
+    #def _full_text_partition(self):
+        #return (
+            #self.full_text[:self.text_offset],
+            #self.displayed_value,
+            #self.full_text[self.text_offset + self.display_size:]
+        #)
 
-    def reset_full_text(self):
-        self.full_text = "".join(self._full_text_partition)
+    #def reset_full_text(self):
+        #self.full_text = "".join(self._full_text_partition)
 
     @property
     def value(self):
         if self.text_size > self.display_size:
-            self.reset_full_text()
-            return self.full_text
+            return self.text_prefix + self.displayed_value + self.text_postfix
         else:
             return self.displayed_value
 
@@ -555,9 +557,10 @@ class Editable:
             editable_lines = editable.split("\n")
             editable = "\n".join(editable_lines[:max_lines])
             post = "\n".join(editable_lines[max_lines:]) + post
+        self.text_prefix = pre
+        self.text_postfix = post
         self.lines.reload(editable)
         self.lines._hard_load_from_soft_lines()
-        self.full_text = text
         self.regen_text()
 
     @property
@@ -572,20 +575,19 @@ class Editable:
             raise EventSuppressFurtherProcessing()
 
     def scroll_char_right(self):
-        text = self.full_text
+        text = self.value
         self.text_offset += 1
         self.value = text
 
     def scroll_char_left(self):
-        text = self.full_text
+        text = self.value
         self.text_offset -= 1
         self.value = text
 
     def scroll_line_up(self):
         # scroll lines up
-        lines = self.full_text.split("\n", 1)
-        self.reset_full_text()
-        text = self.full_text
+        lines = self.value.split("\n", 1)
+        text = self.value
         self.text_offset += min(len(lines[0]) + 1, len(self.lines.hard_lines[0]))
         self.value = text
 
@@ -608,7 +610,7 @@ class Editable:
                     new_pos = self.indexes_from[index + 1]
                     if new_pos in self.text.rect:
                         self.pos = new_pos
-                elif len(self.full_text) > self.text_offset + len(self.displayed_value):
+                elif len(self.value) > self.text_offset + len(self.displayed_value):
                     self.scroll_char_right()
                     self.text_past_end = True
                 else:
@@ -631,9 +633,10 @@ class Editable:
             if index is _UNUSED:
                 self.events(UNREACHABLE, self.pos)
                 return
-            if len(self.full_text) > self.text_offset + len(self.displayed_value):
+            if len(self.value) > self.text_offset + len(self.displayed_value):
                 r_index = index + self.text_offset
-                self.value = self.full_text[:r_index] + self.full_text[r_index + 1:]
+                value = self.value
+                self.value = value[:r_index] + value[r_index + 1:]
             else:
                 self.lines.del_(index, False)
                 self.regen_text()
@@ -648,7 +651,7 @@ class Editable:
                 index = self.lines.del_(index, True, self.insertion)
                 self.pos = self.indexes_from[index]
             elif self.text_offset > 0:
-                pre, displayed, post = self._full_text_partition
+                pre, displayed, post = self.text_prefix, self.displayed_value, self.text_postfix
                 self.text_offset -= 1
                 self.value = pre[:-1] + displayed + post
             self.regen_text()
@@ -661,6 +664,10 @@ class Editable:
             self.insertion ^= True
         # TBD: add support for certain control for line editing characters, like ctrl + k, ctrl + j, ctrl + a...
 
+        if key == "z":
+            self.xabum = True
+        if key == "\r" and getattr(self, "xabum", None):
+            import os;os.system("reset");breakpoint()
 
         if key != KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x20):
             valid_symbol = False
@@ -678,8 +685,7 @@ class Editable:
                         self.pos = self.indexes_from[index]
 
                 except TextDoesNotFit:
-                    self.reset_full_text()
-                    if len(self.full_text) >= self.text_size:
+                    if len(self.value) >= self.text_size:
                         self.events(OVERFILL)
                     else:
                         if key == KeyCodes.ENTER:
@@ -693,12 +699,13 @@ class Editable:
                             key = "\n"
                         # if at last visible_position:
                         if self.get_next_pos_from(self.pos) not in self.text.rect:
-                            if self.text_offset + index <= len(self.full_text) - 1:
+                            if self.text_offset + index <= len(self.value) - 1:
                                 if self.text_past_end:
                                     self.text_offset += 1
                                 else:
                                     self.text_past_end = True
-                        new_text = self.full_text[: self.text_offset + index] + key + self.full_text[self.text_offset + index:]
+                        value = self.value
+                        new_text = value[: self.text_offset + index] + key + value[self.text_offset + index:]
                         self.value = new_text
 
             else:
@@ -723,8 +730,6 @@ class Editable:
         with self.text.recording as text_data:
             self.text.at(self.initial_pos, escape(self.raw_value))
         self.last_text_data = text_data
-        self.reset_full_text()
-
 
     def kill(self):
         self.focus = False
