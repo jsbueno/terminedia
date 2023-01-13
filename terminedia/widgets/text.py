@@ -1,5 +1,6 @@
 from collections import namedtuple
 from copy import deepcopy
+import itertools
 from math import ceil
 
 import terminedia
@@ -69,6 +70,9 @@ class CursorTransformer(terminedia.Transformer):
 
 def _ensure_sequence(mark):
     return [mark,] if isinstance(mark, Mark) else mark
+
+def _count_empty_at_end(seq):
+    return sum(1 for _ in itertools.takewhile(lambda x: not x, reversed(seq)))
 
 
 ###############
@@ -451,9 +455,6 @@ class Editable:
 
         self.text_offset = offset
 
-        #if len(value) > self.display_size:
-            #value = value[offset: offset + self.display_size]
-
         # resume building initial internal-state
         self._build_shape_indexes()
         self.lines = Lines(value, self)
@@ -529,21 +530,14 @@ class Editable:
     def displayed_value(self):
         return self.lines.displayed_value
 
-    #@property
-    #def _full_text_partition(self):
-        #return (
-            #self.full_text[:self.text_offset],
-            #self.displayed_value,
-            #self.full_text[self.text_offset + self.display_size:]
-        #)
-
-    #def reset_full_text(self):
-        #self.full_text = "".join(self._full_text_partition)
-
     @property
     def value(self):
         if self.text_size > self.display_size:
-            return self.text_prefix + self.displayed_value + self.text_postfix
+            if self.text_postfix:
+                empty_lines = "\n" * _count_empty_at_end(self.lines.soft_lines)
+            else:
+                empty_lines = ""
+            return self.text_prefix + self.displayed_value + empty_lines + self.text_postfix
         else:
             return self.displayed_value
 
@@ -556,7 +550,7 @@ class Editable:
             max_lines = len(self.lines.hard_lines)
             editable_lines = editable.split("\n")
             editable = "\n".join(editable_lines[:max_lines])
-            post = "\n".join(editable_lines[max_lines:]) + post
+            post = "\n" + "\n".join(editable_lines[max_lines:]) + post
         self.text_prefix = pre
         self.text_postfix = post
         self.lines.reload(editable)
@@ -591,6 +585,12 @@ class Editable:
         self.text_offset += min(len(lines[0]) + 1, len(self.lines.hard_lines[0]))
         self.value = text
 
+    def scroll_last_line_down(self):
+        last_line = self.lines.soft_lines.pop()
+        self.text_postfix = f"\n{last_line}" + self.text_postfix
+        self.lines.soft_lines.append('')
+        self.lines._hard_load_from_soft_lines()
+        self.regen_text()
 
     def change(self, event=None, key=None):
         """Called on each keypress when the widget is active. Take 2"""
@@ -664,11 +664,6 @@ class Editable:
             self.insertion ^= True
         # TBD: add support for certain control for line editing characters, like ctrl + k, ctrl + j, ctrl + a...
 
-        if key == "z":
-            self.xabum = True
-        if key == "\r" and getattr(self, "xabum", None):
-            import os;os.system("reset");breakpoint()
-
         if key != KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x20):
             valid_symbol = False
 
@@ -689,14 +684,17 @@ class Editable:
                         self.events(OVERFILL)
                     else:
                         if key == KeyCodes.ENTER:
-                            if len(self.lines.soft_lines) > 1 and self.lines.at_last_line(self.pos):
+                            if len(self.lines.soft_lines) == 1:
+                                return
+                            if self.lines.at_last_line(self.pos):
                                 line, soft_index = self.lines.get_index_in_soft_line(index)
                                 new_pos = self.pos
                                 self.scroll_line_up()
                                 self.cursor_to_previous_shape_line()
-                                return self.change(key=key)
-
-                            key = "\n"
+                            else:
+                                self.scroll_last_line_down()
+                            return self.change(key=key)
+                            # key = "\n"
                         # if at last visible_position:
                         if self.get_next_pos_from(self.pos) not in self.text.rect:
                             if self.text_offset + index <= len(self.value) - 1:
