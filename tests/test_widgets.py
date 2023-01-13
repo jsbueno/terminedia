@@ -101,6 +101,8 @@ def test_entry_widget_clear(typed, extra_kw):
         P(f"ABCDEFGHIJKLMNOPQRST", "ABCDEFGHIJKLMNOPQRST", {"text_size": 20}, "EFGH\nIJKL\nMNOP\nQRST", id="text_size_larger_than_displayed"),
         P(f"ABCDEF{K.LEFT * 4}GHI", "ABGHICDEF", None, "ABGH\nICDE\nF   \n    ", id="navigate_left_arrow_goes_previous_line"),
         P(f"ABCDEF{K.LEFT * 4}GHI{K.RIGHT * 4}JKL", "ABGHICDEFJKL", None, "ABGH\nICDE\nFJKL\n    ", id="navigate_right_arrow_goes_next:_line"),
+        P(f"A\r\r\rD\rE", "A\n\n\nD\nE", {"text_size": 24}, "    \n    \nD   \nE   ", id="larger_than_displayed_text_should_scroll_up_with_enter_on_last_line"),
+        P(f"A\r\r\rD{K.UP}\r", "A\n\n\n\nD", {"text_size": 24}, "A   \n    \n   \n    ", id="larger_than_displayed_text_should_scroll_down_with_enter_before_last_line"),
     ]
 )
 @rendering_test
@@ -129,7 +131,7 @@ def test_text_widget_sequence_write(typed, expected, extra_kw, rendered):
     if expected:
         assert w.value == expected
     if rendered:
-        value = w.shape.text[extra_kw.get("text_plane", 1)].shaped_str
+        value = w.editable.shaped_value
         assert value == rendered
 
 

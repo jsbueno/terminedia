@@ -278,7 +278,10 @@ class Lines:
         return self._set(pos, value, insert=True)
 
     def _hard_line_capacity_for_given_soft_line(self, line):
-        hard_line_index = self.soft_line_map[line]
+        try:
+            hard_line_index = self.soft_line_map[line]
+        except KeyError:
+            return 0
         disconsider_last_soft_lines = 0
         done = False
         while not done:
@@ -297,6 +300,10 @@ class Lines:
         length = self._hard_line_capacity_for_given_soft_line(line)
         return len(self.soft_lines[line]) > length
 
+    def at_last_line(self, pos):
+        index = self.parent.indexes_to[pos]
+        line, index = self.get_index_in_soft_line(index)
+        return line == len(self.soft_lines) - 1
 
     @lcache.invalidate
     def _set(self, hard_index, value, insert):
@@ -396,6 +403,18 @@ class Lines:
 
         return hard_index
 
+    @property
+    def displayed_value(self):
+        result = ""
+        empty_counter = 0
+        for i, line in enumerate(self.soft_lines):
+            if not line:
+                empty_counter += 1
+                continue
+            result += "\n" * empty_counter + line
+            empty_counter = 1
+        return result
+
 
 class Editable:
     """Internal class to text widgets -
@@ -435,7 +454,7 @@ class Editable:
             value = value[offset: offset + self.display_size]
 
         # resume building initial internal-state
-        self.build_value_indexes()
+        self._build_value_indexes()
         self.lines = Lines(value, self)
         self.tick = 0
         self.text_size = text_size
@@ -443,16 +462,19 @@ class Editable:
         # should be _after_ or _before_ last character
         self.text_past_end = False
 
-    def build_value_indexes(self):
+    def _build_value_indexes(self):
         pos = self.initial_pos
         indexes_to = {}
         indexes_from = {}
         new_line_indexes = [0]
+        pos_at_new_lines = [pos]
+        cells_at_lines = [[]]
         count = 0
         index_counted = False
         while True:
             indexes_from[count] = pos
             indexes_to[pos] = count
+            cells_at_lines[-1].append(pos)
             count += 1
             try:
                 cell = self.text_pathto_map[pos][0]
@@ -460,16 +482,36 @@ class Editable:
                 break
             if cell.flow_changed: #not cell.is_used:
                 new_line_indexes.append(count)
+                pos_at_new_lines.append(pos)
                 index_counted = True
+                cells_at_lines.append([])
             else:
                 index_counted = False
             pos = cell.to_pos
         if not index_counted:
             new_line_indexes.append(count - 1)
+            # pos_at_new_lines.append(pos)
         self.raw_value = " " * len(indexes_from)
         self.line_indexes = RangeMap(new_line_indexes)
         self.indexes_from = indexes_from
         self.indexes_to = indexes_to
+        self.pos_at_new_lines = pos_at_new_lines
+        self.cells_at_lines = cells_at_lines
+
+    def cursor_to_previous_shape_line(self):
+        index = self.indexes_to.get(self.pos, _UNUSED)
+        if index is _UNUSED:
+            return False
+        line, soft_index = self.lines.get_index_in_soft_line(index)
+        if line == 0:
+            return False
+        cells = self.cells_at_lines[line - 1]
+        line_len = len(cells) - 1
+        self.pos = cells[min(line_len, soft_index)]
+        return True
+
+    def cursor_to_next_shape_line(self):
+        ...
 
     @property
     def text_space(self):
@@ -481,22 +523,14 @@ class Editable:
         return self.text_path_map[pos][0].to_pos
 
     @property
-    def _displayed_value(self):
-        result = ""
-        empty_counter = 0
-        for i, line in enumerate(self.lines.soft_lines):
-            if not line:
-                empty_counter += 1
-                continue
-            result += "\n" * empty_counter + line
-            empty_counter = 1
-        return result
+    def displayed_value(self):
+        return self.lines.displayed_value
 
     @property
     def _full_text_partition(self):
         return (
             self.full_text[:self.text_offset],
-            self._displayed_value,
+            self.displayed_value,
             self.full_text[self.text_offset + self.display_size:]
         )
 
@@ -509,13 +543,18 @@ class Editable:
             self.reset_full_text()
             return self.full_text
         else:
-            return self._displayed_value
+            return self.displayed_value
 
     @value.setter
     def value(self, text):
         off = self.text_offset
         ds = self.display_size
         pre, editable, post = text[:off], text[off:off + ds], text[off + ds:]
+        if editable.count("\n") >= len(self.lines.hard_lines):
+            max_lines = len(self.lines.hard_lines)
+            editable_lines = editable.split("\n")
+            editable = "\n".join(editable_lines[:max_lines])
+            post = "\n".join(editable_lines[max_lines:]) + post
         self.lines.reload(editable)
         self.lines._hard_load_from_soft_lines()
         self.full_text = text
@@ -523,7 +562,7 @@ class Editable:
 
     @property
     def shaped_value(self):
-        return self.raw_value
+        return self.text.shaped_str
 
     def keypress(self, event):
         try:
@@ -532,12 +571,31 @@ class Editable:
             # do not allow keypress to be processed further
             raise EventSuppressFurtherProcessing()
 
-    def change(self, event):
+    def scroll_char_right(self):
+        text = self.full_text
+        self.text_offset += 1
+        self.value = text
+
+    def scroll_char_left(self):
+        text = self.full_text
+        self.text_offset -= 1
+        self.value = text
+
+    def scroll_line_up(self):
+        # scroll lines up
+        lines = self.full_text.split("\n", 1)
+        self.reset_full_text()
+        text = self.full_text
+        self.text_offset += min(len(lines[0]) + 1, len(self.lines.hard_lines[0]))
+        self.value = text
+
+
+    def change(self, event=None, key=None):
         """Called on each keypress when the widget is active. Take 2"""
 
         self.tick += 1
 
-        key = event.key
+        key = event.key if event else key
         valid_symbol = True
 
         if key in (KeyCodes.UP, KeyCodes.DOWN, KeyCodes.LEFT, KeyCodes.RIGHT):
@@ -550,10 +608,8 @@ class Editable:
                     new_pos = self.indexes_from[index + 1]
                     if new_pos in self.text.rect:
                         self.pos = new_pos
-                elif len(self.full_text) > self.text_offset + len(self._displayed_value):
-                    text = self.full_text
-                    self.text_offset += 1
-                    self.value = text
+                elif len(self.full_text) > self.text_offset + len(self.displayed_value):
+                    self.scroll_char_right()
                     self.text_past_end = True
                 else:
                     self.text_past_end = True
@@ -564,9 +620,7 @@ class Editable:
                 elif index > 0:
                     self.pos = self.indexes_from[index -1]
                 elif self.text_offset > 0:
-                    text = self.full_text
-                    self.text_offset -= 1
-                    self.value = text
+                    self.scroll_char_left()
 
             if key == KeyCodes.UP and self.pos.y > 0:
                 self.pos = self.text.extents(self.pos, " ", direction="up")
@@ -577,7 +631,7 @@ class Editable:
             if index is _UNUSED:
                 self.events(UNREACHABLE, self.pos)
                 return
-            if len(self.full_text) > self.text_offset + len(self._displayed_value):
+            if len(self.full_text) > self.text_offset + len(self.displayed_value):
                 r_index = index + self.text_offset
                 self.value = self.full_text[:r_index] + self.full_text[r_index + 1:]
             else:
@@ -607,6 +661,7 @@ class Editable:
             self.insertion ^= True
         # TBD: add support for certain control for line editing characters, like ctrl + k, ctrl + j, ctrl + a...
 
+
         if key != KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x20):
             valid_symbol = False
 
@@ -627,6 +682,15 @@ class Editable:
                     if len(self.full_text) >= self.text_size:
                         self.events(OVERFILL)
                     else:
+                        if key == KeyCodes.ENTER:
+                            if len(self.lines.soft_lines) > 1 and self.lines.at_last_line(self.pos):
+                                line, soft_index = self.lines.get_index_in_soft_line(index)
+                                new_pos = self.pos
+                                self.scroll_line_up()
+                                self.cursor_to_previous_shape_line()
+                                return self.change(key=key)
+
+                            key = "\n"
                         # if at last visible_position:
                         if self.get_next_pos_from(self.pos) not in self.text.rect:
                             if self.text_offset + index <= len(self.full_text) - 1:
@@ -636,11 +700,13 @@ class Editable:
                                     self.text_past_end = True
                         new_text = self.full_text[: self.text_offset + index] + key + self.full_text[self.text_offset + index:]
                         self.value = new_text
+
             else:
                 # WIP: take in account text_size here
                 index = self.lines.set(index, key)
 
-            if key != KeyCodes.ENTER:
+            #if key != KeyCodes.ENTER:
+            if key not in (KeyCodes.ENTER, '\n'):
                 new_pos = self.get_next_pos_from(self.pos)
                 if new_pos in Rect(self.text.rect):
                     self.pos = new_pos

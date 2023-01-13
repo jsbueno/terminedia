@@ -78,7 +78,7 @@ def file_done(file):
 def file_selector():
     xx = sc.sprites.add(TM.shape((40, 15)))
 
-    selector = W.FileSelector(xx, callback=file_done)
+    selector = W.FileSelector(xx, callback=file_done, constrain_navigation=False)
     #file = await W.FileSelector()
     #sc.text[1][0,0] = str(file)
 

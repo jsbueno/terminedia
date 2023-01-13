@@ -7,6 +7,8 @@ from .core import Widget
 from .misc import Selector, VBox
 from .text import Entry
 
+MAX_PATH_SIZE = 512
+
 class FileSelector(VBox):
     _fixed_size = True
 
@@ -37,10 +39,10 @@ class FileSelector(VBox):
         self.preferred_folders = preferred_folders
         self.callback = callback
 
-        self.main_entry = Entry(self, width=self.size[0] - 2, enter_callback=self.complete, text_size=512)
+        self.main_entry = Entry(self, width=self.size[0] - 2, enter_callback=self.complete, text_size=MAX_PATH_SIZE)
         self.add(self.main_entry)
 
-        self.folder_entry = Entry(self, width=self.size[0] - 2, pos=(0,1), value=self.folder)
+        self.folder_entry = Entry(self, width=self.size[0] - 2, pos=(0,1), value=self.folder, text_size=MAX_PATH_SIZE)
         self.add(self.folder_entry)
 
         h = self.size[1]-4
