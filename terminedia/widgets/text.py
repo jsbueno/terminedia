@@ -2,6 +2,7 @@ from collections import namedtuple
 from copy import deepcopy
 import itertools
 from math import ceil
+from warnings import warn
 
 import terminedia
 
@@ -75,6 +76,45 @@ def _count_empty_at_end(seq):
     return sum(1 for _ in itertools.takewhile(lambda x: not x, reversed(seq)))
 
 
+class LinesList(list):
+    # class to contain prefix and postfix text content of a larger than displayed
+    # text widget
+    def __init__(self, *args):
+        self.prefix_newline = False
+        self.postfix_newline = False
+        super().__init__(*args)
+
+    @property
+    def value(self):
+        return "\n" * self.prefix_newline + "\n".join(self) + "\n" * self.postfix_newline
+
+    def clear(self):
+        self.prefix_newline = self.postfix_newline = False
+        self[:] = []
+
+    def load(self, value: str):
+        self.clear()
+        if not value:
+            return
+        if value[0] == "\n":
+            self.prefix_newline = True
+            value = value[1:]
+            if not value:
+                return
+        if value[-1] == "\n":
+            self.postfix_newline = True
+            value = value[:-1]
+        self[:] = value.split("\n")
+
+    def transfer(self, item, size):
+        value = self[item][:size]
+        self[item] = self[item][size:]
+        return value
+
+    @property
+    def length(self):
+        return len(self.value)
+
 ###############
 #
 # Text Editing Guts
@@ -136,6 +176,7 @@ class Lines:
     # helper class closely tied to Editable
     def __init__(self, value, parent):
         self.parent= parent
+        self.soft_lines = LinesList()
         self.reload(value)
         self._last_event = (None, None, None, None)
 
@@ -153,12 +194,14 @@ class Lines:
             raise TextDoesNotFit()
         self.parent.raw_value = raw_value
 
-    def reload(self, value):
+    def reload(self, value=None):
+        if value is None:
+            value = self.soft_lines[:]
         if isinstance(value, str):
             value = value.split("\n")
         if len(value) < self.len_hard_lines:
             value.extend([""] * (self.len_hard_lines - len(value) - 1))
-        self.soft_lines = value
+        self.soft_lines[:] = value
 
     def _count_empty_hardlines(self, lines):
         soft_index = 0
@@ -317,7 +360,7 @@ class Lines:
         dist_from_eol = index - len(self.soft_lines[line])
         if value == KeyCodes.ENTER:
             if insert:
-                if not self.soft_lines[-1]:
+                if not self.soft_lines[-1] and line < len(self.soft_lines) - 1:
                     self.soft_lines.insert(line + 1, self.soft_lines[line][index:])
                     self.soft_lines[line] = self.soft_lines[line][:index]
                     self.soft_lines.pop()
@@ -368,7 +411,7 @@ class Lines:
         try:
             self._hard_load_from_soft_lines()
         except TextDoesNotFit:
-            self.soft_lines = prev
+            self.soft_lines[:] = prev
             self._hard_load_from_soft_lines()
             raise
         self._last_event = (hard_index, line, index, self.parent.tick)
@@ -449,9 +492,16 @@ class Editable:
 
         # properties used to edit text larger than the display-size:
         self.display_size = len(self.text_path_map) - 1
-        if text_size is None:
+        if text_size is None or text_size < self.display_size - 1:
+            if text_size and text_size < self.display_size - 1:
+                warn("Smaller than display widget text size not implemented.")
             text_size = self.display_size - 1
+            self.larger_than_displayed = False
+        else:
+            self.larger_than_displayed = True
         self.text_size = text_size
+        self.text_prefix = LinesList()
+        self.text_postfix = LinesList()
 
         self.text_offset = offset
 
@@ -537,7 +587,7 @@ class Editable:
                 empty_lines = "\n" * _count_empty_at_end(self.lines.soft_lines)
             else:
                 empty_lines = ""
-            return self.text_prefix + self.displayed_value + empty_lines + self.text_postfix
+            return self.text_prefix.value + self.displayed_value + empty_lines + self.text_postfix.value
         else:
             return self.displayed_value
 
@@ -551,8 +601,8 @@ class Editable:
             editable_lines = editable.split("\n")
             editable = "\n".join(editable_lines[:max_lines])
             post = "\n" + "\n".join(editable_lines[max_lines:]) + post
-        self.text_prefix = pre
-        self.text_postfix = post
+        self.text_prefix.load(pre)
+        self.text_postfix.load(post)
         self.lines.reload(editable)
         self.lines._hard_load_from_soft_lines()
         self.regen_text()
@@ -579,6 +629,43 @@ class Editable:
         self.value = text
 
     def scroll_line_up(self):
+        if not self.lines.soft_lines:
+            return
+        # put first hard or soft line from display into prefix
+        size = len(self.lines.hard_lines[0])
+        if len(self.lines.soft_lines[0]) > size:
+            self.text_prefix.append(self.lines.soft_lines.transfer(0, size))
+            self.text_prefix.postfix_newline = False
+        else:
+            line = self.lines.soft_lines.pop(0)
+            self.text_prefix.append(line)
+            self.text_prefix.postfix_newline = True
+        self.text_offset = self.text_prefix.length # maybe make text_offset a RO property?
+        # move first soft or hardline from postfix into display
+        prefix_size = size
+        if self.text_postfix:
+            size = len(self.lines.hard_lines[-1])
+            if prefix_size != size:
+                warn("Attempting to scroll up text on a non rectangular text shape. This is not an implemented edge case - mayhem may ensue!")
+            prefix_newline = self.text_postfix.prefix_newline
+            if len(self.text_postfix[0]) > size:
+                line = self.text_postfix.transfer(0, size)
+                self.text_postfix.prefix_newline = False
+            else:
+                line = self.text_postfix.pop(0)
+                if self.text_postfix:
+                    self.text_postfix.prefix_newline = True
+            if prefix_newline:
+                self.lines.soft_lines.append(line)
+            else:
+                self.lines.soft_lines[-1] += line
+        else:
+            self.lines.soft_lines.append('')
+        self.lines.reload()
+        self.lines._hard_load_from_soft_lines()
+        self.regen_text()
+
+    def scroll_line_up_old(self):
         # scroll lines up
         lines = self.value.split("\n", 1)
         text = self.value
@@ -587,7 +674,8 @@ class Editable:
 
     def scroll_last_line_down(self):
         last_line = self.lines.soft_lines.pop()
-        self.text_postfix = f"\n{last_line}" + self.text_postfix
+        self.text_postfix.insert(0, last_line)
+        self.text_postfix.prefix_newline = True
         self.lines.soft_lines.append('')
         self.lines._hard_load_from_soft_lines()
         self.regen_text()
@@ -651,7 +739,7 @@ class Editable:
                 index = self.lines.del_(index, True, self.insertion)
                 self.pos = self.indexes_from[index]
             elif self.text_offset > 0:
-                pre, displayed, post = self.text_prefix, self.displayed_value, self.text_postfix
+                pre, displayed, post = self.text_prefix.value, self.displayed_value, self.text_postfix.value
                 self.text_offset -= 1
                 self.value = pre[:-1] + displayed + post
             self.regen_text()
@@ -684,7 +772,7 @@ class Editable:
                         self.events(OVERFILL)
                     else:
                         if key == KeyCodes.ENTER:
-                            if len(self.lines.soft_lines) == 1:
+                            if len(self.lines.hard_lines) == 1:
                                 return
                             if self.lines.at_last_line(self.pos):
                                 line, soft_index = self.lines.get_index_in_soft_line(index)
