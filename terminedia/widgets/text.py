@@ -87,7 +87,7 @@ class LinesList(list):
 
     @property
     def value(self):
-        return "\n" * self.prefix_newline + "\n".join(self) + "\n" * self.postfix_newline
+        return "\n" * self.prefix_newline * bool(self) + "\n".join(self) + "\n" * self.postfix_newline * bool(self)
 
     def clear(self):
         self.prefix_newline = self.postfix_newline = False
@@ -118,17 +118,15 @@ class LinesList(list):
             # do not add an empty line do an empty buffer: keep it empty
             if value == '' and not dest:
                 return False
-            #if self.keep_size and keep_size:
-                #self.append('')
         if index == 0:
-            if self.prefix_newline or not dest:
+            if self.prefix_newline or dest.postfix_newline or not dest:
                 dest.append(value)
             else:
                 dest[-1] += value
             dest.postfix_newline = newline
             #self.prefix_newline = newline
         elif index == -1:
-            if self.postfix_newline or not dest:
+            if self.postfix_newline or dest.prefix_newline or not dest:
                 dest.insert(0, value)
             else:
                 dest[0] = value + self.dest[0]
@@ -228,6 +226,7 @@ class Lines:
             value.extend([""] * (self.len_hard_lines - len(value) - 1))
         self.soft_lines[:] = value
         self._hard_load_from_soft_lines()
+        self.last_soft_line_really_empty = False
 
     def _count_empty_hardlines(self, lines):
         soft_index = 0
@@ -378,6 +377,15 @@ class Lines:
         line, index = self.get_index_in_soft_line(index)
         return line == len(self.soft_lines) - 1
 
+    @property
+    def isthere_display_space(self):
+        # this avoids an infinite loop of "enter" insertion -
+        # it is set in Editable just once, before repeating
+        # an "Enter" key after scrolling the last visible line to text_postfix
+        v = self.last_soft_line_really_empty
+        self.last_soft_line_really_empty = False
+        return v
+
     @lcache.invalidate
     def _set(self, hard_index, value, insert):
         prev = deepcopy(self.soft_lines)
@@ -386,7 +394,7 @@ class Lines:
         dist_from_eol = index - len(self.soft_lines[line])
         if value == KeyCodes.ENTER:
             if insert:
-                if not self.soft_lines[-1] and line < len(self.soft_lines) - 1:
+                if not self.soft_lines[-1] and line < len(self.soft_lines) - 1 and not self.parent.text_postfix or self.isthere_display_space:
                     self.soft_lines.insert(line + 1, self.soft_lines[line][index:])
                     self.soft_lines[line] = self.soft_lines[line][:index]
                     self.soft_lines.pop()
@@ -410,7 +418,7 @@ class Lines:
             self.soft_lines[line] += value
             if self._soft_line_exceeded_space(line):
                 if insert:
-                    if not self.soft_lines[-1]:
+                    if not self.soft_lines[-1] and not self.parent.text_postfix:
                         self.soft_lines.pop()
                     else:
                         raise TextDoesNotFit()
@@ -716,6 +724,7 @@ class Editable:
         self.lines.soft_lines.append('')
         self.lines.reload()
         self.regen_text()
+        self.lines.last_soft_line_really_empty = True
 
     def change(self, event=None, key=None):
         """Called on each keypress when the widget is active. Take 2"""
@@ -797,8 +806,6 @@ class Editable:
 
         if key != KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x20):
             valid_symbol = False
-        if key=="z":
-            import os;os.system("reset");breakpoint()
 
         if valid_symbol:
             index = self.indexes_to.get(self.pos, _UNUSED)
