@@ -79,6 +79,7 @@ def _count_empty_at_end(seq):
 class LinesList(list):
     # class to contain prefix and postfix text content of a larger than displayed
     # text widget
+
     def __init__(self, *args):
         self.prefix_newline = False
         self.postfix_newline = False
@@ -106,10 +107,34 @@ class LinesList(list):
             value = value[:-1]
         self[:] = value.split("\n")
 
-    def transfer(self, item, size):
-        value = self[item][:size]
-        self[item] = self[item][size:]
-        return value
+    def transfer(self, index, size, dest):
+        newline = True
+        if len(self[index]) > size:
+            value = self[index][:size]
+            self[index] = self[index][size:]
+            newline = False
+        else:
+            value = self.pop(index)
+            # do not add an empty line do an empty buffer: keep it empty
+            if value == '' and not dest:
+                return False
+            #if self.keep_size and keep_size:
+                #self.append('')
+        if index == 0:
+            if self.prefix_newline or not dest:
+                dest.append(value)
+            else:
+                dest[-1] += value
+            dest.postfix_newline = newline
+            #self.prefix_newline = newline
+        elif index == -1:
+            if self.postfix_newline or not dest:
+                dest.insert(0, value)
+            else:
+                dest[0] = value + self.dest[0]
+            dest.prefix_newline = newline
+            #self.postfix_newline = newline
+        return newline
 
     @property
     def length(self):
@@ -202,6 +227,7 @@ class Lines:
         if len(value) < self.len_hard_lines:
             value.extend([""] * (self.len_hard_lines - len(value) - 1))
         self.soft_lines[:] = value
+        self._hard_load_from_soft_lines()
 
     def _count_empty_hardlines(self, lines):
         soft_index = 0
@@ -604,7 +630,6 @@ class Editable:
         self.text_prefix.load(pre)
         self.text_postfix.load(post)
         self.lines.reload(editable)
-        self.lines._hard_load_from_soft_lines()
         self.regen_text()
 
     @property
@@ -629,55 +654,67 @@ class Editable:
         self.value = text
 
     def scroll_line_up(self):
+        self._scroll_line(direction="up")
+
+    def scroll_line_down(self):
+        self._scroll_line(direction="down")
+
+    def _scroll_line(self, direction):
+        if direction == "up":
+            target = self.text_prefix
+            source = self.text_postfix
+            outgoing_edge = 0
+            incoming_edge = -1
+        else:
+            target = self.text_postfix
+            source = self.text_prefix
+            outgoing_edge = -1
+            incoming_edge = 0
+
         if not self.lines.soft_lines:
             return
         # put first hard or soft line from display into prefix
-        size = len(self.lines.hard_lines[0])
-        if len(self.lines.soft_lines[0]) > size:
-            self.text_prefix.append(self.lines.soft_lines.transfer(0, size))
-            self.text_prefix.postfix_newline = False
+        size = len(self.lines.hard_lines[outgoing_edge])
+        self.lines.soft_lines.transfer(outgoing_edge, size, target)
+        # move first soft or hardline from postfix into display
+        prefix_size = size
+        if source:
+            size = len(self.lines.hard_lines[incoming_edge])
+            if prefix_size != size:
+                warn("Attempting to scroll up text on a non rectangular text shape. This is not an implemented edge case - mayhem may ensue!")
+            source.transfer(outgoing_edge, size, self.lines.soft_lines)
         else:
-            line = self.lines.soft_lines.pop(0)
-            self.text_prefix.append(line)
-            self.text_prefix.postfix_newline = True
+            if direction == "up":
+                self.lines.soft_lines.append('')
+            else:
+                self.lines.soft_lines.insert(0, '')
+        self.lines.reload()
+        self.regen_text()
+        self.text_offset = self.text_prefix.length # TBD: do away with text-offset
+
+    def _scroll_line_down(self, direction):
+        if not self.lines.soft_lines:
+            return
+        # put first hard or soft line from display into postfix
+        size = len(self.lines.hard_lines[-1])
+        self.lines.soft_lines.transfer(-1, size, self.text_postfix)
         self.text_offset = self.text_prefix.length # maybe make text_offset a RO property?
         # move first soft or hardline from postfix into display
         prefix_size = size
-        if self.text_postfix:
-            size = len(self.lines.hard_lines[-1])
+        if self.text_prefix:
+            size = len(self.lines.hard_lines[0])
             if prefix_size != size:
                 warn("Attempting to scroll up text on a non rectangular text shape. This is not an implemented edge case - mayhem may ensue!")
-            prefix_newline = self.text_postfix.prefix_newline
-            if len(self.text_postfix[0]) > size:
-                line = self.text_postfix.transfer(0, size)
-                self.text_postfix.prefix_newline = False
-            else:
-                line = self.text_postfix.pop(0)
-                if self.text_postfix:
-                    self.text_postfix.prefix_newline = True
-            if prefix_newline:
-                self.lines.soft_lines.append(line)
-            else:
-                self.lines.soft_lines[-1] += line
-        else:
-            self.lines.soft_lines.append('')
+            self.text_prefix.transfer(-1, size, self.lines.soft_lines)
         self.lines.reload()
-        self.lines._hard_load_from_soft_lines()
         self.regen_text()
-
-    def scroll_line_up_old(self):
-        # scroll lines up
-        lines = self.value.split("\n", 1)
-        text = self.value
-        self.text_offset += min(len(lines[0]) + 1, len(self.lines.hard_lines[0]))
-        self.value = text
 
     def scroll_last_line_down(self):
         last_line = self.lines.soft_lines.pop()
         self.text_postfix.insert(0, last_line)
         self.text_postfix.prefix_newline = True
         self.lines.soft_lines.append('')
-        self.lines._hard_load_from_soft_lines()
+        self.lines.reload()
         self.regen_text()
 
     def change(self, event=None, key=None):
@@ -712,10 +749,16 @@ class Editable:
                 elif self.text_offset > 0:
                     self.scroll_char_left()
 
-            if key == KeyCodes.UP and self.pos.y > 0:
-                self.pos = self.text.extents(self.pos, " ", direction="up")
-            elif key == KeyCodes.DOWN and self.pos.y < self.text.size.y - 1:
-                self.pos = self.text.extents(self.pos, " ", direction="down")
+            if key == KeyCodes.UP:
+                if self.pos.y > 0:
+                    self.pos = self.text.extents(self.pos, " ", direction="up")
+                elif self.text_prefix:
+                    self.scroll_line_down()
+            elif key == KeyCodes.DOWN:
+                if self.pos.y < self.text.size.y - 1:
+                    self.pos = self.text.extents(self.pos, " ", direction="down")
+                elif self.text_postfix:
+                    self.scroll_line_up()
         elif key == KeyCodes.DELETE:
             index = self.indexes_to.get(self.pos, _UNUSED)
             if index is _UNUSED:
@@ -754,6 +797,8 @@ class Editable:
 
         if key != KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x20):
             valid_symbol = False
+        if key=="z":
+            import os;os.system("reset");breakpoint()
 
         if valid_symbol:
             index = self.indexes_to.get(self.pos, _UNUSED)

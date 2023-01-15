@@ -105,6 +105,7 @@ def test_entry_widget_clear(typed, extra_kw):
         P(f"A\r\r\r\rD", "A\n\n\n\nD", {"text_size": 24}, "    \n    \n    \nD   ", id="larger_than_displayed_text_should_scroll_up_with_enter_on_empty_last_line"),
         P(f"A\r\r\rD{K.UP}\r", "A\n\n\n\nD", {"text_size": 24}, "A   \n    \n    \n    ", id="larger_than_displayed_text_should_scroll_down_with_enter_before_last_line"),
         P(f"A\r\r\r\rD{K.UP * 5 + K.LEFT}Z\r", "Z\nA\n\n\n\nD", {"text_size": 24}, "Z   \nA   \n    \n    ", id="larger_than_displayed_text_can_scroll_back_to_top"),
+        P(f"A\r\r\r\rD{K.UP * 5 + K.LEFT}Z\r{K.DOWN * 6 + K.RIGHT}\rY", "Z\nA\n\n\n\nD\nY", {"text_size": 24}, "    \n    \nD   \nY   ", id="larger_than_displayed_text_can_scroll_back_to_top"),
     ]
 )
 @rendering_test
