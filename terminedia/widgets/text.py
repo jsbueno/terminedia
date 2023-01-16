@@ -543,7 +543,6 @@ class Editable:
         self.text_prefix = LinesList()
         self.text_postfix = LinesList()
 
-        self.text_offset = offset
 
         # resume building initial internal-state
         self._build_shape_indexes()
@@ -554,6 +553,7 @@ class Editable:
         self.text_past_end = False
 
         self.value = value
+        self.text_offset = offset
 
     def _build_shape_indexes(self):
         pos = self.initial_pos
@@ -632,8 +632,15 @@ class Editable:
 
     @value.setter
     def value(self, text):
+        self.set_value_with_offset(text, self.text_offset)
+
+    def set_value_with_offset(self, text, text_offset):
+        if text_offset and not self.larger_than_displayed:
+            raise valueError("Can't set a text offset for widgets that should display all its contents")
+        off = text_offset
+        if len(text) > self.text_size:
+            raise TextDoesNotFit
         prev_value = self.value
-        off = self.text_offset
         ds = self.display_size
         pre, editable, post = text[:off], text[off:off + ds], text[off + ds:]
         if editable.count("\n") >= len(self.lines.hard_lines):
@@ -643,14 +650,7 @@ class Editable:
             post = "\n" + "\n".join(editable_lines[max_lines:]) + post
         self.text_prefix.load(pre)
         self.text_postfix.load(post)
-        try:
-            self.lines.reload(editable)
-        except TextDoesNotFit:
-            counter = self._textdoesnotfit_loop_counter = getattr(self, "_textdoesnotfit_loop_counter", 0) + 1
-            if counter < 2:
-                self.value = prev_value
-            self._textdoesnotfit_loop_counter = 0
-            raise
+        self.lines.reload(editable)
         self.regen_text()
 
     @property
@@ -665,14 +665,14 @@ class Editable:
             raise EventSuppressFurtherProcessing()
 
     def scroll_char_right(self):
-        text = self.value
+        if not self.larger_than_displayed:
+            return
         self.text_offset += 1
-        self.value = text
 
     def scroll_char_left(self):
-        text = self.value
+        if not self.larger_than_displayed:
+            return
         self.text_offset -= 1
-        self.value = text
 
     def scroll_line_up(self):
         self._scroll_line(direction="up")
@@ -711,24 +711,14 @@ class Editable:
                 self.lines.soft_lines.insert(0, '')
         self.lines.reload()
         self.regen_text()
-        self.text_offset = self.text_prefix.length # TBD: do away with text-offset
 
-    def _scroll_line_down(self, direction):
-        if not self.lines.soft_lines:
-            return
-        # put first hard or soft line from display into postfix
-        size = len(self.lines.hard_lines[-1])
-        self.lines.soft_lines.transfer(-1, size, self.text_postfix)
-        self.text_offset = self.text_prefix.length # maybe make text_offset a RO property?
-        # move first soft or hardline from postfix into display
-        prefix_size = size
-        if self.text_prefix:
-            size = len(self.lines.hard_lines[0])
-            if prefix_size != size:
-                warn("Attempting to scroll up text on a non rectangular text shape. This is not an implemented edge case - mayhem may ensue!")
-            self.text_prefix.transfer(-1, size, self.lines.soft_lines)
-        self.lines.reload()
-        self.regen_text()
+    @property
+    def text_offset(self):
+        return self.text_prefix.length
+
+    @text_offset.setter
+    def text_offset(self, new_offset):
+        self.set_value_with_offset(self.value, new_offset)
 
     def scroll_last_line_down(self):
         last_line = self.lines.soft_lines.pop()
@@ -803,11 +793,9 @@ class Editable:
                     return
                 index = self.lines.del_(index, True, self.insertion)
                 self.pos = self.indexes_from[index]
-            elif self.text_offset > 0:
-                pre, displayed, post = self.text_prefix.value, self.displayed_value, self.text_postfix.value
-                self.text_offset -= 1
-                self.value = pre[:-1] + displayed + post
-            self.regen_text()
+                self.regen_text()
+            elif self.text_offset > 0 and self.text_prefix:
+                self.value = self.text_prefix.value[:-1] + self.displayed_value + self.text_postfix.value
             if self.text_past_end:
                 new_pos = self.get_next_pos_from(self.pos)
                 if new_pos in Rect(self.text.rect):
@@ -857,7 +845,7 @@ class Editable:
                                 else:
                                     self.text_past_end = True
                         value = self.value
-                        new_text = value[: self.text_offset + index] + key + value[self.text_offset + index:]
+                        new_text = value[:self.text_offset + index] + key + value[self.text_offset + index:]
                         try:
                             self.value = new_text
                         except TextDoesNotFit:
