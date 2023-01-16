@@ -226,7 +226,7 @@ class Lines:
             value.extend([""] * (self.len_hard_lines - len(value) - 1))
         self.soft_lines[:] = value
         self._hard_load_from_soft_lines()
-        self.last_soft_line_really_empty = False
+        self.is_there_display_space = False
 
     def _count_empty_hardlines(self, lines):
         soft_index = 0
@@ -378,13 +378,16 @@ class Lines:
         return line == len(self.soft_lines) - 1
 
     @property
-    def isthere_display_space(self):
+    def is_there_display_space(self):
         # this avoids an infinite loop of "enter" insertion -
         # it is set in Editable just once, before repeating
         # an "Enter" key after scrolling the last visible line to text_postfix
-        v = self.last_soft_line_really_empty
-        self.last_soft_line_really_empty = False
-        return v
+        return self._is_there_display_space and self._is_there_display_space_tick + 1 <= self.parent.tick
+
+    @is_there_display_space.setter
+    def is_there_display_space(self, value):
+        self._is_there_display_space = value
+        self._is_there_display_space_tick = self.parent.tick
 
     @lcache.invalidate
     def _set(self, hard_index, value, insert):
@@ -394,7 +397,7 @@ class Lines:
         dist_from_eol = index - len(self.soft_lines[line])
         if value == KeyCodes.ENTER:
             if insert:
-                if not self.soft_lines[-1] and line < len(self.soft_lines) - 1 and not self.parent.text_postfix or self.isthere_display_space:
+                if not self.soft_lines[-1] and line < len(self.soft_lines) - 1 and not self.parent.text_postfix or self.is_there_display_space:
                     self.soft_lines.insert(line + 1, self.soft_lines[line][index:])
                     self.soft_lines[line] = self.soft_lines[line][:index]
                     self.soft_lines.pop()
@@ -411,14 +414,15 @@ class Lines:
                     self._last_event[3] == self.parent.tick - 1
                 ):
                     line -= 1
-                    index = self.soft_lines[line]
+                    index = len(self.soft_lines[line])
 
             # this is the same in insertion mode and setting mode
             # but when we hit a hard-line boundary there is more stuff to be done
             self.soft_lines[line] += value
             if self._soft_line_exceeded_space(line):
                 if insert:
-                    if not self.soft_lines[-1] and not self.parent.text_postfix:
+                    if not self.soft_lines[-1] and not self.parent.text_postfix or self.is_there_display_space:
+                    #if not self.soft_lines[-1]:
                         self.soft_lines.pop()
                     else:
                         raise TextDoesNotFit()
@@ -437,7 +441,8 @@ class Lines:
                 hard_index -= dist_from_eol
 
         if len(self.soft_lines[line]) > self._hard_line_capacity_for_given_soft_line(line):
-            if not self.soft_lines[-1]:
+            if not self.soft_lines[-1] and not self.parent.text_postfix or self.is_there_display_space:
+            # if not self.soft_lines[-1]: # and not self.editable.text_postfix or self.is_there_display_space:
                 self.soft_lines.pop()
                 self.soft_lines_spams.pop()
             self.soft_lines_spams[line] += 1
@@ -514,6 +519,7 @@ class Editable:
         self.insertion = True
         self.context = self.text.owner.context
         self.initial_direction = self.context.direction
+        self.tick = 0
 
         if parent:
             self.parent.sprite.transformers.append(CursorTransformer(self))
@@ -542,7 +548,6 @@ class Editable:
         # resume building initial internal-state
         self._build_shape_indexes()
         self.lines = Lines(value, self)
-        self.tick = 0
         self.text_size = text_size
         # state to indicate if insertion point at last cell
         # should be _after_ or _before_ last character
@@ -627,6 +632,7 @@ class Editable:
 
     @value.setter
     def value(self, text):
+        prev_value = self.value
         off = self.text_offset
         ds = self.display_size
         pre, editable, post = text[:off], text[off:off + ds], text[off + ds:]
@@ -724,7 +730,7 @@ class Editable:
         self.lines.soft_lines.append('')
         self.lines.reload()
         self.regen_text()
-        self.lines.last_soft_line_really_empty = True
+        self.lines.is_there_display_space = True
 
     def change(self, event=None, key=None):
         """Called on each keypress when the widget is active. Take 2"""
@@ -806,7 +812,8 @@ class Editable:
 
         if key != KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x20):
             valid_symbol = False
-
+        #if len(self.value) == 3 or key=="\r":
+            #import os;os.system("reset");breakpoint()
         if valid_symbol:
             index = self.indexes_to.get(self.pos, _UNUSED)
             if index is _UNUSED:
@@ -820,7 +827,7 @@ class Editable:
                         self.pos = self.indexes_from[index]
 
                 except TextDoesNotFit:
-                    if len(self.value) >= self.text_size:
+                    if not self.larger_than_displayed or len(self.value) >= self.text_size :
                         self.events(OVERFILL)
                     else:
                         if key == KeyCodes.ENTER:
@@ -939,12 +946,17 @@ class Text(Widget):
         super().kill()
 
     def handle_key(self, event):
-
+        errored = False
         try:
             self.editable.change(event)
+        except Exception as exc:
+            errored = True
+            if terminedia.DEBUG:
+                raise
         finally:
             # do not allow keypress to be processed further
-            raise EventSuppressFurtherProcessing()
+            if not errored:
+                raise EventSuppressFurtherProcessing()
 
     def click(self, event):
         self.editable.pos = ((event.pos - (self.editable.text.pad_left, self.editable.text.pad_top)) / (self.editable.text.char_size)).as_int

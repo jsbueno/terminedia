@@ -41,7 +41,7 @@ import terminedia.widgets
 __version__ = "0.4.3"
 __author__ = "João S. O. Bueno"
 
-
+DEBUG = False
 print = ScreenCommands().print
 
 # These will be used for other backends than terminal rendering:

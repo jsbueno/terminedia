@@ -20,6 +20,7 @@ import terminedia
 #: events.process, which will be sent to subscribers or discarded.
 #: (Screen.update has an implicit call to events.process)
 _event_queue = deque()
+_event_tasks = set()
 
 _sigwinch_counter = 0
 _original_sigwinch = None
@@ -189,6 +190,12 @@ def list_subscriptions(type_: EventTypes, _system=False) -> Iterator:
         system_events = []
     return chain(system_events, reversed(Subscription.subscriptions.get(type_, [])))
 
+def raise_exceptions_in_event_tasks(task):
+    exc = task.exception()
+    if exc:
+        import os
+        os.system("reset")
+        raise exc
 
 def _event_process_handle_coro(coro):
     try:
@@ -198,9 +205,7 @@ def _event_process_handle_coro(coro):
             "system is not running in an asyncio loop. Use terminedia.terminedia_main to run an asyncio event loop")
 
     task = loop.create_task(coro)
-    # FIXME: add a proper callback which can handle eventual exceptions
-    # task.add_done_callback(task.result)
-    # TODO: add the task to a collection, and at some point collect the results of done tasks.
+    _event_tasks.add(task)
 
 
 def process():
@@ -232,6 +237,20 @@ def process():
                     subscription.queue.append(event)
         events = deque(_event_queue)
         _event_queue.clear()
+
+    # Collect tasks results of previous events
+    resolved = set()
+    for task in _event_tasks:
+        if task.done():
+            resolved.add(task)
+    _event_tasks.difference_update(resolved)
+    for task in resolved:
+        exc = task.exception()
+        if exc and termnedia.DEBUG:
+            raise exc
+
+
+
 
 
 def window_change_handler(signal_number, frame):
