@@ -643,7 +643,14 @@ class Editable:
             post = "\n" + "\n".join(editable_lines[max_lines:]) + post
         self.text_prefix.load(pre)
         self.text_postfix.load(post)
-        self.lines.reload(editable)
+        try:
+            self.lines.reload(editable)
+        except TextDoesNotFit:
+            counter = self._textdoesnotfit_loop_counter = getattr(self, "_textdoesnotfit_loop_counter", 0) + 1
+            if counter < 2:
+                self.value = prev_value
+            self._textdoesnotfit_loop_counter = 0
+            raise
         self.regen_text()
 
     @property
@@ -851,8 +858,10 @@ class Editable:
                                     self.text_past_end = True
                         value = self.value
                         new_text = value[: self.text_offset + index] + key + value[self.text_offset + index:]
-                        self.value = new_text
-
+                        try:
+                            self.value = new_text
+                        except TextDoesNotFit:
+                            self.events(OVERFILL)
             else:
                 # WIP: take in account text_size here
                 index = self.lines.set(index, key)
