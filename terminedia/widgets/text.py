@@ -26,7 +26,7 @@ _UNUSED = "*"
 _USED = " "
 _ENTER = "#"
 
-MarkCell = namedtuple("MarkCell", "from_pos to_pos flow_changed is_used direction")
+MarkCell = namedtuple("MarkCell", "from_pos to_pos flow_changed is_used direction normalized_pos")
 BackTrack = namedtuple("BackTrack", "position direction distance_to_closest_mark mark_count")
 
 
@@ -129,7 +129,7 @@ class LinesList(list):
             if self.postfix_newline or dest.prefix_newline or not dest:
                 dest.insert(0, value)
             else:
-                dest[0] = value + self.dest[0]
+                dest[0] = value + dest[0]
             dest.prefix_newline = newline
             #self.postfix_newline = newline
         return newline
@@ -164,20 +164,28 @@ def map_text(text, pos, direction):
     # in rendering as well
     pos = V2(pos)
     direction = V2(direction)
-    last_cell = MarkCell(None, pos, False, True, direction)
+    last_cell = MarkCell(None, pos, False, True, direction, V2(0,0))
     from_map = {pos: [last_cell] }
     to_map = {None: [last_cell] }
     rect = terminedia.Rect((0, 0), text.size)
     counter = 0
     marks = _ensure_sequence(text.marks.abs_get(pos, _EMPTY_MARK,))
+    normalized_lines_map = {}
+    normalized_x = 1
+    normalized_y = 0
     while True:
         prev_pos = pos
 
         pos, direction, flow_changed, position_is_used = text.marks.move_along_marks(prev_pos, direction)
 
-        cell = MarkCell(prev_pos, pos, flow_changed, position_is_used, direction)
+        npos = V2(normalized_x, normalized_y)
+        cell = MarkCell(prev_pos, pos, flow_changed, position_is_used, direction, npos)
         from_map.setdefault(pos, []).append(cell)
         to_map.setdefault(prev_pos, []).append(cell)
+        if flow_changed:
+            normalized_x = 0
+            normalized_y += 1
+        normalized_lines_map[npos] = cell
 
         counter += 1
         marks = _ensure_sequence(text.marks.abs_get(pos, _EMPTY_MARK,))
@@ -185,8 +193,9 @@ def map_text(text, pos, direction):
             # we can have a text flow that goes through each position more than once,
             # but we have to halt it at some point - hence the "3 *" above.
             break
+        normalized_x += 1
 
-    return to_map, from_map
+    return to_map, from_map, normalized_lines_map
 
 
 class TextDoesNotFit(ValueError): #sentinel
@@ -201,7 +210,7 @@ class Lines:
         self.parent= parent
         self.soft_lines = LinesList()
         self.reload(value)
-        self._last_event = (None, None, None, None)
+        self._last_event = (None, None, None, None, None)
 
     @lcache.invalidate
     def _hard_load_from_soft_lines(self):
@@ -409,9 +418,10 @@ class Lines:
                 # First element in a line, we might be typing from a previous line and have
                 # to merge the current line into the previous soft_line
                 if (
-                    self._last_event[1] == line - 1 and
-                    self._last_event[2] == len(self.soft_lines[line - 1]) - 1 and
-                    self._last_event[3] == self.parent.tick - 1
+                    # self._last_event[1] == line - 1 and
+                    # self._last_event[2] >= len(self.soft_lines[line - 1]) - 1 and
+                    self._last_event[3] == self.parent.tick - 1 and
+                    self._last_event[4] != KeyCodes.ENTER
                 ):
                     line -= 1
                     index = len(self.soft_lines[line])
@@ -453,7 +463,7 @@ class Lines:
             self.soft_lines[:] = prev
             self._hard_load_from_soft_lines()
             raise
-        self._last_event = (hard_index, line, index, self.parent.tick)
+        self._last_event = (hard_index, line, index, self.parent.tick, value)
         return hard_index
 
     @lcache.invalidate
@@ -525,7 +535,7 @@ class Editable:
             self.parent.sprite.transformers.append(CursorTransformer(self))
         self.last_rendered_cursor = None
         self.last_text_data = []
-        self.text_pathto_map, self.text_path_map = map_text(self.text, self.initial_pos, self.context.direction)
+        self.text_pathto_map, self.text_path_map, self.normalized_lines = map_text(self.text, self.initial_pos, self.context.direction)
 
         self.impossible_pos = False
 
@@ -592,16 +602,11 @@ class Editable:
         self.cells_at_lines = cells_at_lines
 
     def cursor_to_previous_shape_line(self):
-        index = self.indexes_to.get(self.pos, _UNUSED)
-        if index is _UNUSED:
-            return False
-        line, soft_index = self.lines.get_index_in_soft_line(index)
-        if line == 0:
-            return False
-        cells = self.cells_at_lines[line - 1]
-        line_len = len(cells) - 1
-        self.pos = cells[min(line_len, soft_index)]
-        return True
+        norm_cell = self.text_path_map[self.pos][0].normalized_pos
+        if norm_cell.y == 0:
+            return
+        norm_cell -= (0,1)
+        self.pos = self.normalized_lines[norm_cell].to_pos
 
     def cursor_to_next_shape_line(self):
         ...
@@ -667,12 +672,12 @@ class Editable:
     def scroll_char_right(self):
         if not self.larger_than_displayed:
             return
-        self.text_offset += 1
+        self.text_offset -= 1
 
     def scroll_char_left(self):
         if not self.larger_than_displayed:
             return
-        self.text_offset -= 1
+        self.text_offset += 1
 
     def scroll_line_up(self):
         self._scroll_line(direction="up")
@@ -706,8 +711,10 @@ class Editable:
             source.transfer(outgoing_edge, size, self.lines.soft_lines)
         else:
             if direction == "up":
-                self.lines.soft_lines.append('')
+                # self.lines.soft_lines.append('')
+                pass
             else:
+                # TBD: might break with softlines > hard_lines
                 self.lines.soft_lines.insert(0, '')
         self.lines.reload()
         self.regen_text()
@@ -743,15 +750,22 @@ class Editable:
                 self.text_past_end = False
                 if self.pos.x < self.text.size.x - 1:
                     self.pos = self.text.extents(self.pos, " ", direction="right")
-                elif index < len(self.indexes_from) - 2:
-                    new_pos = self.indexes_from[index + 1]
-                    if new_pos in self.text.rect:
-                        self.pos = new_pos
-                elif len(self.value) > self.text_offset + len(self.displayed_value):
-                    self.scroll_char_right()
-                    self.text_past_end = True
                 else:
-                    self.text_past_end = True
+                    if len(self.lines.hard_lines) == 1:
+                        try:
+                            self.scroll_char_left()
+                        except TextDoesNotFit:
+                            return
+                    else:
+                        if index < len(self.indexes_from) - 2:
+                            new_pos = self.indexes_from[index + 1]
+                            if new_pos in self.text.rect:
+                                self.pos = new_pos
+                        elif len(self.value) > self.text_offset + len(self.displayed_value):
+                            self.scroll_char_left()
+                            self.text_past_end = True
+                        else:
+                            self.text_past_end = True
             if key == KeyCodes.LEFT:
                 self.text_past_end = False
                 if self.pos.x > 0:
@@ -759,7 +773,7 @@ class Editable:
                 elif index > 0:
                     self.pos = self.indexes_from[index -1]
                 elif self.text_offset > 0:
-                    self.scroll_char_left()
+                    self.scroll_char_right()
 
             if key == KeyCodes.UP:
                 if self.pos.y > 0:
@@ -807,8 +821,7 @@ class Editable:
 
         if key != KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x20):
             valid_symbol = False
-        #if len(self.value) == 3 or key=="\r":
-            #import os;os.system("reset");breakpoint()
+
         if valid_symbol:
             index = self.indexes_to.get(self.pos, _UNUSED)
             if index is _UNUSED:
@@ -836,14 +849,14 @@ class Editable:
                             else:
                                 self.scroll_last_line_down()
                             return self.change(key=key)
-                            # key = "\n"
-                        # if at last visible_position:
-                        if self.get_next_pos_from(self.pos) not in self.text.rect:
-                            if self.text_offset + index <= len(self.value) - 1:
-                                if self.text_past_end:
-                                    self.text_offset += 1
-                                else:
-                                    self.text_past_end = True
+                        if self.get_next_pos_from(self.pos) not in self.text.rect and len(self.lines.hard_lines) > 1:
+                            self.scroll_line_up()
+                            self.cursor_to_previous_shape_line()
+                            new_pos = self.get_next_pos_from(self.pos)
+                            if new_pos in self.text.rect:
+                                self.pos = new_pos
+                            return self.change(key=key)
+
                         value = self.value
                         new_text = value[:self.text_offset + index] + key + value[self.text_offset + index:]
                         try:
@@ -857,17 +870,27 @@ class Editable:
             #if key != KeyCodes.ENTER:
             if key not in (KeyCodes.ENTER, '\n'):
                 new_pos = self.get_next_pos_from(self.pos)
-                if new_pos in Rect(self.text.rect):
+                if new_pos in self.text.rect:
                     self.pos = new_pos
                     self.text_past_end = False
                 else:
-                    self.text_past_end = True
+                    if self.larger_than_displayed and len(self.value) < self.text_size:
+                        if len(self.lines.hard_lines) > 1:
+                            self.scroll_line_up()
+                            self.cursor_to_previous_shape_line()
+                            new_pos = self.get_next_pos_from(self.pos)
+                            if new_pos in self.text.rect:
+                                self.pos = new_pos
+                        else:
+                            #import os;os.system("reset");breakpoint()
+                            self.scroll_char_left()
+                    else:
+                        self.text_past_end = True
 
             self.regen_text()
 
 
     def regen_text(self):
-
         self.text.writtings.clear()
         with self.text.recording as text_data:
             self.text.at(self.initial_pos, escape(self.raw_value))
