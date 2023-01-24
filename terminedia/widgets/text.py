@@ -199,7 +199,7 @@ def map_text(text, pos, direction):
     return to_map, from_map, normalized_lines_map
 
 
-class TextDoesNotFit(ValueError): #sentinel
+class TextDoesNotFit(IndexError): #sentinel
      pass
 
 class JoinLines(BaseException):
@@ -518,6 +518,8 @@ class Lines:
             empty_counter = 1
         return result
 
+####
+# super refactor
 
 class InnerSeqLine:
     def __init__(self, grandparent, index):
@@ -537,8 +539,45 @@ class InnerSeqLine:
             i += 1
         return val
 
+    @value.setter
+    def value(self, text):
+        y = self.index
+        x = 0
+
+        for x, char in enumerate(text):
+            try:
+                self.grandparent[x, y] = char
+            except (IndexError, KeyError):
+                raise TextDoesNotFit("Text won't fit in mapped line. Error at index:", x)
+
+    # TBD: cache this
+    @property
+    def size(self):
+        y = self.index
+        x = 0
+        while True:
+            try:
+                self.grandparent[x, y]
+            except (IndexError, KeyError):
+                break
+            x += 1
+        return x
+
+    def __getitem__(self, index):
+        return self.value[index]
+
+    def __setitem__(self, index, value):
+        val = list(self.value)
+        val[index] = value
+        self.value = val
+
+    def clear(self):
+        y = self.index
+        for x in range(self.size):
+            self.grandparent[x, y] = " "
+
     def __len__(self):
-        return len(self.value)
+        return self.size
 
     def __str__(self):
         return self.value
@@ -564,7 +603,7 @@ class InnerSeqLinesContainer:
         return self.length
 
     def __getitem__(self, index):
-        return self.data[index].value
+        return self.data[index]
 
 
 class InnerSeq:
@@ -583,20 +622,20 @@ class InnerSeq:
         return len(self.map)
 
 class SoftLines:
-    def __init__(self, text_plane, value, initial_position=V2(0, 0), direction=Directions.RIGHT, offset=0, max_lines=None, max_text_size=None):
+    def __init__(self, text_plane, value="", initial_position=V2(0, 0), direction=Directions.RIGHT, offset=0, max_lines=None, max_text_size=None):
         """[WIP] Inner class bridging larger than display text content to physical
         displayed text in a TextPlane with arbitrary display layout.
 
         XXX: move to terminedia.text.plane ??
         """
 
-        self.text_plane = parent
+        self.text_plane = text_plane
         self.initial_position = initial_position
         self.initial_direction = direction
 
         self.offset = offset
         self.pre = []
-        self.editable = []
+        self.editable = value if isinstance(value, list) else value.split("\n")
         self.pos = []
         self.first_line_offset = 0
         self.last_line_length = 0
@@ -609,13 +648,16 @@ class SoftLines:
         self.text_pathto_map, self.text_path_map, self.normalized_lines = map_text(text_plane, self.initial_position, direction)
 
         self.physical_cells = text_plane
-        self.hard_cells = InnerSeq(self.phys, {k: v.to_pos for k, v in self.normalized_lines.items()})
+        self.hard_cells = InnerSeq(self.physical_cells, {k: v.to_pos for k, v in self.normalized_lines.items()})
+        self.hard_lines = self.hard_cells.lines
+
+        self.reflow()
 
 
     def reflow(self):
         char_counter = 0
 
-        hard_lines = iter(self.hard.lines)
+        hard_lines = iter(self.hard_lines)
         hard_line = next(hard_lines)
         for i, line in enumerate(self.editable):
             initial_line = line
@@ -649,63 +691,19 @@ class SoftLines:
                     self.editable[i:] = []
 
 
-
     @property
     def value(self):
         text = "\n".join(self.pre)
         text += "\n".join(self.editable)
         #text += [line[:lenght] for line, lenght in zip(self.editable, self.editable_line_lengths)]
         text += "\n".join(self.pos)
+        return text
 
     def __len__(self):
         return len(self.value)
 
-
-
-
-#class SmartLines:
-    #"""closely tied to a text plane - allow addressing contents as characters, words or lines
-    #while looking at either Physical Coordinates (x, y), Hard Coordinates (take lines of text
-    #across marks) or Soft Coordinates (a new line can spam
-    #longer than a physical line, and is broken only on \\n chars
-    #"""
-    ## ? Maybe move this to terminedia.text.planes instead?
-
-    #phys = []
-    #hard = []
-    #soft = []
-
-    #def __init__(self, text_plane, initial_position=V2(0,0), direction=Directions.RIGHT,value=None, text_offset=0):
-        #self.plane = text_plane
-        #self.initial_position = initial_position
-        #self.intial_direction = direction
-        #self.text_pathto_map, self.text_path_map, self.normalized_lines = map_text(text_plane, self.initial_position, direction)
-        #self.phys = text_plane
-        #self.hard = InnerSeq(self.phys, {k: v.to_pos for k, v in self.normalized_lines.items()})
-        #self.soft = self.hard
-        #self.direction = direction
-        #self.offset = text_offset
-        #if value:
-            #self.value = value
-
-    ## @deprecated!  :-)  reading the value from the class
-    ## is supposed to pull the data directly from the text-plane (minus some caching)
-    #def value_from_displayed(self):
-        #"""loads text from the contents already displayed in the associated text-plane.
-        #No new-lines are inferred, and all whitespace is considered as spaces
-        #"""
-        #pos = self.initial_position
-        #value = ""
-        #while True:
-            #value += self.plane[pos]
-            #pos_cell = self.text_pathto_map.get(pos, None)
-            #if not pos_cell:
-                #break
-            #pos = pos_cell[0].to_pos
-        #return value
-
-
-
+# end superrefactor
+#######
 
 class Editable:
     """Internal class to text widgets -

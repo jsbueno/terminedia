@@ -183,24 +183,27 @@ def test_selector_widget(options, typed, expected, extra_kw, rendered):
         assert value == rendered
 
 
-def test_smartlines_physical_write_reflected_on_text_plane():
+def test_softlines_physical_write_reflected_on_text_plane():
     sh = TM.shape((4,4))
-    sl = TM.widgets.text.SmartLines(sh.text[1])
-    sl.phys[0,0] = "A"
+    sl = TM.widgets.text.SoftLines(sh.text[1])
+    assert sh.text[1][2,2] == " "
+    sl.physical_cells[2,2] = "A"
+    assert sh.text[1][2,2] == "A"
 
-    assert sh.text[1][0,0] == "A"
 
-def test_smartlines_hard_write_reflected_on_text_plane():
+def test_softlines_initial_default_value_is_empty():
     sh = TM.shape((4,4))
-    sl = TM.widgets.text.SmartLines(sh.text[1])
-    sl.hard[0,0] = "A"
+    sl = TM.widgets.text.SoftLines(sh.text[1])
+    assert len(sl.value) == 0
+    assert len(sl) == 0
 
-    assert sh.text[1][0,0] == "A"
-
-
-def test_smartlines_soft_write_reflected_on_text_plane():
+def test_softlines_single_line_value_preserved_short_line():
     sh = TM.shape((4,4))
-    sl = TM.widgets.text.SmartLines(sh.text[1])
-    sl.soft[0,0] = "A"
+    sl = TM.widgets.text.SoftLines(sh.text[1], "ABC")
+    assert sl.value == "ABC"
 
-    assert sh.text[1][0,0] == "A"
+def test_softlines_single_line_value_preserved_long_line():
+    sh = TM.shape((4,4))
+    sl = TM.widgets.text.SoftLines(sh.text[1], "Hello World")
+    assert sl.value == "Hello World"
+
