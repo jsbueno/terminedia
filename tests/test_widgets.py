@@ -32,7 +32,7 @@ P = pytest.param
         P(f"ABCDE{K.LEFT * 2}FG{K.LEFT}{K.DELETE}", "ABCFDE", {"text_size": 10}, id="del_works_for_larger_than_displayed_text_out_of_screen"),
         P(f"ABCDEFG{K.LEFT*7}HI", "HIABCDEFG", {"text_size": 10}, id="larger_than_displayed_text_entry_can_edit_first_position"),
         P(f"ABCDEFG{K.LEFT*7}HI{K.RIGHT*7}JKL", "HIABCDEFGJKL", {"text_size": 15}, id="larger_than_displayed_text_entry_can_edit_first_position_and_go_back_to_end"),
-        P(f"ABCDEFG{K.LEFT*7}HI{K.RIGHT*5}JKL", "HIABCDEFJKLG", {"text_size": 15}, id="larger_than_displayed_text_entry_can_edit_first_position_and_go_back_to_one_before_end"),
+        P(f"ABCDEFG{K.LEFT*7}HI{K.RIGHT*5}JKL", "HIABCDEJKLFG", {"text_size": 15}, id="larger_than_displayed_text_entry_can_edit_first_position_and_go_back_to_one_before_end"),
         P(f"ABCDEFG{K.BACK * 6}", "A", {"text_size": 10}, id="backspace_works_for_larger_than_displayed_text_plain"),
     ]
 )
@@ -93,7 +93,7 @@ def test_entry_widget_clear(typed, extra_kw):
         P(f"{K.DOWN + K.INSERT + K.INSERT + K.DOWN}ABC", "\n\nABC", None, "    \n    \nABC \n    ", id="down_movement_line_break_roundtrip_insert"),
         P(f"{K.DOWN + ' ' + K.DOWN}ABC", "\n \nABC", None, "    \n    \nABC \n    ", id="stepped_down_movement_line_break"),
         P(f"ABCDEFGHI", "ABCDEFGHI", None, "ABCD\nEFGH\nI   \n    ", id="plain_three_lines_no_break"),
-        P(f"ABCDEFGHIJKLMNOPQ", "ABCDEFGHIJKLMNOP", None, "ABCD\nEFGH\nIJKL\nMNOP", id="plain_full_widget_typed_no_break"),
+        P(f"ABCDEFGHIJKLMNOPQ", "ABCDEFGHIJKLMNOP", None, "ABCD\nEFGH\nIJKL\nMNOP", id="plain_fulle_widget_typed_no_break"),
         P(f"ABCDEFGHI", "ABCDEF", {"marks": {(2,0): M(direction="down")}}, "ABC \n  D \n  E \n  F ", id="embeded_direction_change_turn_down"),
         P(f"A\rBCDEFGHI", "A\nBCDE", {"marks": {(2,0): M(direction="down")}}, "A B \n  C \n  D \n  E ", id="embeded_direction_change_turn_down_with_line_break"),
         P(f"ABCD{K.BACK + K.BACK}EF", "ABEF", {"marks": {(2,0): M(direction="down")}}, "ABE \n  F \n    \n    ", id="embeded_direction_change_turn_down_backspace"),
@@ -107,6 +107,8 @@ def test_entry_widget_clear(typed, extra_kw):
         P(f"A\r\r\rD{K.UP * 5 + K.LEFT}Z\r", "Z\nA\n\n\nD", {"text_size": 24}, "Z   \nA   \n    \n    ", id="larger_than_displayed_text_can_scroll_back_to_top"),
         P(f"A\r\r\r\rD{K.UP * 5 + K.LEFT}Z\r", "Z\nA\n\n\n\nD", {"text_size": 24}, "Z   \nA   \n    \n    ", id="larger_than_displayed_text_can_scroll_back_to_top_with_extra_line"),
         P(f"A\r\r\r\rD{K.UP * 5 + K.LEFT}Z\r{K.DOWN * 6 + K.RIGHT}\rY", "Z\nA\n\n\n\nD\nY", {"text_size": 24}, "    \n    \nD   \nY   ", id="larger_than_displayed_text_can_scroll_back_to_top"),
+        P(f"AB\r\rCD{K.UP + K.DELETE}", "AB\nCD", None, "AB  \nCD  \n    \n    ", id="DEL_on_end_of_line_should_join_lines"),
+        P(f"AB\r\rCD\rEF\rGH\rIJ{K.UP * 3 + K.DELETE}", "AB\nCD\nEF\nGH\nIJ", {"text_size": 24}, "AB  \nCD  \nEF  \nGH  ", id="DEL_on_end_of_line_should_join_lines_with_suffix_text"),
     ]
 )
 @rendering_test
@@ -180,3 +182,25 @@ def test_selector_widget(options, typed, expected, extra_kw, rendered):
         value = w.shape.text[extra_kw.get("text_plane", 1)].shaped_str
         assert value == rendered
 
+
+def test_smartlines_physical_write_reflected_on_text_plane():
+    sh = TM.shape((4,4))
+    sl = TM.widgets.text.SmartLines(sh.text[1])
+    sl.phys[0,0] = "A"
+
+    assert sh.text[1][0,0] == "A"
+
+def test_smartlines_hard_write_reflected_on_text_plane():
+    sh = TM.shape((4,4))
+    sl = TM.widgets.text.SmartLines(sh.text[1])
+    sl.hard[0,0] = "A"
+
+    assert sh.text[1][0,0] == "A"
+
+
+def test_smartlines_soft_write_reflected_on_text_plane():
+    sh = TM.shape((4,4))
+    sl = TM.widgets.text.SmartLines(sh.text[1])
+    sl.soft[0,0] = "A"
+
+    assert sh.text[1][0,0] == "A"

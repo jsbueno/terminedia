@@ -8,7 +8,7 @@ import terminedia
 
 from terminedia import Mark, Transformer
 
-from terminedia import V2, Rect
+from terminedia import V2, Rect, Directions
 
 from terminedia.events import EventSuppressFurtherProcessing
 from terminedia.input import KeyCodes
@@ -170,7 +170,7 @@ def map_text(text, pos, direction):
     rect = terminedia.Rect((0, 0), text.size)
     counter = 0
     marks = _ensure_sequence(text.marks.abs_get(pos, _EMPTY_MARK,))
-    normalized_lines_map = {}
+    normalized_lines_map = {V2(0,0): last_cell}
     normalized_x = 1
     normalized_y = 0
     while True:
@@ -178,13 +178,14 @@ def map_text(text, pos, direction):
 
         pos, direction, flow_changed, position_is_used = text.marks.move_along_marks(prev_pos, direction)
 
-        npos = V2(normalized_x, normalized_y)
-        cell = MarkCell(prev_pos, pos, flow_changed, position_is_used, direction, npos)
-        from_map.setdefault(pos, []).append(cell)
-        to_map.setdefault(prev_pos, []).append(cell)
         if flow_changed:
             normalized_x = 0
             normalized_y += 1
+        npos = V2(normalized_x, normalized_y)
+
+        cell = MarkCell(prev_pos, pos, flow_changed, position_is_used, direction, npos)
+        from_map.setdefault(pos, []).append(cell)
+        to_map.setdefault(prev_pos, []).append(cell)
         normalized_lines_map[npos] = cell
 
         counter += 1
@@ -201,6 +202,9 @@ def map_text(text, pos, direction):
 class TextDoesNotFit(ValueError): #sentinel
      pass
 
+class JoinLines(BaseException):
+    def __init__(self, line):
+        self.line = line
 
 lcache = ClassCache()
 
@@ -485,6 +489,9 @@ class Lines:
         elif dist_from_eol < 0:
             line_text = self.soft_lines[line]
             self.soft_lines[line] = line_text[:index] + line_text[index + 1:]
+        elif dist_from_eol > 0 and not backspace:
+            # join two lines - have to be done at editable level due to suffix text.
+            raise JoinLines(line)
         elif backspace and insert:
             self.soft_lines[line] = self.soft_lines[line][:-1]
             hard_index -= dist_from_eol
@@ -495,7 +502,7 @@ class Lines:
             self._hard_load_from_soft_lines()
         except TextDoesNotFit:
             pass
-        self._last_event = (None, None, None, None)
+        self._last_event = (None, None, None, None, None)
 
         return hard_index
 
@@ -510,6 +517,194 @@ class Lines:
             result += "\n" * empty_counter + line
             empty_counter = 1
         return result
+
+
+class InnerSeqLine:
+    def __init__(self, grandparent, index):
+        self.grandparent = grandparent
+        self.index = index
+
+    @property
+    def value(self):
+        y = self.index
+        i = 0
+        val = ""
+        while True:
+            try:
+                val += self.grandparent[i, y]
+            except (KeyError, IndexError):
+                break
+            i += 1
+        return val
+
+    def __len__(self):
+        return len(self.value)
+
+    def __str__(self):
+        return self.value
+
+
+class InnerSeqLinesContainer:
+    def __init__(self, parent):
+        self.parent = parent
+
+        self.data = []
+        y = 0
+
+        while True:
+            try:
+                self.parent[0, y]
+            except (KeyError, IndexError):
+                break
+            self.data.append(InnerSeqLine(self.parent, y))
+            y += 1
+        self.length = y
+
+    def __len__(self):
+        return self.length
+
+    def __getitem__(self, index):
+        return self.data[index].value
+
+
+class InnerSeq:
+    def __init__(self, source, map):
+        self.source = source
+        self.map = map
+        self.lines = InnerSeqLinesContainer(self)
+
+    def __getitem__(self, index):
+        return self.source[self.map[index]]
+
+    def __setitem__(self, index, value):
+        self.source[self.map[index]] = value
+
+    def __len__(self):
+        return len(self.map)
+
+class SoftLines:
+    def __init__(self, text_plane, value, initial_position=V2(0, 0), direction=Directions.RIGHT, offset=0, max_lines=None, max_text_size=None):
+        """[WIP] Inner class bridging larger than display text content to physical
+        displayed text in a TextPlane with arbitrary display layout.
+
+        XXX: move to terminedia.text.plane ??
+        """
+
+        self.text_plane = parent
+        self.initial_position = initial_position
+        self.initial_direction = direction
+
+        self.offset = offset
+        self.pre = []
+        self.editable = []
+        self.pos = []
+        self.first_line_offset = 0
+        self.last_line_length = 0
+
+        self.editable_line_lengths = []
+
+        self.max_lines = max_lines
+        self.max_text_size = max_text_size
+
+        self.text_pathto_map, self.text_path_map, self.normalized_lines = map_text(text_plane, self.initial_position, direction)
+
+        self.physical_cells = text_plane
+        self.hard_cells = InnerSeq(self.phys, {k: v.to_pos for k, v in self.normalized_lines.items()})
+
+
+    def reflow(self):
+        char_counter = 0
+
+        hard_lines = iter(self.hard.lines)
+        hard_line = next(hard_lines)
+        for i, line in enumerate(self.editable):
+            initial_line = line
+            cumulative_transcribe = 0
+            if i == 0:
+                line = line[self.first_line_offset:]
+            while line:
+                len_hard_line = len(hard_line)
+                transcribe = min(len_hard_line, len(line))
+                hard_line[0:transcribe] = line[0:transcribe]
+                if len_hard_line < len(line):
+                    hard_line[:] = line[:transcribe]
+                    line = line[transcribe:]
+                    cumulative_transcribe += transcribe
+                    try:
+                        hard_line = next(hard_lines)
+                    except StopIteration:
+                        break
+                else:
+                    hard_line[transcribe: len_hard_line] = " " * (len_hard_line - transcribe)
+                    line = ""
+            else:
+                for hard_line in hard_lines:
+                    hard_line.clear()
+                return
+            # recompute self.pos and self.editable:
+            if line:
+                self.last_line_length = cumulative_transcribe
+                if i < len(self.editable):
+                    self.pos[0:1] = self.editable[i:]
+                    self.editable[i:] = []
+
+
+
+    @property
+    def value(self):
+        text = "\n".join(self.pre)
+        text += "\n".join(self.editable)
+        #text += [line[:lenght] for line, lenght in zip(self.editable, self.editable_line_lengths)]
+        text += "\n".join(self.pos)
+
+    def __len__(self):
+        return len(self.value)
+
+
+
+
+#class SmartLines:
+    #"""closely tied to a text plane - allow addressing contents as characters, words or lines
+    #while looking at either Physical Coordinates (x, y), Hard Coordinates (take lines of text
+    #across marks) or Soft Coordinates (a new line can spam
+    #longer than a physical line, and is broken only on \\n chars
+    #"""
+    ## ? Maybe move this to terminedia.text.planes instead?
+
+    #phys = []
+    #hard = []
+    #soft = []
+
+    #def __init__(self, text_plane, initial_position=V2(0,0), direction=Directions.RIGHT,value=None, text_offset=0):
+        #self.plane = text_plane
+        #self.initial_position = initial_position
+        #self.intial_direction = direction
+        #self.text_pathto_map, self.text_path_map, self.normalized_lines = map_text(text_plane, self.initial_position, direction)
+        #self.phys = text_plane
+        #self.hard = InnerSeq(self.phys, {k: v.to_pos for k, v in self.normalized_lines.items()})
+        #self.soft = self.hard
+        #self.direction = direction
+        #self.offset = text_offset
+        #if value:
+            #self.value = value
+
+    ## @deprecated!  :-)  reading the value from the class
+    ## is supposed to pull the data directly from the text-plane (minus some caching)
+    #def value_from_displayed(self):
+        #"""loads text from the contents already displayed in the associated text-plane.
+        #No new-lines are inferred, and all whitespace is considered as spaces
+        #"""
+        #pos = self.initial_position
+        #value = ""
+        #while True:
+            #value += self.plane[pos]
+            #pos_cell = self.text_pathto_map.get(pos, None)
+            #if not pos_cell:
+                #break
+            #pos = pos_cell[0].to_pos
+        #return value
+
+
 
 
 class Editable:
@@ -736,6 +931,11 @@ class Editable:
         self.regen_text()
         self.lines.is_there_display_space = True
 
+    def join_lines(self, displayed_line):
+        lines = self.displayed_value.split("\n")
+        lines[displayed_line] += (lines.pop(displayed_line + 1) if len(lines) > displayed_line else '')
+        self.lines.reload(lines)
+
     def change(self, event=None, key=None):
         """Called on each keypress when the widget is active. Take 2"""
 
@@ -795,7 +995,10 @@ class Editable:
                 value = self.value
                 self.value = value[:r_index] + value[r_index + 1:]
             else:
-                self.lines.del_(index, False)
+                try:
+                    self.lines.del_(index, False)
+                except JoinLines as join:
+                    self.join_lines(join.line)
                 self.regen_text()
         elif key == KeyCodes.BACK:
             index = self.indexes_to.get(self.pos, -1)
@@ -882,7 +1085,6 @@ class Editable:
                             if new_pos in self.text.rect:
                                 self.pos = new_pos
                         else:
-                            #import os;os.system("reset");breakpoint()
                             self.scroll_char_left()
                     else:
                         self.text_past_end = True

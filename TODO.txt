@@ -71,6 +71,7 @@ Targeted for release (0.4):
                 - 'clear' method to Text and Entry widgets [v]
                 - "left" and ΅right" navigation keys should change line
                 on line boundaries [v]
+                - Have a "max-lines" alternative to "text_size"
             - List Selection: (Selector) options-selector [v]
                 - refactor to generalize layout
 
