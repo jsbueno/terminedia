@@ -244,7 +244,7 @@ def test_softlines_value_too_large_errors_even_with_custom_text_size():
     P("012345678", 1, "12345678", [], [], id="scroll_1_char_left"),
     P("012345678", 3, "345678", [], [], id="scroll_multi_chars_left"),
     P("0\n12345678", 1, "12345678", ["0"], [], id="scroll_1_line_left"),
-    P("012\n345678", 4, "45678", ["0"], [], id="scroll_1_line_1_char_left"),
+    P("012\n345678", 4, "45678", ["012"], [], id="scroll_1_line_1_char_left"),
     P("012345678901", 3, "345678901", [], [], id="scroll_multi_char_left_pulling_from_post_same_line"),
     P("012\n345678\n901\n234", 3, "345678\n901\n", ["012"], ["234"], id="scroll_multi_char_left_pulling_from_post_line_breaks"),
 ])

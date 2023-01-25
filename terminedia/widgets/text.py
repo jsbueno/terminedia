@@ -696,17 +696,20 @@ class SoftLines:
         hard_lines = iter(self.hard_lines)
         hard_line = next(hard_lines)
         end_of_space = False
+
+        self.editable = text
         for i, line in enumerate(text):
             initial_line = line
             cumulative_transcribe = 0
             if i == 0:
                 line = line[first_line_offset:]
+            proceed_to_next_line = False
             while line:
                 len_hard_line = len(hard_line)
                 transcribe = min(len_hard_line, len(line))
                 hard_line[0:transcribe] = line[0:transcribe]
                 if len_hard_line < len(line):
-                    hard_line[:] = line[:transcribe]
+                    # hard_line[:] = line[:transcribe]
                     line = line[transcribe:]
                     cumulative_transcribe += transcribe
                     try:
@@ -717,6 +720,9 @@ class SoftLines:
                 else:
                     hard_line[transcribe: len_hard_line] = " " * (len_hard_line - transcribe)
                     line = ""
+                    proceed_to_next_line = True
+            if proceed_to_next_line:
+                continue
             if end_of_space:
                 break
             try:
@@ -727,7 +733,7 @@ class SoftLines:
         else:
             for hard_line in hard_lines:
                 hard_line.clear()
-            # self.last_line_explicit_lf unchanged!
+            self.last_line_length = len(self.editable[-1]) if self.editable else 0
             return
             # recompute self.pos and self.editable:
         if end_of_space:
