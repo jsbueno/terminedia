@@ -630,13 +630,23 @@ class SoftLines:
         """
 
         self.text_plane = text_plane
-        self.initial_position = initial_position
-        self.initial_direction = direction
+        self.cursor = self.initial_position = initial_position
+        self.direction = self.initial_direction = direction
 
         self.offset = offset
         self.pre = []
+        if isinstance(value, str):
+            value = value.split("\n")
+
+        _empty_lines = _count_empty_at_end(value)
+        if _empty_lines:
+            value = value[:-_empty_lines]
+            value_ends_on_newline = True
+        else:
+            value_ends_on_newline = False
+
         self.editable = value if isinstance(value, list) else value.split("\n")
-        self.pos = []
+        self.post = []
         self.first_line_offset = 0
         self.last_line_length = 0
 
@@ -651,19 +661,46 @@ class SoftLines:
         self.hard_cells = InnerSeq(self.physical_cells, {k: v.to_pos for k, v in self.normalized_lines.items()})
         self.hard_lines = self.hard_cells.lines
 
+        self.last_line_explicit_lf = (
+            self.can_end_in_lf and
+            value_ends_on_newline
+        )
+
+        self.post_last_line_explicit_lf = False
         self.reflow()
 
+    @property
+    def can_end_in_lf(self):
+        return len(self.hard_lines) > 1 or isinstance(self.max_lines, int) and self.max_lines > 1
 
     def reflow(self):
+        #breakpoint()
+
+        text = [*self.pre, *self.editable, *self.post]
+        new_pre = []
+        first_line_offset = 0
+        remaining_offset = self.offset
+        while remaining_offset:
+            if not text:
+                break
+            if len(text[0]) <= remaining_offset:
+                new_pre.append(text.pop(0))
+                remaining_offset -= len(new_pre[-1])
+                continue
+            first_line_offset = remaining_offset
+            remaining_offset = 0
+        self.first_line_offset = first_line_offset
+        self.pre = new_pre
         char_counter = 0
 
         hard_lines = iter(self.hard_lines)
         hard_line = next(hard_lines)
-        for i, line in enumerate(self.editable):
+        end_of_space = False
+        for i, line in enumerate(text):
             initial_line = line
             cumulative_transcribe = 0
             if i == 0:
-                line = line[self.first_line_offset:]
+                line = line[first_line_offset:]
             while line:
                 len_hard_line = len(hard_line)
                 transcribe = min(len_hard_line, len(line))
@@ -675,29 +712,67 @@ class SoftLines:
                     try:
                         hard_line = next(hard_lines)
                     except StopIteration:
+                        end_of_space = True
                         break
                 else:
                     hard_line[transcribe: len_hard_line] = " " * (len_hard_line - transcribe)
                     line = ""
-            else:
-                for hard_line in hard_lines:
-                    hard_line.clear()
-                return
+            if end_of_space:
+                break
+            try:
+                hard_line = next(hard_lines)
+            except StopIteration:
+                end_of_space = True
+                break
+        else:
+            for hard_line in hard_lines:
+                hard_line.clear()
+            # self.last_line_explicit_lf unchanged!
+            return
             # recompute self.pos and self.editable:
-            if line:
-                self.last_line_length = cumulative_transcribe
-                if i < len(self.editable):
-                    self.pos[0:1] = self.editable[i:]
-                    self.editable[i:] = []
-
+        if end_of_space:
+            if self.max_text_size is None and self.max_lines is None:
+                raise TextDoesNotFit("Chars are restricted to text_plane cells. Use a custom max_text_size or max_lines to allow larger text content.")
+        if line:
+            self.last_line_length = cumulative_transcribe
+        else:
+            self.last_line_length = len(self.editable[i])
+        if i < len(self.editable):
+            #if self.last_line_explicit_lf and not self.post:
+                #self.post_last_line_explicit_lf = True
+            if self.editable[i + 1:]:
+                self.post[0:1] = self.editable[i + 1:]
+                self.editable[i + 1:] = []
+                self.last_line_explicit_lf = True
+            else:
+                self.last_line_explicit_lf = False
+            if self.max_lines is not None and len(self.post) + len(self.pre) + len(self.editable) > self.max_lines:
+                raise TextDoesNotFit("Text takes more lines than available.Increase 'max_lines'")
+        if self.max_text_size is not None and len(self.value) > self.max_text_size:
+            raise TextDoesNotFit("Too many characters")
 
     @property
     def value(self):
         text = "\n".join(self.pre)
+        if text:
+            text += "\n"
         text += "\n".join(self.editable)
-        #text += [line[:lenght] for line, lenght in zip(self.editable, self.editable_line_lengths)]
-        text += "\n".join(self.pos)
+        if text and not self.post and self.last_line_explicit_lf:
+            text += "\n"
+        if self.post:
+            text += "\n" + "\n".join(self.post)
+        if self.post_last_line_explicit_lf:
+            text += "\n"
         return text
+
+    @property
+    def displayed_value(self):
+        if len(self.editable) > 1:
+            text = "\n".join([self.editable[0][self.first_line_offset:], *self.editable[1:-1], self.editable[-1][:self.last_line_length]])
+            if self.last_line_explicit_lf:
+                text += "\n"
+            return text
+        return self.editable[0][self.first_line_offset:self.first_line_offset + self.last_line_length]
 
     def __len__(self):
         return len(self.value)
