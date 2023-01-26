@@ -693,54 +693,55 @@ class SoftLines:
         self.pre = new_pre
         self.editable = text
 
-    def _reflow_main(self):
-        hard_lines = iter(self.hard_lines)
-        hard_line = next(hard_lines)
+    def _reflow_main_inner(self, line, hard_line):
+        initial_line = line
+        cumulative_transcribe = 0
+        while line:
+            len_hard_line = len(hard_line)
+            transcribe = min(len_hard_line, len(line))
+            hard_line[0:transcribe] = line[0:transcribe]
+            if len_hard_line < len(line):
+                line = line[transcribe:]
+                cumulative_transcribe += transcribe
+                self._transient_last_line_length = cumulative_transcribe
+                hard_line = next(self._transient_lines_iter)
+            else:
+                hard_line[transcribe: len_hard_line] = " " * (len_hard_line - transcribe)
+                line = ""
+        self._transient_last_line_length = len(initial_line)
+        hard_line = next(self._transient_lines_iter)
+        return hard_line
 
+    def _reflow_main(self):
+        self._transient_lines_iter = iter(self.hard_lines)
+        hard_line = next(self._transient_lines_iter)
         for i, line in enumerate(self.editable):
-            initial_line = line
-            cumulative_transcribe = 0
             if i == 0:
                 line = line[self.first_line_offset:]
-            while line:
-                len_hard_line = len(hard_line)
-                transcribe = min(len_hard_line, len(line))
-                hard_line[0:transcribe] = line[0:transcribe]
-                if len_hard_line < len(line):
-                    line = line[transcribe:]
-                    cumulative_transcribe += transcribe
-                    try:
-                        hard_line = next(hard_lines)
-                    except StopIteration:
-                        self.last_line_length = cumulative_transcribe
-                        return i
-                else:
-                    hard_line[transcribe: len_hard_line] = " " * (len_hard_line - transcribe)
-                    line = ""
             try:
-                hard_line = next(hard_lines)
+                hard_line = self._reflow_main_inner(line, hard_line)
             except StopIteration:
-                self.last_line_length = len(initial_line)
+                self.last_line_length = self._transient_last_line_length
                 return i
-
-        for hard_line in hard_lines:
+        for hard_line in self._transient_lines_iter:
             hard_line.clear()
         self.last_line_length = len(self.editable[-1]) if self.editable else 0
-        return None
-
+        return i
 
     def _reflow_post(self, last_line):
+        if last_line >= len(self.editable) - 1:
+            self.post[:] = []
+            return
         if self.max_text_size is None and self.max_lines is None:
             raise TextDoesNotFit("Chars are restricted to text_plane cells. Use a custom max_text_size or max_lines to allow larger text content.")
-        if last_line < len(self.editable):
-            if self.editable[last_line + 1:]:
-                self.post[:] = self.editable[last_line + 1:]
-                self.editable[last_line + 1:] = []
-                self.last_line_explicit_lf = True
-            else:
-                self.last_line_explicit_lf = False
-            if self.max_lines is not None and len(self.post) + len(self.pre) + len(self.editable) > self.max_lines:
-                raise TextDoesNotFit("Text takes more lines than available.Increase 'max_lines'")
+        if self.editable[last_line + 1:]:
+            self.post[:] = self.editable[last_line + 1:]
+            self.editable[last_line + 1:] = []
+            self.last_line_explicit_lf = True
+        else:
+            self.last_line_explicit_lf = False
+        if self.max_lines is not None and len(self.post) + len(self.pre) + len(self.editable) > self.max_lines:
+            raise TextDoesNotFit("Text takes more lines than available.Increase 'max_lines'")
         if self.max_text_size is not None and len(self.value) > self.max_text_size:
             raise TextDoesNotFit("Too many characters")
 
@@ -748,8 +749,7 @@ class SoftLines:
         with self.lock:
             self._reflow_pre()
             last_line_displayed = self._reflow_main()
-            if last_line_displayed is not None:
-                self._reflow_post(last_line_displayed)
+            self._reflow_post(last_line_displayed)
 
     @property
     def value(self):
