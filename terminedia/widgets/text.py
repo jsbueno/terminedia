@@ -674,7 +674,6 @@ class SoftLines:
         return len(self.hard_lines) > 1 or isinstance(self.max_lines, int) and self.max_lines > 1
 
     def reflow(self):
-        #breakpoint()
 
         text = [*self.pre, *self.editable, *self.post]
         new_pre = []
@@ -722,6 +721,11 @@ class SoftLines:
                     line = ""
                     proceed_to_next_line = True
             if proceed_to_next_line:
+                try:
+                    hard_line = next(hard_lines)
+                except StopIteration:
+                    end_of_space = True
+                    break
                 continue
             if end_of_space:
                 break
@@ -747,7 +751,7 @@ class SoftLines:
             #if self.last_line_explicit_lf and not self.post:
                 #self.post_last_line_explicit_lf = True
             if self.editable[i + 1:]:
-                self.post[0:1] = self.editable[i + 1:]
+                self.post[:] = self.editable[i + 1:]
                 self.editable[i + 1:] = []
                 self.last_line_explicit_lf = True
             else:
