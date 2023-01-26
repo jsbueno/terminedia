@@ -2,6 +2,7 @@ from collections import namedtuple
 from copy import deepcopy
 import itertools
 from math import ceil
+from threading import RLock
 from warnings import warn
 
 import terminedia
@@ -629,6 +630,7 @@ class SoftLines:
         XXX: move to terminedia.text.plane ??
         """
 
+        self.lock = RLock()
         self.text_plane = text_plane
         self.cursor = self.initial_position = initial_position
         self.direction = self.initial_direction = direction
@@ -710,14 +712,16 @@ class SoftLines:
                     try:
                         hard_line = next(hard_lines)
                     except StopIteration:
-                        return line, cumulative_transcribe, i
+                        self.last_line_length = cumulative_transcribe
+                        return i
                 else:
                     hard_line[transcribe: len_hard_line] = " " * (len_hard_line - transcribe)
                     line = ""
             try:
                 hard_line = next(hard_lines)
             except StopIteration:
-                return line, cumulative_transcribe, i
+                self.last_line_length = len(initial_line)
+                return i
 
         for hard_line in hard_lines:
             hard_line.clear()
@@ -725,17 +729,13 @@ class SoftLines:
         return None
 
 
-    def _reflow_post(self, last_line_remainder, last_line_displayed, last_phys_line):
+    def _reflow_post(self, last_line):
         if self.max_text_size is None and self.max_lines is None:
             raise TextDoesNotFit("Chars are restricted to text_plane cells. Use a custom max_text_size or max_lines to allow larger text content.")
-        if last_line_remainder:
-            self.last_line_length = last_line_displayed
-        else:
-            self.last_line_length = len(self.editable[last_phys_line])
-        if last_phys_line < len(self.editable):
-            if self.editable[last_phys_line + 1:]:
-                self.post[:] = self.editable[last_phys_line + 1:]
-                self.editable[last_phys_line + 1:] = []
+        if last_line < len(self.editable):
+            if self.editable[last_line + 1:]:
+                self.post[:] = self.editable[last_line + 1:]
+                self.editable[last_line + 1:] = []
                 self.last_line_explicit_lf = True
             else:
                 self.last_line_explicit_lf = False
@@ -745,10 +745,11 @@ class SoftLines:
             raise TextDoesNotFit("Too many characters")
 
     def reflow(self):
-        self._reflow_pre()
-        reflow_state = self._reflow_main()
-        if reflow_state:
-            self._reflow_post(*reflow_state)
+        with self.lock:
+            self._reflow_pre()
+            last_line_displayed = self._reflow_main()
+            if last_line_displayed is not None:
+                self._reflow_post(last_line_displayed)
 
     @property
     def value(self):
