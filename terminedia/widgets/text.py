@@ -622,25 +622,6 @@ class InnerSeq:
     def __len__(self):
         return len(self.map)
 
-class StatefulIter:
-    def __init__(self, seq):
-        self.max_size = len(seq)
-        self.iter = iter(seq)
-
-    def __iter__(self):
-        for i, item in enumerate(self.iter):
-            self.last_index = i
-            yield item
-        self.last_index = self.max_size
-
-    def __next__(self):
-        if not hasattr(self, "generator"):
-            self.generator = iter(self)
-        return next(self.generator)
-
-    @property
-    def ended(self):
-        return self.last_index >= self.max_size
 
 class SoftLines:
     def __init__(self, text_plane, value="", initial_position=V2(0, 0), direction=Directions.RIGHT, offset=0, max_lines=None, max_text_size=None):
@@ -733,11 +714,11 @@ class SoftLines:
         return hard_line
 
     def _reflow_main(self):
-        self._transient_lines_iter = StatefulIter(self.hard_lines)
+        self._transient_lines_iter = iter(self.hard_lines)
         hard_line = next(self._transient_lines_iter)
         if not self.editable:
             self.last_line_length = 0
-            return 0
+            return 0, False
         for i, line in enumerate(self.editable):
             if i == 0:
                 line = line[self.first_line_offset:]
@@ -745,17 +726,18 @@ class SoftLines:
                 hard_line = self._reflow_main_inner(line, hard_line)
             except StopIteration:
                 self.last_line_length = self._transient_last_line_length
-                return i
+                return i, True
         for hard_line in self._transient_lines_iter:
             hard_line.clear()
-        self.last_line_length = len(self.editable[-1]) if self.editable else 0
-        return i
+            # just clear if there is at least one line slacking
+        self.last_line_length = (len(self.editable[-1])) if self.editable else 0
+        return i, False
 
-    def _reflow_post(self, last_line):
+    def _reflow_post(self, last_line, hard_lines_exhausted):
         if (
             not self.editable or
             len(self.editable) <= len(self.hard_lines) and
-            not self._transient_lines_iter.ended and (
+            not hard_lines_exhausted and (
                 last_line < len(self.editable) - 1 or
                 last_line == len(self.editable) - 1 and len(self.editable[-1]) <= self.last_line_length
         )):
@@ -777,8 +759,8 @@ class SoftLines:
     def reflow(self):
         with self.lock:
             self._reflow_pre()
-            last_line_displayed = self._reflow_main()
-            self._reflow_post(last_line_displayed)
+            last_line_displayed, exhausted = self._reflow_main()
+            self._reflow_post(last_line_displayed, exhausted)
 
     @property
     def value(self):
@@ -804,7 +786,8 @@ class SoftLines:
         return self.editable[0][self.first_line_offset:self.first_line_offset + self.last_line_length]
 
     def scroll_char_left(self, n=1):
-        ...
+        self.offset += n
+        self.reflow()
 
 
     def __len__(self):
