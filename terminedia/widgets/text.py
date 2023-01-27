@@ -622,6 +622,26 @@ class InnerSeq:
     def __len__(self):
         return len(self.map)
 
+class StatefulIter:
+    def __init__(self, seq):
+        self.max_size = len(seq)
+        self.iter = iter(seq)
+
+    def __iter__(self):
+        for i, item in enumerate(self.iter):
+            self.last_index = i
+            yield item
+        self.last_index = self.max_size
+
+    def __next__(self):
+        if not hasattr(self, "generator"):
+            self.generator = iter(self)
+        return next(self.generator)
+
+    @property
+    def ended(self):
+        return self.last_index >= self.max_size
+
 class SoftLines:
     def __init__(self, text_plane, value="", initial_position=V2(0, 0), direction=Directions.RIGHT, offset=0, max_lines=None, max_text_size=None):
         """[WIP] Inner class bridging larger than display text content to physical
@@ -713,8 +733,11 @@ class SoftLines:
         return hard_line
 
     def _reflow_main(self):
-        self._transient_lines_iter = iter(self.hard_lines)
+        self._transient_lines_iter = StatefulIter(self.hard_lines)
         hard_line = next(self._transient_lines_iter)
+        if not self.editable:
+            self.last_line_length = 0
+            return 0
         for i, line in enumerate(self.editable):
             if i == 0:
                 line = line[self.first_line_offset:]
@@ -729,7 +752,13 @@ class SoftLines:
         return i
 
     def _reflow_post(self, last_line):
-        if last_line >= len(self.editable) - 1:
+        if (
+            not self.editable or
+            len(self.editable) <= len(self.hard_lines) and
+            not self._transient_lines_iter.ended and (
+                last_line < len(self.editable) - 1 or
+                last_line == len(self.editable) - 1 and len(self.editable[-1]) <= self.last_line_length
+        )):
             self.post[:] = []
             return
         if self.max_text_size is None and self.max_lines is None:
@@ -773,6 +802,10 @@ class SoftLines:
                 text += "\n"
             return text
         return self.editable[0][self.first_line_offset:self.first_line_offset + self.last_line_length]
+
+    def scroll_char_left(self, n=1):
+        ...
+
 
     def __len__(self):
         return len(self.value)
