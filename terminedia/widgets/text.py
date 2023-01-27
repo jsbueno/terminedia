@@ -725,7 +725,7 @@ class SoftLines:
             try:
                 hard_line = self._reflow_main_inner(line, hard_line)
             except StopIteration:
-                self.last_line_length = self._transient_last_line_length
+                self.last_line_length = self._transient_last_line_length + (self.first_line_offset if i == 0 else 0)
                 return i, True
         for hard_line in self._transient_lines_iter:
             hard_line.clear()
@@ -783,7 +783,7 @@ class SoftLines:
             if self.last_line_explicit_lf:
                 text += "\n"
             return text
-        return self.editable[0][self.first_line_offset:self.first_line_offset + self.last_line_length]
+        return self.editable[0][self.first_line_offset:self.last_line_length]
 
     def scroll_char_left(self, n=1):
         self.offset += n

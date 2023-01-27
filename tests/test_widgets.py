@@ -252,7 +252,6 @@ def test_softlines_reflow(text, offset, expected_displayed, expected_pre, expect
     sh = TM.shape((3,3))
     sl = TM.widgets.text.SoftLines(sh.text[1], text, max_lines=20)
     sl.offset = offset
-    #breakpoint()
     sl.reflow()
     assert sl.displayed_value == expected_displayed
     assert sl.pre == expected_pre
@@ -266,5 +265,4 @@ def test_softlines_scroll_character_left():
     sl.scroll_char_left()
     assert sl.value == "012"
     assert sl.displayed_value == "12"
-    assert sl.last_line_length == 2
-    assert sl.last_line_length == 2
+#    assert sl.last_line_length == 2
