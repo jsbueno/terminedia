@@ -711,6 +711,7 @@ class SoftLines:
                 line = ""
         self._transient_last_line_length = len(initial_line)
         hard_line = next(self._transient_lines_iter)
+        hard_line.clear()
         return hard_line
 
     def _reflow_main(self):
@@ -734,14 +735,13 @@ class SoftLines:
         return i, False
 
     def _reflow_post(self, last_line, hard_lines_exhausted):
+        self.post[:] = []
         if (
             not self.editable or
             len(self.editable) <= len(self.hard_lines) and
-            not hard_lines_exhausted and (
-                last_line < len(self.editable) - 1 or
-                last_line == len(self.editable) - 1 and len(self.editable[-1]) <= self.last_line_length
-        )):
-            self.post[:] = []
+            not hard_lines_exhausted and
+            last_line <= len(self.editable) - 1
+        ):
             return
         if self.max_text_size is None and self.max_lines is None:
             raise TextDoesNotFit("Chars are restricted to text_plane cells. Use a custom max_text_size or max_lines to allow larger text content.")

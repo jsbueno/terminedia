@@ -258,11 +258,19 @@ def test_softlines_reflow(text, offset, expected_displayed, expected_pre, expect
     assert sl.post == expected_post
     assert sl.value == text
 
-
-def test_softlines_scroll_character_left():
+@pytest.mark.parametrize(["text", "nchars", "expected_displayed", "expected_hard_lines"], [
+    P("012", 1, "12", ["12 ", "   ", "   "], id="1_char"),
+    P("012", 2, "2", ["2  ", "   ", "   "], id="2_chars"),
+    P("012\n345", 2, "2\n345", ["2  ", "345", "   "], id="2_lines_2_chars"),
+    P("012\n345", 3, "345", ["345", "   ", "   "], id="2_lines_consume_1st_line"),
+    P("012\n345678901234", 4, "456789012", ["456", "789", "012"], id="consume_1st_line_pull_post_text"),
+    P("012\n345678\n901234", 4, "45678\n901", ["456", "78 ", "901"], id="consume_1st_line_line_break"),
+])
+def test_softlines_scroll_characters_left(text, nchars, expected_displayed, expected_hard_lines):
     sh = TM.shape((3,3))
-    sl = TM.widgets.text.SoftLines(sh.text[1], "012", max_text_size=20)
-    sl.scroll_char_left()
-    assert sl.value == "012"
-    assert sl.displayed_value == "12"
-#    assert sl.last_line_length == 2
+    sl = TM.widgets.text.SoftLines(sh.text[1], text, max_text_size=20)
+    sl.scroll_char_left(nchars)
+    assert sl.value == text
+    assert sl.displayed_value == expected_displayed
+    if expected_hard_lines:
+        assert [line.value for line in sl.hard_lines] == expected_hard_lines
