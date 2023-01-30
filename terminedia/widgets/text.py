@@ -665,11 +665,10 @@ class SoftLines:
         self.hard_lines = self.hard_cells.lines
 
         self.last_line_explicit_lf = (
+            self.editable and
             self.can_end_in_lf and
             value_ends_on_newline
         )
-
-        self.post_last_line_explicit_lf = False
         self.reflow()
 
     @property
@@ -748,7 +747,7 @@ class SoftLines:
         if self.editable[last_line + 1:]:
             self.post[:] = self.editable[last_line + 1:]
             self.editable[last_line + 1:] = []
-            self.last_line_explicit_lf = True
+            #self.last_line_explicit_lf = True
         else:
             self.last_line_explicit_lf = False
         if self.max_lines is not None and len(self.post) + len(self.pre) + len(self.editable) > self.max_lines:
@@ -768,27 +767,43 @@ class SoftLines:
         if text:
             text += "\n"
         text += "\n".join(self.editable)
-        if text and not self.post and self.last_line_explicit_lf:
-            text += "\n"
         if self.post:
             text += "\n" + "\n".join(self.post)
-        if self.post_last_line_explicit_lf:
+        if self.last_line_explicit_lf:
             text += "\n"
+        elif text and text[-1] == "\n":
+            text = text[:-1]
         return text
 
     @property
     def displayed_value(self):
         if len(self.editable) > 1:
             text = "\n".join([self.editable[0][self.first_line_offset:], *self.editable[1:-1], self.editable[-1][:self.last_line_length]])
-            if self.last_line_explicit_lf:
-                text += "\n"
-            return text
-        return self.editable[0][self.first_line_offset:self.last_line_length]
+        else:
+            text = self.editable[0][self.first_line_offset:self.last_line_length] if self.editable else ""
+        if (
+            not self.post and self.last_line_explicit_lf or
+            self.post and len(self.editable[-1]) == self.last_line_length
+        ):
+            text += "\n"
+        return text
 
     def scroll_char_left(self, n=1):
         self.offset += n
         self.reflow()
 
+    def scroll_char_right(self, n=1):
+        self.offset = max(self.offset - n, 0)
+        self.reflow()
+
+    def scroll_line_up(self, n=1):
+        offset = self.offset
+        if not self.editable:
+            return
+        delta = min(len(self.editable[0]) - self.first_line_offset, len(self.hard_lines[0]))
+        self.offset += delta
+
+        self.reflow()
 
     def __len__(self):
         return len(self.value)
