@@ -769,7 +769,7 @@ class SoftLines:
         text += "\n".join(self.editable)
         if self.post:
             text += "\n" + "\n".join(self.post)
-        if self.last_line_explicit_lf:
+        if self.last_line_explicit_lf and self.can_end_in_lf:
             text += "\n"
         elif text and text[-1] == "\n":
             text = text[:-1]
@@ -804,6 +804,25 @@ class SoftLines:
         self.offset += delta
 
         self.reflow()
+        if n > 0 and n > 1:
+            return self.scroll_line_down(n - 1)
+
+
+    def scroll_line_down(self, n=1):
+        if not self.pre and self.first_line_offset == 0:
+            return
+        offset = self.offset
+        line_len = len(self.hard_lines[0])
+        if self.first_line_offset >= line_len:
+            offset -= line_len
+        elif self.first_line_offset:
+            offset -= self.first_line_offset
+        elif self.pre:
+            offset -= min(line_len, len(self.pre[-1]))
+        self.offset = offset
+        self.reflow()
+        if n > 0 and n > 1:
+            return self.scroll_line_down(n - 1)
 
     def __len__(self):
         return len(self.value)

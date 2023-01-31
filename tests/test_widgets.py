@@ -292,6 +292,22 @@ def test_softlines_scroll_characters_right(text, initial_offset, nchars, expecte
     assert sl.displayed_value == expected_displayed
 
 
+@pytest.mark.parametrize(["text", "offset", "nlines", "expected_displayed"],  [
+    P("012",0, 1, "012",  id="1_line_no_buffer"),
+    P("012",1, 1, "012",  id="1_line_single_char_in_buffer"),
+    P("012\n345", 3, 1, "012\n345",  id="1_lines_scroll_down"),
+    P("012\n345\n", 3, 1, "012\n345\n",  id="1_lines_scroll_down_lf"),
+    P("012\n345\n678\n901\n234", 9, 2, "345\n678\n901\n",  id="2_lines_scroll_down_text_goes_off_screen"),
+    P("012345678", 6, 1, "345678",  id="1_physical_line_no_line_breaks"),
+])
+
+def test_softlines_scroll_lines_down(text, offset, nlines, expected_displayed):
+    sh = TM.shape((3,3))
+    sl = TM.widgets.text.SoftLines(sh.text[1], text, offset=offset, max_text_size=20)
+    sl.scroll_line_down(nlines)
+    assert sl.value == text
+    assert sl.displayed_value == expected_displayed
+
 @pytest.mark.parametrize(["text", "nlines", "expected_displayed"],  [
     P("012", 1, "",  id="1_line"),
     P("012\n345", 1, "345",  id="1_lines_scroll_up"),
