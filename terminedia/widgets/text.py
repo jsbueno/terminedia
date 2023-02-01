@@ -611,6 +611,7 @@ class InnerSeq:
     def __init__(self, source, map):
         self.source = source
         self.map = map
+        self.rev_map = {v: k for k, v in map.items()}
         self.lines = InnerSeqLinesContainer(self)
 
     def __getitem__(self, index):
@@ -621,6 +622,41 @@ class InnerSeq:
 
     def __len__(self):
         return len(self.map)
+
+from collections import UserList
+from collections.abc import MutableSequence
+
+class EditableLinesChars(MutableSequence):
+    def __init__(self, parent):
+        self.parent = parent
+        self.grandparent = parent.parent
+
+    def __getitem__(self, pos):
+        return self.parent[pos[1]][pos[0]]
+
+    def __setitem__(self, pos, value):
+        x = pos[0]
+        line = self.parent[pos[1]]
+        self.parent[pos[1]] = line[:x] + value + line[x + len(value):]
+
+    def __delitem__(self, pos):
+        line = list(self.parent[pos[1]])
+        del line[pos[0]]
+        self.parent[pos[1]] = "".join(line)
+
+    def insert(self, pos, value):
+        x = pos[0]
+        line = self.parent[pos[1]]
+        self.parent[pos[1]] = line[:x] + value + line[x + len(value):]
+
+    def __len__(self):
+        return sum(len(line) for line in self.parent)
+
+class EditableLines(UserList):
+    def __init__(self, *args, parent, **kw):
+        self.parent = parent
+        self.chars = EditableLinesChars(self)
+        super().__init__(*args, **kw)
 
 
 class SoftLines:
@@ -648,7 +684,7 @@ class SoftLines:
         else:
             value_ends_on_newline = False
 
-        self.editable = value if isinstance(value, list) else value.split("\n")
+        self.editable = EditableLines(value if isinstance(value, list) else value.split("\n"), parent=self)
         self.post = []
         self.first_line_offset = 0
         self.last_line_length = 0
@@ -691,7 +727,7 @@ class SoftLines:
             remaining_offset = 0
         self.first_line_offset = first_line_offset
         self.pre = new_pre
-        self.editable = text
+        self.editable[:] = text
 
     def _reflow_main_inner(self, line, hard_line):
         initial_line = line

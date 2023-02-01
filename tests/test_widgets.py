@@ -190,7 +190,6 @@ def test_softlines_physical_write_reflected_on_text_plane():
     sl.physical_cells[2,2] = "A"
     assert sh.text[1][2,2] == "A"
 
-
 def test_softlines_initial_default_value_is_empty():
     sh = TM.shape((4,4))
     sl = TM.widgets.text.SoftLines(sh.text[1])
