@@ -625,6 +625,7 @@ class InnerSeq:
 
 from collections import UserList
 from collections.abc import MutableSequence
+from functools import wraps
 
 class EditableLinesChars(MutableSequence):
     def __init__(self, parent):
@@ -647,7 +648,7 @@ class EditableLinesChars(MutableSequence):
     def insert(self, pos, value):
         x = pos[0]
         line = self.parent[pos[1]]
-        self.parent[pos[1]] = line[:x] + value + line[x + len(value):]
+        self.parent[pos[1]] = line[:x] + value + line[x:]
 
     def __len__(self):
         return sum(len(line) for line in self.parent)
@@ -729,29 +730,31 @@ class SoftLines:
         self.pre = new_pre
         self.editable[:] = text
 
-    def _reflow_main_inner(self, line, hard_line):
+    def _reflow_main_inner(self, line, line_number, hard_line, hard_line_number):
         initial_line = line
         cumulative_transcribe = 0
         while line:
             len_hard_line = len(hard_line)
             transcribe = min(len_hard_line, len(line))
+            self._softline_indexes[hard_line_number] = V2(line_number, cumulative_transcribe)
             hard_line[0:transcribe] = line[0:transcribe]
             if len_hard_line < len(line):
                 line = line[transcribe:]
                 cumulative_transcribe += transcribe
                 self._transient_last_line_length = cumulative_transcribe
-                hard_line = next(self._transient_lines_iter)
+                hard_line_number, hard_line = next(self._transient_lines_iter)
             else:
                 hard_line[transcribe: len_hard_line] = " " * (len_hard_line - transcribe)
                 line = ""
         self._transient_last_line_length = len(initial_line)
-        hard_line = next(self._transient_lines_iter)
+        hard_line_number, hard_line = next(self._transient_lines_iter)
         hard_line.clear()
-        return hard_line
+        return hard_line_number, hard_line
 
     def _reflow_main(self):
-        self._transient_lines_iter = iter(self.hard_lines)
-        hard_line = next(self._transient_lines_iter)
+        self._transient_lines_iter = iter(enumerate(self.hard_lines))
+        hard_line_number, hard_line = next(self._transient_lines_iter)
+        self._softline_indexes = {}
         if not self.editable:
             self.last_line_length = 0
             return 0, False
@@ -759,11 +762,11 @@ class SoftLines:
             if i == 0:
                 line = line[self.first_line_offset:]
             try:
-                hard_line = self._reflow_main_inner(line, hard_line)
+                hard_line_number, hard_line = self._reflow_main_inner(line,i, hard_line, hard_line_number)
             except StopIteration:
                 self.last_line_length = self._transient_last_line_length + (self.first_line_offset if i == 0 else 0)
                 return i, True
-        for hard_line in self._transient_lines_iter:
+        for _, hard_line in self._transient_lines_iter:
             hard_line.clear()
             # just clear if there is at least one line slacking
         self.last_line_length = (len(self.editable[-1])) if self.editable else 0
@@ -796,6 +799,43 @@ class SoftLines:
             self._reflow_pre()
             last_line_displayed, exhausted = self._reflow_main()
             self._reflow_post(last_line_displayed, exhausted)
+
+    def soft_pos_from_physical(self, physical_pos):
+        hard_pos = self.hard_cells.rev_map[physical_pos]
+        soft_line, soft_index = self._softline_indexes[hard_pos.y]
+        count = 0
+        pos = self.hard_cells.map[0, hard_pos.y]
+        while pos != physical_pos:
+            count += 1
+            pos = self.text_pathto_map[pos][0].to_pos
+        return V2(soft_index + count, soft_line)
+
+    def _change_content(func):
+        @wraps(func)
+        def wrapper(self, physical_pos, *args):
+            soft_pos = self.soft_pos_from_physical(physical_pos)
+            func(self, soft_pos, *args)
+            self.reflow()
+        return wrapper
+
+    @_change_content
+    def insert(self, pos, char):
+        self.editable.chars.insert(pos, char)
+
+    @_change_content
+    def set(self, pos, char):
+        self.editable.chars.__setitem__(pos, char)
+
+    @_change_content
+    def del_(self, pos):
+        del self.editable.chars[pos]
+
+    del _change_content
+
+    def _change(self, op, physical_pos, char):
+        soft_pos = self.soft_pos_from_physical(physical_pos)
+        op(soft_pos, char)
+        self.reflow()
 
     @property
     def value(self):
