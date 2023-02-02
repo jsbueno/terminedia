@@ -659,6 +659,11 @@ class EditableLines(UserList):
         self.chars = EditableLinesChars(self)
         super().__init__(*args, **kw)
 
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return self.__class__(self.data[index], parent=self.parent)
+        return super().__getitem__(index)
+
 
 class SoftLines:
     def __init__(self, text_plane, value="", initial_position=V2(0, 0), direction=Directions.RIGHT, offset=0, max_lines=None, max_text_size=None):
