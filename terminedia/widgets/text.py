@@ -199,6 +199,56 @@ def map_text(text, pos, direction):
 
     return to_map, from_map, normalized_lines_map
 
+def map_text_directions(text, pos, direction):
+    """Used internally by "Editable". Given a text plane, maps out the way that each reachable cell can be acessed
+
+    The map re-interprets the Marks that affect text flow found on the text plane -
+    but Marks with "special_index" and other kinds of dynamic marks will likely
+    be missed by this mapping.
+
+    With the map, afterwards, given
+    a cell position, one can backtrack to know the distance of the last typed character,
+    and on which softline it is
+    """
+    # TBD: this is a refactoring-time functional copy of "map_text" which should be removed when
+    # the refactoring is complete. The major difference is the indexing and contents of resulting structures.
+
+    # FIXME: currently the implementation of Styled text rendering
+    # does not behave properly if a Mark moves the flow
+    # to a cell containing another teleporting mark:
+    # the target mark is ignored.
+    # The algorithm bellow do the right thing -  it has to be implemented
+    # in rendering as well
+    pos = V2(pos)
+    direction = V2(direction)
+    last_cell = MarkCell(None, pos, False, True, direction, V2(0,0))
+    from_map = {(pos, direction): [last_cell] }
+    to_map = {None: [last_cell] }
+    rect = terminedia.Rect((0, 0), text.size)
+    marks = _ensure_sequence(text.marks.abs_get(pos, _EMPTY_MARK,))
+    normalized_lines_map = {V2(0,0): last_cell}
+    npos = V2(1, 0)
+    while True:
+        prev_pos = pos
+
+        pos, direction, flow_changed, position_is_used = text.marks.move_along_marks(prev_pos, direction)
+
+        if flow_changed:
+            npos = V2(0, npos.y + 1)
+
+        cell = MarkCell(prev_pos, pos, flow_changed, position_is_used, direction, npos)
+        if (pos, direction) in from_map:
+            break
+        normalized_lines_map[npos] = to_map[prev_pos, direction] = from_map[pos, direction] = cell
+        to_map[prev_pos, None] = from_map[pos, None] = cell
+
+        marks = _ensure_sequence(text.marks.abs_get(pos, _EMPTY_MARK,))
+        if marks[0] is _EMPTY_MARK and pos not in rect:
+            break
+        npos += (1, 0)
+
+    return to_map, from_map, normalized_lines_map
+
 
 class TextDoesNotFit(IndexError): #sentinel
      pass
@@ -640,10 +690,19 @@ class EditableLinesChars(MutableSequence):
         line = self.parent[pos[1]]
         self.parent[pos[1]] = line[:x] + value + line[x + len(value):]
 
+
     def __delitem__(self, pos):
         line = list(self.parent[pos[1]])
         del line[pos[0]]
         self.parent[pos[1]] = "".join(line)
+
+    def defaultset(self, pos, value, filler=" "):
+        """Sets a character in a line, augmenting the line length if pos is past its end"""
+        x = pos[0]
+        line = self.parent[pos[1]]
+        if x <= len(line):
+            return self.__setitem__(pos, value)
+        self.parent[pos[1]] = line[:x] + filler * (x - len(line)) + value
 
     def insert(self, pos, value):
         x = pos[0]
@@ -652,6 +711,7 @@ class EditableLinesChars(MutableSequence):
 
     def __len__(self):
         return sum(len(line) for line in self.parent)
+
 
 class EditableLines(UserList):
     def __init__(self, *args, parent, **kw):
@@ -700,7 +760,7 @@ class SoftLines:
         self.max_lines = max_lines
         self.max_text_size = max_text_size
 
-        self.text_pathto_map, self.text_path_map, self.normalized_lines = map_text(text_plane, self.initial_position, direction)
+        self.text_pathto_map, self.text_path_map, self.normalized_lines = map_text_directions(text_plane, self.initial_position, direction)
 
         self.physical_cells = text_plane
         self.hard_cells = InnerSeq(self.physical_cells, {k: v.to_pos for k, v in self.normalized_lines.items()})
@@ -805,31 +865,35 @@ class SoftLines:
             last_line_displayed, exhausted = self._reflow_main()
             self._reflow_post(last_line_displayed, exhausted)
 
-    def soft_pos_from_physical(self, physical_pos):
+    def soft_pos_from_physical(self, physical_pos, direction=None):
         hard_pos = self.hard_cells.rev_map[physical_pos]
         soft_line, soft_index = self._softline_indexes[hard_pos.y]
         count = 0
         pos = self.hard_cells.map[0, hard_pos.y]
         while pos != physical_pos:
             count += 1
-            pos = self.text_pathto_map[pos][0].to_pos
+            pos = self.text_pathto_map[pos, direction].to_pos
         return V2(soft_index + count, soft_line)
 
-    def _change_content(func):
+    def _change_content(func, direction=None):
+        # temporary decorator
         @wraps(func)
         def wrapper(self, physical_pos, *args):
-            soft_pos = self.soft_pos_from_physical(physical_pos)
+            soft_pos = self.soft_pos_from_physical(physical_pos, direction)
             func(self, soft_pos, *args)
             self.reflow()
         return wrapper
 
     @_change_content
     def insert(self, pos, char):
+        line_length = len(self.editable[pos[1]])
+        #if pos[0] > line_length:
+            #pos = V2(line_length, pos[1])
         self.editable.chars.insert(pos, char)
 
     @_change_content
     def set(self, pos, char):
-        self.editable.chars.__setitem__(pos, char)
+        self.editable.chars.defaultset(pos, char)
 
     @_change_content
     def del_(self, pos):
@@ -837,10 +901,19 @@ class SoftLines:
 
     del _change_content
 
-    def _change(self, op, physical_pos, char):
-        soft_pos = self.soft_pos_from_physical(physical_pos)
-        op(soft_pos, char)
-        self.reflow()
+    def get_next_pos(self, pos, value=" ", direction=None, follow_line_breaks=False):
+        for char in value:
+            # TBD: follow_line_breaks option: if current cursor position
+            # falls beyond the line contents in the current hard_line,
+            # advance to the next hard_line
+            #if follow_line_breaks:
+            #soft_line_position, soft_line_index = self.soft_pos_from_physical(pos)
+                #if soft_line_position > len(self.editable(soft_line_index)):
+                    # advance physical line based on increas in hard_line.y
+            #        ...
+            pos = self.text_pathto_map[pos, direction]
+        return pos
+
 
     @property
     def value(self):
