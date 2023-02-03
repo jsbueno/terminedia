@@ -437,6 +437,7 @@ class Lines:
         return len(self.soft_lines[line]) > length
 
     def at_last_line(self, pos):
+        return False
         index = self.parent.indexes_to[pos]
         line, index = self.get_index_in_soft_line(index)
         return line == len(self.soft_lines) - 1
@@ -706,6 +707,8 @@ class EditableLinesChars(MutableSequence):
 
     def insert(self, pos, value):
         x = pos[0]
+        if pos[1] == 0 and not self.parent:
+            self.parent.append("")
         line = self.parent[pos[1]]
         self.parent[pos[1]] = line[:x] + value + line[x:]
 
@@ -841,9 +844,10 @@ class SoftLines:
         self.post[:] = []
         if (
             not self.editable or
-            len(self.editable) <= len(self.hard_lines) and
-            not hard_lines_exhausted and
-            last_line <= len(self.editable) - 1
+            len(self.editable) <= len(self.hard_lines) and (
+                not hard_lines_exhausted or
+                last_line <= len(self.editable) - 1
+            )
         ):
             return
         if self.max_text_size is None and self.max_lines is None:
@@ -867,7 +871,10 @@ class SoftLines:
 
     def soft_pos_from_physical(self, physical_pos, direction=None):
         hard_pos = self.hard_cells.rev_map[physical_pos]
-        soft_line, soft_index = self._softline_indexes[hard_pos.y]
+        try:
+            soft_line, soft_index = self._softline_indexes[hard_pos.y]
+        except KeyError:
+            return V2(0,0)
         count = 0
         pos = self.hard_cells.map[0, hard_pos.y]
         while pos != physical_pos:
@@ -886,7 +893,7 @@ class SoftLines:
 
     @_change_content
     def insert(self, pos, char):
-        line_length = len(self.editable[pos[1]])
+        line_length = len(self.editable[pos[1]]) if self.editable and len(self.editable) > pos[1] else 0
         #if pos[0] > line_length:
             #pos = V2(line_length, pos[1])
         self.editable.chars.insert(pos, char)
@@ -911,7 +918,7 @@ class SoftLines:
                 #if soft_line_position > len(self.editable(soft_line_index)):
                     # advance physical line based on increas in hard_line.y
             #        ...
-            pos = self.text_pathto_map[pos, direction]
+            pos = self.text_pathto_map[pos, direction].to_pos
         return pos
 
 
@@ -928,6 +935,14 @@ class SoftLines:
         elif text and text[-1] == "\n":
             text = text[:-1]
         return text
+
+    @value.setter
+    def value(self, text):
+        with self.lock:
+            self.pre[:] = []
+            self.editable = text.split("\n") if isinstance(text, str) else text
+            self.post[:] = []
+            self.reflow()
 
     @property
     def displayed_value(self):
@@ -989,7 +1004,7 @@ class Editable:
     responsible for managing a keyboard-event-echo-in-text-plane
     pattern. Use text-editing subclasses of Widget instead of this.
 
-    You may re-initialize the widget.editable instance if you make layout changes
+    You may re-initialize the widget.editable instancee if you make layout changes
     to the underlying shape (text-flow Marks) after the widget is instantiated.
     """
     def __init__(self, text_plane, parent=None, value="", pos=None, line_sep="\n", text_size=None, offset=0):
@@ -1007,85 +1022,28 @@ class Editable:
             self.parent.sprite.transformers.append(CursorTransformer(self))
         self.last_rendered_cursor = None
         self.last_text_data = []
-        self.text_pathto_map, self.text_path_map, self.normalized_lines = map_text(self.text, self.initial_pos, self.context.direction)
+        self.lines = SoftLines(text_plane, value, initial_position=self.initial_pos, direction=self.initial_direction, offset=offset, max_text_size=text_size)
 
         self.impossible_pos = False
-
-
-        # properties used to edit text larger than the display-size:
-        self.display_size = len(self.text_path_map) - 1
-        if text_size is None or text_size < self.display_size - 1:
-            if text_size and text_size < self.display_size - 1:
-                warn("Smaller than display widget text size not implemented.")
-            text_size = self.display_size - 1
-            self.larger_than_displayed = False
-        else:
-            self.larger_than_displayed = True
-        self.text_size = text_size
-        self.text_prefix = LinesList()
-        self.text_postfix = LinesList()
-
-
         # resume building initial internal-state
-        self._build_shape_indexes()
-        self.lines = Lines(value, self)
+        #self.lines = Lines(value, self)
         self.text_size = text_size
-        # state to indicate if insertion point at last cell
-        # should be _after_ or _before_ last character
-        self.text_past_end = False
-
-        self.value = value
         self.text_offset = offset
 
-    def _build_shape_indexes(self):
-        pos = self.initial_pos
-        indexes_to = {}
-        indexes_from = {}
-        new_line_indexes = [0]
-        pos_at_new_lines = [pos]
-        cells_at_lines = [[]]
-        count = 0
-        index_counted = False
-        while True:
-            indexes_from[count] = pos
-            indexes_to[pos] = count
-            cells_at_lines[-1].append(pos)
-            count += 1
-            try:
-                cell = self.text_pathto_map[pos][0]
-            except KeyError:
-                break
-            if cell.flow_changed: #not cell.is_used:
-                new_line_indexes.append(count)
-                pos_at_new_lines.append(pos)
-                index_counted = True
-                cells_at_lines.append([])
-            else:
-                index_counted = False
-            pos = cell.to_pos
-        if not index_counted:
-            new_line_indexes.append(count - 1)
-            # pos_at_new_lines.append(pos)
-        self.raw_value = " " * len(indexes_from)
-        self.line_indexes = RangeMap(new_line_indexes)
-        self.indexes_from = indexes_from
-        self.indexes_to = indexes_to
-        self.pos_at_new_lines = pos_at_new_lines
-        self.cells_at_lines = cells_at_lines
 
-    def cursor_to_previous_shape_line(self):
-        norm_cell = self.text_path_map[self.pos][0].normalized_pos
-        if norm_cell.y == 0:
-            return
-        norm_cell -= (0,1)
-        self.pos = self.normalized_lines[norm_cell].to_pos
+    #def cursor_to_previous_shape_line(self):
+        #norm_cell = self.text_path_map[self.pos][0].normalized_pos
+        #if norm_cell.y == 0:
+            #return
+        #norm_cell -= (0,1)
+        #self.pos = self.normalized_lines[norm_cell].to_pos
 
-    def cursor_to_next_shape_line(self):
-        ...
+    #def cursor_to_next_shape_line(self):
+        #...
 
     @property
     def text_space(self):
-        return len(self.indexes_from) - 1
+        return len(self.soft_lines.hard_cells)
 
     def get_next_pos_from(self, pos, direction="forward"):
         if direction == "forward":
@@ -1098,37 +1056,11 @@ class Editable:
 
     @property
     def value(self):
-        if self.text_size > self.display_size:
-            if self.text_postfix:
-                empty_lines = "\n" * _count_empty_at_end(self.lines.soft_lines)
-            else:
-                empty_lines = ""
-            return self.text_prefix.value + self.displayed_value + empty_lines + self.text_postfix.value
-        else:
-            return self.displayed_value
+        return self.lines.value
 
     @value.setter
     def value(self, text):
-        self.set_value_with_offset(text, self.text_offset)
-
-    def set_value_with_offset(self, text, text_offset):
-        if text_offset and not self.larger_than_displayed:
-            raise valueError("Can't set a text offset for widgets that should display all its contents")
-        off = text_offset
-        if len(text) > self.text_size:
-            raise TextDoesNotFit
-        prev_value = self.value
-        ds = self.display_size
-        pre, editable, post = text[:off], text[off:off + ds], text[off + ds:]
-        if editable.count("\n") >= len(self.lines.hard_lines):
-            max_lines = len(self.lines.hard_lines)
-            editable_lines = editable.split("\n")
-            editable = "\n".join(editable_lines[:max_lines])
-            post = "\n" + "\n".join(editable_lines[max_lines:]) + post
-        self.text_prefix.load(pre)
-        self.text_postfix.load(post)
-        self.lines.reload(editable)
-        self.regen_text()
+        self.lines.value = text
 
     @property
     def shaped_value(self):
@@ -1141,77 +1073,44 @@ class Editable:
             # do not allow keypress to be processed further
             raise EventSuppressFurtherProcessing()
 
-    def scroll_char_right(self):
-        if not self.larger_than_displayed:
-            return
-        self.text_offset -= 1
+    #def scroll_char_right(self):
+        #self.lines.scroll_char_right()
 
-    def scroll_char_left(self):
-        if not self.larger_than_displayed:
-            return
-        self.text_offset += 1
+    #def scroll_char_left(self):
+        #self.lines.scroll_char_left()
+        #if not self.larger_than_displayed:
+            #return
+        #self.text_offset += 1
 
-    def scroll_line_up(self):
-        self._scroll_line(direction="up")
+    #def scroll_line_up(self):
+        #self._scroll_line(direction="up")
 
-    def scroll_line_down(self):
-        self._scroll_line(direction="down")
-
-    def _scroll_line(self, direction):
-        if direction == "up":
-            target = self.text_prefix
-            source = self.text_postfix
-            outgoing_edge = 0
-            incoming_edge = -1
-        else:
-            target = self.text_postfix
-            source = self.text_prefix
-            outgoing_edge = -1
-            incoming_edge = 0
-
-        if not self.lines.soft_lines:
-            return
-        # put first hard or soft line from display into prefix
-        size = len(self.lines.hard_lines[outgoing_edge])
-        self.lines.soft_lines.transfer(outgoing_edge, size, target)
-        # move first soft or hardline from postfix into display
-        prefix_size = size
-        if source:
-            size = len(self.lines.hard_lines[incoming_edge])
-            if prefix_size != size:
-                warn("Attempting to scroll up text on a non rectangular text shape. This is not an implemented edge case - mayhem may ensue!")
-            source.transfer(outgoing_edge, size, self.lines.soft_lines)
-        else:
-            if direction == "up":
-                # self.lines.soft_lines.append('')
-                pass
-            else:
-                # TBD: might break with softlines > hard_lines
-                self.lines.soft_lines.insert(0, '')
-        self.lines.reload()
-        self.regen_text()
+    #def scroll_line_down(self):
+        #self._scroll_line(direction="down")
 
     @property
     def text_offset(self):
-        return self.text_prefix.length
+        return self.lines.offset
 
     @text_offset.setter
     def text_offset(self, new_offset):
-        self.set_value_with_offset(self.value, new_offset)
+        with self.lines.lock:
+            self.lines.offset = new_offset
+            self.lines.reflow()
 
-    def scroll_last_line_down(self):
-        last_line = self.lines.soft_lines.pop()
-        self.text_postfix.insert(0, last_line)
-        self.text_postfix.prefix_newline = True
-        self.lines.soft_lines.append('')
-        self.lines.reload()
-        self.regen_text()
-        self.lines.is_there_display_space = True
+    #def scroll_last_line_down(self):
+        #last_line = self.lines.soft_lines.pop()
+        #self.text_postfix.insert(0, last_line)
+        #self.text_postfix.prefix_newline = True
+        #self.lines.soft_lines.append('')
+        #self.lines.reflow()
+        #self.regen_text()
+        #self.lines.is_there_display_space = True
 
-    def join_lines(self, displayed_line):
-        lines = self.displayed_value.split("\n")
-        lines[displayed_line] += (lines.pop(displayed_line + 1) if len(lines) > displayed_line else '')
-        self.lines.reload(lines)
+    #def join_lines(self, displayed_line):
+        #lines = self.displayed_value.split("\n")
+        #lines[displayed_line] += (lines.pop(displayed_line + 1) if len(lines) > displayed_line else '')
+        #self.lines.reflow()
 
     def change(self, event=None, key=None):
         """Called on each keypress when the widget is active. Take 2"""
@@ -1222,79 +1121,32 @@ class Editable:
         valid_symbol = True
 
         if key in (KeyCodes.UP, KeyCodes.DOWN, KeyCodes.LEFT, KeyCodes.RIGHT):
-            index = self.indexes_to[self.pos]
             if key == KeyCodes.RIGHT:
-                self.text_past_end = False
-                if self.pos.x < self.text.size.x - 1:
+                try:
                     self.pos = self.text.extents(self.pos, " ", direction="right")
-                else:
-                    if len(self.lines.hard_lines) == 1:
-                        try:
-                            self.scroll_char_left()
-                        except TextDoesNotFit:
-                            return
-                    else:
-                        if index < len(self.indexes_from) - 2:
-                            new_pos = self.indexes_from[index + 1]
-                            if new_pos in self.text.rect:
-                                self.pos = new_pos
-                        elif len(self.value) > self.text_offset + len(self.displayed_value):
-                            self.scroll_char_left()
-                            self.text_past_end = True
-                        else:
-                            self.text_past_end = True
+                except KeyError:
+                    pass
+
             if key == KeyCodes.LEFT:
-                self.text_past_end = False
-                if self.pos.x > 0:
+                try:
                     self.pos = self.text.extents(self.pos, " ", direction="left")
-                elif index > 0:
-                    self.pos = self.indexes_from[index -1]
-                elif self.text_offset > 0:
-                    self.scroll_char_right()
+                except KeyError:
+                    pass
 
             if key == KeyCodes.UP:
                 if self.pos.y > 0:
                     self.pos = self.text.extents(self.pos, " ", direction="up")
-                elif self.text_prefix:
-                    self.scroll_line_down()
+                else:
+                    self.lines.scroll_line_up()
             elif key == KeyCodes.DOWN:
                 if self.pos.y < self.text.size.y - 1:
                     self.pos = self.text.extents(self.pos, " ", direction="down")
-                elif self.text_postfix:
-                    self.scroll_line_up()
+                else:
+                    self.lines.scroll_line_down()
         elif key == KeyCodes.DELETE:
-            index = self.indexes_to.get(self.pos, _UNUSED)
-            if index is _UNUSED:
-                self.events(UNREACHABLE, self.pos)
-                return
-            if len(self.value) > self.text_offset + len(self.displayed_value):
-                r_index = index + self.text_offset
-                value = self.value
-                self.value = value[:r_index] + value[r_index + 1:]
-            else:
-                try:
-                    self.lines.del_(index, False)
-                except JoinLines as join:
-                    self.join_lines(join.line)
-                self.regen_text()
+            self.lines.del_(self.pos)
         elif key == KeyCodes.BACK:
-            index = self.indexes_to.get(self.pos, -1)
-            if index > 0:
-                self.pos = self.get_next_pos_from(self.pos, direction="back")
-                index = self.indexes_to.get(self.pos, _UNUSED)
-                if index is _UNUSED:
-                    self.events(UNREACHABLE, self.pos)
-                    return
-                index = self.lines.del_(index, True, self.insertion)
-                self.pos = self.indexes_from[index]
-                self.regen_text()
-            elif self.text_offset > 0 and self.text_prefix:
-                self.value = self.text_prefix.value[:-1] + self.displayed_value + self.text_postfix.value
-            if self.text_past_end:
-                new_pos = self.get_next_pos_from(self.pos)
-                if new_pos in Rect(self.text.rect):
-                    self.pos = new_pos
-                    self.text_past_end = False
+            self.lines.del_(self.pos - (1,0))
         elif key == KeyCodes.INSERT:
             self.insertion ^= True
         # TBD: add support for certain control for line editing characters, like ctrl + k, ctrl + j, ctrl + a...
@@ -1303,70 +1155,11 @@ class Editable:
             valid_symbol = False
 
         if valid_symbol:
-            index = self.indexes_to.get(self.pos, _UNUSED)
-            if index is _UNUSED:
-                self.events(UNREACHABLE, self.pos)
-                return
-
             if self.insertion:
-                try:
-                    index = self.lines.insert(index, key)
-                    if index != self.indexes_to[self.pos]:
-                        self.pos = self.indexes_from[index]
-
-                except TextDoesNotFit:
-                    if not self.larger_than_displayed or len(self.value) >= self.text_size :
-                        self.events(OVERFILL)
-                    else:
-                        if key == KeyCodes.ENTER:
-                            if len(self.lines.hard_lines) == 1:
-                                return
-                            if self.lines.at_last_line(self.pos):
-                                line, soft_index = self.lines.get_index_in_soft_line(index)
-                                new_pos = self.pos
-                                self.scroll_line_up()
-                                self.cursor_to_previous_shape_line()
-                            else:
-                                self.scroll_last_line_down()
-                            return self.change(key=key)
-                        if self.get_next_pos_from(self.pos) not in self.text.rect and len(self.lines.hard_lines) > 1:
-                            self.scroll_line_up()
-                            self.cursor_to_previous_shape_line()
-                            new_pos = self.get_next_pos_from(self.pos)
-                            if new_pos in self.text.rect:
-                                self.pos = new_pos
-                            return self.change(key=key)
-
-                        value = self.value
-                        new_text = value[:self.text_offset + index] + key + value[self.text_offset + index:]
-                        try:
-                            self.value = new_text
-                        except TextDoesNotFit:
-                            self.events(OVERFILL)
+                self.lines.insert(self.pos, key)
             else:
-                # WIP: take in account text_size here
-                index = self.lines.set(index, key)
-
-            #if key != KeyCodes.ENTER:
-            if key not in (KeyCodes.ENTER, '\n'):
-                new_pos = self.get_next_pos_from(self.pos)
-                if new_pos in self.text.rect:
-                    self.pos = new_pos
-                    self.text_past_end = False
-                else:
-                    if self.larger_than_displayed and len(self.value) < self.text_size:
-                        if len(self.lines.hard_lines) > 1:
-                            self.scroll_line_up()
-                            self.cursor_to_previous_shape_line()
-                            new_pos = self.get_next_pos_from(self.pos)
-                            if new_pos in self.text.rect:
-                                self.pos = new_pos
-                        else:
-                            self.scroll_char_left()
-                    else:
-                        self.text_past_end = True
-
-            self.regen_text()
+                self.lines.set(self.pos, key)
+            self.pos = self.lines.get_next_pos(self.pos)
 
 
     def regen_text(self):

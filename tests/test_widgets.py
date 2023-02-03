@@ -9,6 +9,8 @@ from conftest import rendering_test, fast_render_mark, fast_and_slow_render_mark
 from unittest.mock import patch
 import os, io
 
+TM.DEBUG=True
+
 M=TM.Mark
 
 P = pytest.param
