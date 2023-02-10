@@ -398,6 +398,8 @@ class EditableLinesChars(MutableSequence):
         x = pos[0]
         if pos[1] == 0 and not self.parent:
             self.parent.append("")
+        while pos[1] >= len(self.parent):
+            self.parent.append("")
         line = self.parent[pos[1]]
         self.parent[pos[1]] = line[:x] + value + line[x:]
 
@@ -563,6 +565,8 @@ class SoftLines:
         try:
             soft_line, soft_index = self._softline_indexes[hard_pos.y]
         except KeyError:
+            if self.editable:
+                return V2(len(self.editable[-1]), len(self.editable) - 1)
             return V2(0,0)
         count = 0
         pos = self.hard_cells.map[0, hard_pos.y]
@@ -629,7 +633,7 @@ class SoftLines:
     def value(self, text):
         with self.lock:
             self.pre[:] = []
-            self.editable = text.split("\n") if isinstance(text, str) else text
+            self.editable = EditableLines(text.split("\n") if isinstance(text, str) else text, parent=self)
             self.post[:] = []
             self.reflow()
 
