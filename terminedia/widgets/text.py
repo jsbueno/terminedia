@@ -166,8 +166,8 @@ def map_text(text, pos, direction):
     pos = V2(pos)
     direction = V2(direction)
     last_cell = MarkCell(None, pos, False, True, direction, V2(0,0))
-    from_map = {pos: [last_cell] }
-    to_map = {None: [last_cell] }
+    from_map = {[pos, direction]: last_cell}
+    to_map = {[None, direction]: last_cell}
     rect = terminedia.Rect((0, 0), text.size)
     counter = 0
     marks = _ensure_sequence(text.marks.abs_get(pos, _EMPTY_MARK,))
@@ -185,16 +185,20 @@ def map_text(text, pos, direction):
         npos = V2(normalized_x, normalized_y)
 
         cell = MarkCell(prev_pos, pos, flow_changed, position_is_used, direction, npos)
-        from_map.setdefault(pos, []).append(cell)
-        to_map.setdefault(prev_pos, []).append(cell)
+
+        to_map[prev_pos, direction] = cell
+        if (pos, direction) in to_map or pos not in rect:
+            break
+        from_map[pos, direction] = cell
+        to_map[prev_pos, direction] = cell
         normalized_lines_map[npos] = cell
 
         counter += 1
-        marks = _ensure_sequence(text.marks.abs_get(pos, _EMPTY_MARK,))
-        if marks[0] is _EMPTY_MARK and pos not in rect or counter > 3 * rect.area:
-            # we can have a text flow that goes through each position more than once,
-            # but we have to halt it at some point - hence the "3 *" above.
-            break
+        # marks = _ensure_sequence(text.marks.abs_get(pos, _EMPTY_MARK,))
+        # if marks[0] is _EMPTY_MARK and pos not in rect or counter > 3 * rect.area:
+            ## we can have a text flow that goes through each position more than once,
+            ## but we have to halt it at some point - hence the "3 *" above.
+            #break
         normalized_x += 1
 
     return to_map, from_map, normalized_lines_map
@@ -222,8 +226,8 @@ def map_text_directions(text, pos, direction):
     pos = V2(pos)
     direction = V2(direction)
     last_cell = MarkCell(None, pos, False, True, direction, V2(0,0))
-    from_map = {(pos, direction): [last_cell] }
-    to_map = {None: [last_cell] }
+    from_map = {(pos, direction): last_cell}
+    to_map = {(None, direction): last_cell}
     rect = terminedia.Rect((0, 0), text.size)
     marks = _ensure_sequence(text.marks.abs_get(pos, _EMPTY_MARK,))
     normalized_lines_map = {V2(0,0): last_cell}
@@ -237,7 +241,7 @@ def map_text_directions(text, pos, direction):
             npos = V2(0, npos.y + 1)
 
         cell = MarkCell(prev_pos, pos, flow_changed, position_is_used, direction, npos)
-        if (pos, direction) in from_map:
+        if (pos, direction) in from_map or pos not in rect:
             break
         normalized_lines_map[npos] = to_map[prev_pos, direction] = from_map[pos, direction] = cell
         to_map[prev_pos, None] = from_map[pos, None] = cell
@@ -575,13 +579,18 @@ class SoftLines:
             pos = self.text_pathto_map[pos, direction].to_pos
         return V2(soft_index + count, soft_line)
 
-    def _change_content(func, direction=None):
+    def physical_pos_from_soft(self, soft_pos):
+        # TBD
+        return V2(0,0)
+
+    def _change_content(func):
         # temporary decorator
         @wraps(func)
-        def wrapper(self, physical_pos, *args):
+        def wrapper(self, physical_pos, *args, direction=None, **kwargs):
             soft_pos = self.soft_pos_from_physical(physical_pos, direction)
-            func(self, soft_pos, *args)
+            result = func(self, soft_pos, *args, **kwargs)
             self.reflow()
+            return result
         return wrapper
 
     @_change_content
@@ -599,6 +608,25 @@ class SoftLines:
     def del_(self, pos):
         del self.editable.chars[pos]
 
+    @_change_content
+    def insert_nl(self, pos, insert=True):
+        if not self.editable:
+            self.editable.append("")
+            return self.hard_lines.map[0, 0]
+        x, y = pos
+        if insert:
+            line_length = len(self.editable[y]) if len(self.editable) > y else 0
+            self.editable.insert(y + 1, "")
+            if line_length < x:
+                return
+            prev_line = self.editable[y]
+            self.editable[y] = prev_line[:x]
+            self.editable[y + 1] = prev_line[x:]
+        # FIXME - this has to be converted back to physical pos.
+        return pos + (0, 1)
+
+
+
     del _change_content
 
     def get_next_pos(self, pos, value=" ", direction=None, follow_line_breaks=False):
@@ -611,7 +639,10 @@ class SoftLines:
                 #if soft_line_position > len(self.editable(soft_line_index)):
                     # advance physical line based on increas in hard_line.y
             #        ...
-            pos = self.text_pathto_map[pos, direction].to_pos
+            try:
+                pos = self.text_pathto_map[pos, direction].to_pos
+            except KeyError:
+                return pos
         return pos
 
 
@@ -842,9 +873,11 @@ class Editable:
             self.lines.del_(self.pos - (1,0))
         elif key == KeyCodes.INSERT:
             self.insertion ^= True
+        elif key == KeyCodes.ENTER:
+            self.pos = self.lines.insert_nl(self.pos, insert = self.insertion)
         # TBD: add support for certain control for line editing characters, like ctrl + k, ctrl + j, ctrl + a...
 
-        if key != KeyCodes.ENTER and (key in KeyCodes.codes or ord(key) < 0x20):
+        if key in KeyCodes.codes or ord(key) < 0x20:
             valid_symbol = False
 
         if valid_symbol:
