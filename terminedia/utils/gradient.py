@@ -90,6 +90,14 @@ class Gradient:
         else:
             self.stops.append((position, value, *args))
 
+    def __delitem__(self, position):
+        for i, item in enumerate(self.stops):
+            if item[0] == position:
+                del self.stops[i]
+                return
+        raise IndexError(str(position))
+
+
     @property
     def root(self):
         root = self
