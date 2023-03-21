@@ -104,8 +104,8 @@ _bordersentinel = object()
 class Layouts:
     @staticmethod
     def normal(text_plane):
-        mark_forward = style.Mark(moveto=(0, RETAIN_POS), rmoveto=(0,1))
-        mark_backward = style.Mark(moveto=(WIDTH_INDEX - 1, style.RETAIN_POS), rmoveto=(0,-1))
+        mark_forward = style.Mark(moveto=(0, RETAIN_POS), rmoveto=(0, 1))
+        mark_backward = style.Mark(moveto=(WIDTH_INDEX - 1, RETAIN_POS), rmoveto=(0, -1))
         for y in range(0, int(text_plane.height)):
             # This is the point where the 'RelativeMarkIndex' was supposed to be needed.
             text_plane.marks[None, y] = mark_forward
@@ -114,6 +114,14 @@ class Layouts:
             # counting from the width of the plane (i.e., it is a "hard" -1)
             text_plane.marks.data[-1, y] = mark_backward
         # self.marks[Rect((self.width, 0, self.width + 1, self.height))] = style.Mark(moveto=(0, style.RETAIN_POS), rmoveto=(0,1))
+
+    @staticmethod
+    def vertical(text_plane):
+        mark_forward = style.Mark(moveto=(RETAIN_POS, 0), rmoveto=(1, 0))
+        mark_backward = style.Mark(moveto=(RETAIN_POS, HEIGHT_INDEX - 1), rmoveto=(-1, 0))
+        for x in range(0, int(text_plane.width)):
+            text_plane.marks[x, None] = mark_forward
+            text_plane.marks.data[x, -1] = mark_backward
 
 
 class _RecordingControl:
