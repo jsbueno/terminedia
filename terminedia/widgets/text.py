@@ -145,64 +145,6 @@ class LinesList(list):
 #
 ##############
 
-def map_text(text, pos, direction):
-    """Used internally by "Editable". Given a text plane, maps out the way that each reachable cell can be acessed
-
-    The map re-interprets the Marks that affect text flow found on the text plane -
-    but Marks with "special_index" and other kinds of dynamic marks will likely
-    be missed by this mapping.
-
-
-    With the map, afterwards, given
-    a cell position, one can backtrack to know the distance of the last typed character,
-    and on which softline it is
-    """
-    # FIXME: currently the implementation of Styled text rendering
-    # does not behave properly if a Mark moves the flow
-    # to a cell containing another teleporting mark:
-    # the target mark is ignored.
-    # The algorithm bellow do the right thing -  it has to be implemented
-    # in rendering as well
-    pos = V2(pos)
-    direction = V2(direction)
-    last_cell = MarkCell(None, pos, False, True, direction, V2(0,0))
-    from_map = {[pos, direction]: last_cell}
-    to_map = {[None, direction]: last_cell}
-    rect = terminedia.Rect((0, 0), text.size)
-    counter = 0
-    marks = _ensure_sequence(text.marks.abs_get(pos, _EMPTY_MARK,))
-    normalized_lines_map = {V2(0,0): last_cell}
-    normalized_x = 1
-    normalized_y = 0
-    while True:
-        prev_pos = pos
-
-        pos, direction, flow_changed, position_is_used = text.marks.move_along_marks(prev_pos, direction)
-
-        if flow_changed:
-            normalized_x = 0
-            normalized_y += 1
-        npos = V2(normalized_x, normalized_y)
-
-        cell = MarkCell(prev_pos, pos, flow_changed, position_is_used, direction, npos)
-
-        to_map[prev_pos, direction] = cell
-        if (pos, direction) in to_map or pos not in rect:
-            break
-        from_map[pos, direction] = cell
-        to_map[prev_pos, direction] = cell
-        normalized_lines_map[npos] = cell
-
-        counter += 1
-        # marks = _ensure_sequence(text.marks.abs_get(pos, _EMPTY_MARK,))
-        # if marks[0] is _EMPTY_MARK and pos not in rect or counter > 3 * rect.area:
-            ## we can have a text flow that goes through each position more than once,
-            ## but we have to halt it at some point - hence the "3 *" above.
-            #break
-        normalized_x += 1
-
-    return to_map, from_map, normalized_lines_map
-
 def map_text_directions(text, pos, direction):
     """Used internally by "Editable". Given a text plane, maps out the way that each reachable cell can be acessed
 
@@ -214,8 +156,6 @@ def map_text_directions(text, pos, direction):
     a cell position, one can backtrack to know the distance of the last typed character,
     and on which softline it is
     """
-    # TBD: this is a refactoring-time functional copy of "map_text" which should be removed when
-    # the refactoring is complete. The major difference is the indexing and contents of resulting structures.
 
     # FIXME: currently the implementation of Styled text rendering
     # does not behave properly if a Mark moves the flow
@@ -387,7 +327,10 @@ class EditableLinesChars(MutableSequence):
 
     def __delitem__(self, pos):
         line = list(self.parent[pos[1]])
-        del line[pos[0]]
+        try:
+            del line[pos[0]]
+        except IndexError:
+            return
         self.parent[pos[1]] = "".join(line)
 
     def defaultset(self, pos, value, filler=" "):
@@ -430,7 +373,6 @@ class SoftLines:
 
         XXX: move to terminedia.text.plane ??
         """
-
         self.lock = RLock()
         self.text_plane = text_plane
         self.cursor = self.initial_position = initial_position
@@ -579,9 +521,25 @@ class SoftLines:
             pos = self.text_pathto_map[pos, direction].to_pos
         return V2(soft_index + count, soft_line)
 
+    def hard_pos_from_soft(self, soft_pos):
+        # for retangular regions this would work:
+        # hard_line = soft_pos[1] + soft_pos[0] // len(self.hard_lines[0])
+        hard_line = soft_pos[1]
+        x = soft_pos[0]
+        try:
+            while x >= len(self.hard_lines[hard_line]):
+                x -= len(self.hard_lines[hard_line])
+                hard_line += 1
+        except IndexError:
+            # FIXME: maybe let this raise?
+            pass
+        return V2(x, hard_line)
+
     def physical_pos_from_soft(self, soft_pos):
-        # TBD
-        return V2(0,0)
+        hard_pos = self.hard_pos_from_soft(soft_pos)
+        return self.hard_cells.rev_map[hard_pos]
+
+        # import os; os.system("reset"); breakpoint()
 
     def _change_content(func):
         # temporary decorator
@@ -623,9 +581,7 @@ class SoftLines:
             self.editable[y] = prev_line[:x]
             self.editable[y + 1] = prev_line[x:]
         # FIXME - this has to be converted back to physical pos.
-        return pos + (0, 1)
-
-
+        return self.physical_pos_from_soft((0, pos[1] + 1))
 
     del _change_content
 
@@ -731,7 +687,7 @@ class Editable:
     You may re-initialize the widget.editable instancee if you make layout changes
     to the underlying shape (text-flow Marks) after the widget is instantiated.
     """
-    def __init__(self, text_plane, parent=None, value="", pos=None, line_sep="\n", text_size=None, offset=0):
+    def __init__(self, text_plane, parent=None, value="", pos=None, line_sep="\n", text_size=None, offset=0, direction=None):
         self.focus = True
         self.initial_pos = self.pos = pos or V2(0, 0)
         self.text = text_plane
@@ -739,7 +695,7 @@ class Editable:
         self.line_sep = line_sep
         self.insertion = True
         self.context = self.text.owner.context
-        self.initial_direction = self.context.direction
+        self.initial_direction = direction or self.context.direction
         self.tick = 0
 
         if parent:
@@ -753,17 +709,6 @@ class Editable:
         #self.lines = Lines(value, self)
         self.text_size = text_size
         self.text_offset = offset
-
-
-    #def cursor_to_previous_shape_line(self):
-        #norm_cell = self.text_path_map[self.pos][0].normalized_pos
-        #if norm_cell.y == 0:
-            #return
-        #norm_cell -= (0,1)
-        #self.pos = self.normalized_lines[norm_cell].to_pos
-
-    #def cursor_to_next_shape_line(self):
-        #...
 
     @property
     def text_space(self):
@@ -797,21 +742,6 @@ class Editable:
             # do not allow keypress to be processed further
             raise EventSuppressFurtherProcessing()
 
-    #def scroll_char_right(self):
-        #self.lines.scroll_char_right()
-
-    #def scroll_char_left(self):
-        #self.lines.scroll_char_left()
-        #if not self.larger_than_displayed:
-            #return
-        #self.text_offset += 1
-
-    #def scroll_line_up(self):
-        #self._scroll_line(direction="up")
-
-    #def scroll_line_down(self):
-        #self._scroll_line(direction="down")
-
     @property
     def text_offset(self):
         return self.lines.offset
@@ -821,20 +751,6 @@ class Editable:
         with self.lines.lock:
             self.lines.offset = new_offset
             self.lines.reflow()
-
-    #def scroll_last_line_down(self):
-        #last_line = self.lines.soft_lines.pop()
-        #self.text_postfix.insert(0, last_line)
-        #self.text_postfix.prefix_newline = True
-        #self.lines.soft_lines.append('')
-        #self.lines.reflow()
-        #self.regen_text()
-        #self.lines.is_there_display_space = True
-
-    #def join_lines(self, displayed_line):
-        #lines = self.displayed_value.split("\n")
-        #lines[displayed_line] += (lines.pop(displayed_line + 1) if len(lines) > displayed_line else '')
-        #self.lines.reflow()
 
     def change(self, event=None, key=None):
         """Called on each keypress when the widget is active. Take 2"""
@@ -882,7 +798,10 @@ class Editable:
 
         if valid_symbol:
             if self.insertion:
-                self.lines.insert(self.pos, key)
+                try:
+                    self.lines.insert(self.pos, key)
+                except TextDoesNotFit:
+                    return
             else:
                 self.lines.set(self.pos, key)
             self.pos = self.lines.get_next_pos(self.pos)
@@ -907,7 +826,7 @@ class Editable:
 
 class Text(Widget):
 
-    def __init__(self, parent, size=None, label="", value="", *, pos=(0,0), text_plane=1, sprite=None, border=None, click_callback=(), text_size=None, cursor_pos=None, **kwargs):
+    def __init__(self, parent, size=None, label="", value="", *, pos=(0,0), text_plane=1, sprite=None, border=None, click_callback=(), text_size=None, cursor_pos=None, direction=None, **kwargs):
         """Multiline text-editing Widget
 
         (roughly the same role as HTML's "textarea" form input).
@@ -954,7 +873,7 @@ class Text(Widget):
                          **kwargs)
         text = self.sprite.shape.text[self.text_plane]
 
-        self.editable = Editable(text, parent=self, value=value, text_size=text_size, pos=cursor_pos)
+        self.editable = Editable(text, parent=self, value=value, text_size=text_size, pos=cursor_pos, direction=direction)
 
     def get(self):
         return self.editable.value
