@@ -246,7 +246,7 @@ def process():
     _event_tasks.difference_update(resolved)
     for task in resolved:
         exc = task.exception()
-        if exc and termnedia.DEBUG:
+        if exc and terminedia.DEBUG:
             raise exc
 
 
