@@ -323,3 +323,14 @@ def test_gradient_transformer_with_horizontal_size_with_repeat_truncate_and_offs
     assert sc.data[5, 5].foreground == Color((0, 0, 0))
     assert sc.data[14,5].foreground == Color((255, 255, 255))
     assert sc.data[19, 5].foreground == Color((255, 0, 0))
+
+@pytest.mark.parametrize(*fast_render_mark)
+@rendering_test
+def test_draw_characters_use_one_char_from_iterable_per_cell():
+    # TBD: move this to a test file to test the drawing API
+    sc, sh, sp, gr = screen_shape_sprite()
+    sh.draw.line((0,0), (5, 5), char=(text:="terminedia"))
+    sc.update()
+    yield None
+    for i, char in enumerate(text):
+        assert sc.data[i, i].value == char
