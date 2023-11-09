@@ -1,4 +1,12 @@
-version 0.4.3
+version 0.5.0
+==============
+    - Bump minimal Python to 3.8
+    - Support for a string or text-stream in char-context [WIP]
+        - In order Bezier curve fetching of context-characters
+    - text widgets rewritting (again) [WIP]
+
+
+version 0.4.3  # Unreleased  - bump to 0.5.0
 ==============
 
     - Refactor Widgets
