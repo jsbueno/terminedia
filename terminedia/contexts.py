@@ -63,6 +63,8 @@ class StreamContextVar(ContextVar):
         source = super().__get__(instance, owner)
         if source is self:
             return source
+        if not (isinstance(source, str) and len(source) > 1 or hasattr(source, "__iter__") and not isinstance(source, terminedia.Color)):
+            return source
         stream = getattr(instance._locals, self._stream_name, None)
         if stream is None:
             stream = cycle(source)
