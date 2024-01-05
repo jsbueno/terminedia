@@ -192,6 +192,11 @@ class SpriteContainer(HookList):
         return pixel if isinstance(pixel, pcls) else pcls(*pixel)
 
     def add(self, item, pos=(0,0), active=True, tick_cycle=1, anchor="topleft", alpha=True):
+        """Ädds a new sprite and returns it! (in contrast with `.append`)
+
+        Allows one to specify extra parameters, over ".append", most useful
+        of all the initial position, "pos"
+        """
         if not isinstance(item, Sprite):
             item = Sprite(item, pos, active, tick_cycle, anchor, alpha=alpha)
         self.append(item)
