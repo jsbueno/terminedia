@@ -342,10 +342,11 @@ class EditableLinesChars(MutableSequence):
         self.parent[pos[1]] = line[:x] + filler * (x - len(line)) + value
 
     def insert(self, pos, value):
+        #import os; os.system("reset"); import sys; setattr(sys, "stdout", sys.__stdout__);breakpoint()
         x = pos[0]
         if pos[1] == 0 and not self.parent:
             self.parent.append("")
-        while pos[1] >= len(self.parent):
+        while pos[1] > len(self.parent):
             self.parent.append("")
         line = self.parent[pos[1]]
         self.parent[pos[1]] = line[:x] + value + line[x:]
@@ -406,7 +407,7 @@ class SoftLines:
         self.hard_cells = InnerSeq(self.physical_cells, {k: v.to_pos for k, v in self.normalized_lines.items()})
         self.hard_lines = self.hard_cells.lines
 
-        self.last_line_explicit_lf = (
+        self.last_line_explicit_lf = bool(
             self.editable and
             self.can_end_in_lf and
             value_ends_on_newline
