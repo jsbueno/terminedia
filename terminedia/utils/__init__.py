@@ -246,7 +246,7 @@ def contextkwords(func=None, context_path=None, text_attrs=False):
         else:
             font = direction = None
 
-        # If none of the context parameters if passed, simply call the original function
+        # If none of the context parameters is passed, simply call the original function
         if all(
             attr is None
             for attr in (

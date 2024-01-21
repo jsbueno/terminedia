@@ -1,4 +1,12 @@
-version 0.4.3
+version 0.5.0
+==============
+    - Bump minimal Python to 3.8
+    - Support for a string or text-stream in char-context [WIP]
+        - In order Bezier curve fetching of context-characters
+    - text widgets rewritting (again) [WIP]
+
+
+version 0.4.3  # Unreleased  - bump to 0.5.0
 ==============
 
     - Refactor Widgets
@@ -28,6 +36,7 @@ version 0.4.3
     - fix border size for sextant-sized Widgets
     - fix cursor showing past last line of text widgets
     - fix overwrite cursor for big-text editing
+    - Add Py3.12 to supported versions
 
     - Widgets changed so they can also accept a Sprite as parent (active shape will be used)
     - tm.image.ShallowRepr(shape).text() method returns a rectangular string (with  "\n" for line breaks)

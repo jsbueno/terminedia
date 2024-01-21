@@ -2,6 +2,7 @@
 """
 import threading
 from copy import copy
+from itertools import cycle
 from types import FunctionType
 
 import terminedia
@@ -13,6 +14,7 @@ from terminedia.values import DEFAULT_BG, DEFAULT_FG, Directions, Effects
 
 
 _sentinel = object()
+_default_sentinel = object()
 
 
 class ContextVar:
@@ -38,14 +40,36 @@ class ContextVar:
             return self
         if getattr(instance._locals, "_context_stack", None):
             return getattr(instance._locals._context_stack[-1], self.name)
-        value = getattr(instance._locals, self.name, _sentinel)
-        if value is _sentinel:
+        value = getattr(instance._locals, self.name, _default_sentinel)
+        if value is _default_sentinel:
             value = self.default
             if callable(value):
                 value = value()
             setattr(instance._locals, self.name, value)
         return value
 
+class StreamContextVar(ContextVar):
+    def __set_name__(self, owner, name):
+        super().__set_name__(owner, name)
+        self._stream_name = f"_stream_{self.name}"
+
+    def reset(self, instance):
+        try:
+            delattr (instance._locals, self._stream_name)
+        except AttributeError:
+            pass
+
+    def __get__(self, instance, owner):
+        source = super().__get__(instance, owner)
+        if source is self:
+            return source
+        if not (isinstance(source, str) and len(source) > 1 or hasattr(source, "__iter__") and not isinstance(source, terminedia.Color)):
+            return source
+        stream = getattr(instance._locals, self._stream_name, None)
+        if stream is None:
+            stream = cycle(source)
+            setattr(instance._locals, self._stream_name, stream)
+        return next(stream)
 
 _EmptySentinel = object()
 
@@ -108,7 +132,7 @@ class Context:
         are reverted on `__exit__`.
     """
 
-    char = ContextVar((str, SpecialColor), BlockChars.FULL_BLOCK)
+    char = StreamContextVar((str, SpecialColor), BlockChars.FULL_BLOCK)
     color = ContextVar(Color, DEFAULT_FG)
     background = ContextVar(Color, DEFAULT_BG)
     effects = ContextVar((Effects, SpecialColor), Effects.none)

@@ -12,7 +12,7 @@ class Drawing:
     An instance of this class is attached to :any:`Screen` and :any:`Shape`
     instances as the :any:`draw` attribute, and as the `.high.draw` and `.braile.draw`
     attributed for drawing with 1/4 and 1/8 block characters.
-    All context-related information is kept on the associated screen instance,
+    All context-related information is kept on the associated Screen/Shape instance,
     the public methods here issue pixel setting and resetting at the owner -
     using that owners's context colors and other attributes.
 
@@ -276,7 +276,7 @@ class Drawing:
 
     @contextkwords
     @RasterUndo.undoable
-    def bezier(self, pos1, pos2, pos3, pos4, *extra):
+    def bezier(self, pos1, pos2, pos3, pos4, *extra, _seen=None):
         """Draws a bezier curve given the control points
 
         Args:
@@ -285,29 +285,40 @@ class Drawing:
             pos3 (2-sequence): Third control point
             pos4 (2-sequence): Fourth control point
             extra Tuple[2-sequence]: n-sets of 3 more control points to keep drawing.
+
+        Think of the 4 control points as a box: the curve will touch the 1st and 4th points,
+        and the middle point of the line segment connecting the 2nd and 3rd points. The 4th control
+        point works as the 1st point for a new curve segment, if any.
         """
         pos1 = V2(pos1)
         pos2 = V2(pos2)
         pos3 = V2(pos3)
         pos4 = V2(pos4)
-        x, y = pos1
 
         t = 0
         step = 1 / (abs(pos4 - pos3) + abs(pos3 - pos2) + abs(pos2 - pos1))
-        self._set((x, y))
+        point = pos1.as_int
+        seen = _seen or set()
+        if point not in seen:
+            seen.add(point,)
+            self._set(point)
         while t <= 1.0:
 
-            x, y = (
+            point = V2(
                 pos1 * (1 - t) ** 3
                 + pos2 * 3 * (1 - t) ** 2 * t
                 + pos3 * 3 * (1 - t) * t ** 2
                 + pos4 * t ** 3
-            )
-
-            self._set((round(x), round(y)))
+            ).as_int
+            if point not in seen:
+                seen.add(point)
+                # Calling "_set" will fetch a new char from the context:
+                self._set(point)
             t += step
-        if len(extra) >= 3:
-            self.bezier(pos4, extra[0], extra[1], extra[2], *extra[3:])
+        if extra:
+            if len(extra) % 3 != 0:
+                raise ValueError("3 new coords are needed for each extra point for a Bezier")
+            self.bezier(pos4, extra[0], extra[1], extra[2], *extra[3:], _seen=seen)
 
 
     @RasterUndo.undoable

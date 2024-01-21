@@ -196,3 +196,15 @@ def test_fulshape_blit_called_with_pixel_value_on_blit(direct_pixel):
         assert new.called
 
 
+def test_shape_sprites_add_method():
+    sh = TM.shape((10,10))
+    sp1 = sh.sprites.add((5,5))
+    assert isinstance(sp1, TM.Sprite)
+    assert sp1.size == (5,5)
+    assert sh.sprites[0] is sp1
+    assert sp1.pos == (0,0)
+    sp2 = sh.sprites.add((5,5), pos=(3,3))
+    assert sp2.pos == (3,3)
+    with pytest.raises(TypeError):
+        sp3 = sh.sprites.add()
+
