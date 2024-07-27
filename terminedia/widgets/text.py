@@ -116,7 +116,7 @@ class LinesList(list):
             newline = False
         else:
             value = self.pop(index)
-            # do not add an empty line do an empty buffer: keep it empty
+            # do not add an empty line to an empty buffer: keep it empty
             if value == '' and not dest:
                 return False
         if index == 0:
@@ -135,6 +135,7 @@ class LinesList(list):
             #self.postfix_newline = newline
         return newline
 
+   # do not override list's __len__ - this is the content's length
     @property
     def length(self):
         return len(self.value)
