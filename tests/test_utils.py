@@ -1,4 +1,5 @@
 import inspect
+import operator
 from inspect import signature
 
 import pytest
@@ -8,6 +9,7 @@ from terminedia import Color
 from terminedia.utils import combine_signatures, TaggedDict, HookList
 from terminedia.utils.descriptors import ObservableProperty
 from terminedia.utils import Rect, V2, Gradient, EPSILON
+
 
 
 def test_combine_signatures_works():
@@ -473,3 +475,21 @@ def test_rect_constructor(args, kwargs):
 def test_rect_constructor_with_expected_result(args, kwargs, expected):
     r = Rect(*args, **kwargs)
     assert r == Rect(*expected)
+
+
+@pytest.mark.parametrize(
+    ["operation", "vector"] [
+        (operator.add, True),
+        (operator.sub, True),
+        (operator.mul, True),
+        (operator.mul, False),
+        (min, True),
+        (max, True),
+    ])
+def test_operation_with_v2_subclass_results_new_class(operation, vector):
+    class SubV2(V2):
+        pass
+
+    a = SubV2(1,1)
+    b = SubV2(1,1) if vetor else 1
+    assert isinstance(operation(a, b), SubV2)

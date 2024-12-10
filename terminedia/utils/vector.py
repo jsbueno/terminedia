@@ -19,6 +19,14 @@ class V2(tuple):
 
     __slots__ = ()
 
+    @property
+    def _op_result_cls(self):
+        # Class to be used when creating new instances
+        # after operations.
+
+        # needed becayse operations on NamedV2 should result in V2, not NamedV2
+        return type(self)
+
     def __new__(cls, x=0, y=0):
         """Accepts two coordinates as two parameters for x and y"""
         # Enable working with values defined in Enums
@@ -51,23 +59,23 @@ class V2(tuple):
 
     def __add__(self, other):
         """Adds both components of a V2 or other 2-sequence"""
-        return self.__class__(self[0] + other[0], self[1] + other[1])
+        return self._op_result_cls(self[0] + other[0], self[1] + other[1])
 
     __radd__ = __add__
 
     def __sub__(self, other):
         """Subtracts both components of a V2 or other 2-sequence"""
-        return self.__class__(self[0] - other[0], self[1] - other[1])
+        return self._op_result_cls(self[0] - other[0], self[1] - other[1])
 
     def __rsub__(self, other):
         """Subtracts both components of a V2 or other 2-sequence"""
-        return self.__class__(other[0] - self[0], other[1] - self[1])
+        return self._op_result_cls(other[0] - self[0], other[1] - self[1])
 
     def __mul__(self, other):
         """multiplies a V2 by an scalar or by another Seq[2] (item by item)"""
         if hasattr(other, "__len__") and len(other) == 2:
-            return self.__class__(self[0] * other[0], self[1] * other[1])
-        return self.__class__(self[0] * other, self[1] * other)
+            return self._op_result_cls(self[0] * other[0], self[1] * other[1])
+        return self._op_result_cls(self[0] * other, self[1] * other)
 
     __rmul__ = __mul__
 
@@ -76,13 +84,13 @@ class V2(tuple):
             other = 1 / other
         except (ValueError, TypeError):
             if len(other) == 2:
-                return self.__class__((self[0] / other[0], self[1] / other[1]))
+                return self._op_result_cls((self[0] / other[0], self[1] / other[1]))
             else:
                 return NotImplemented
         return self * other
 
     def __floordiv__(self, other):
-        return self.__class__(self[0] // other, self[1] // other)
+        return self._op_result_cls(self[0] // other, self[1] // other)
 
     def __abs__(self):
         """Returns Vector length
@@ -94,20 +102,20 @@ class V2(tuple):
 
     @property
     def as_int(self):
-        return self.__class__(int(self.x), int(self.y))
+        return self._op_result_cls(int(self.x), int(self.y))
 
     @property
     def ceil(self):
-        return self.__class__(ceil(self.x), ceil(self.y))
+        return self._op_result_cls(ceil(self.x), ceil(self.y))
 
     def __repr__(self):
-        return f"V2({self.x}, {self.y})"
+        return f"{self._op_result_cls.__name__}({self.x}, {self.y})"
 
     def max(self, other):
-        return V2(max(self.x, other[0]), max(self.y, other[1]))
+        return self._op_result_cls(max(self.x, other[0]), max(self.y, other[1]))
 
     def min(self, other):
-        return V2(min(self.x, other[0]), min(self.y, other[1]))
+        return self._op_result_cls(min(self.x, other[0]), min(self.y, other[1]))
 
     @property
     def area(self):
@@ -118,6 +126,11 @@ class NamedV2(V2):
     """Vector meant to be used as constant, with a string-repr name"""
 
     name = None
+    owner_name = None
+
+    @property
+    def _op_result_cls(self):
+        return V2
 
     def __init__(self, *args, name=None, **kw):
         """Optional name - if used as a descriptor, name is auto-set"""
@@ -137,18 +150,24 @@ class NamedV2(V2):
         return self
 
     def __repr__(self):
-        return f"{self.owner_name}.{self.name}"
+        if self.name:
+            return f"{self.owner_name}.{self.name}"
+        return super.__repr__()
 
     def __str__(self):
-        return self.name
+        if self.name:
+            return self.name
+        return super().__str__()
 
-    # Force operator methods to get these values as pure V2 instances
-    # (so that adding "Directions" results in a normal vector,
-    # not an object with a __dict__)
-    for method in "__add__ __sub__ __mul__ __abs__ __truediv__ __floordiv__ as_int".split():
-        locals()[method] = (
-            lambda method: lambda s, *args: getattr(V2, method)(V2(s), *args)
-        )(method)
+    # mechanism replaced by "_op_result_cls"
+
+    ## Force operator methods to get these values as pure V2 instances
+    ## (so that adding "Directions" results in a normal vector,
+    ## not an object with a __dict__)
+    #for method in "__add__ __sub__ __mul__ __abs__ __truediv__ __floordiv__ as_int".split():
+        #locals()[method] = (
+            #lambda method: lambda s, *args: getattr(V2, method)(V2(s), *args)
+        #)(method)
 
     @property
     def value(self):
