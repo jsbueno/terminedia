@@ -77,7 +77,6 @@ from terminedia.utils import V2, Rect, get_current_tick, Color
 from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX, RelativeMarkIndex, Directions, Effects, TRANSPARENT, RETAIN_POS
 
 
-
 class StyledSequence:
     def __init__(
         self, text, mark_sequence, text_plane=None, context=None, starting_point=None
@@ -165,16 +164,16 @@ class StyledSequence:
                 mty = mark_here.moveto[1]
                 mtx = (
                     self.current_position.x
-                        if mtx is RETAIN_POS else
+                    if mtx is RETAIN_POS else
                     mtx.evaluate(self.text_plane.size)
-                        if isinstance(mtx, RelativeMarkIndex) else
+                    if isinstance(mtx, RelativeMarkIndex) else
                     mtx
                 )
                 mty = (
                     self.current_position.y
-                        if mty is RETAIN_POS else
+                    if mty is RETAIN_POS else
                     mty.evaluate(self.text_plane.size)
-                        if isinstance(mty, RelativeMarkIndex) else
+                    if isinstance(mty, RelativeMarkIndex) else
                     mty
                 )
                 self.current_position = V2(mtx, mty)
@@ -199,7 +198,6 @@ class StyledSequence:
         self._sanity_counter -= 1
         return self.context
 
-
     def _enter_iteration(self):
         cm = self.locals.context_map = {}
         for key, value in self.context:
@@ -212,7 +210,6 @@ class StyledSequence:
             self.context,
         )
         self._active_transformers = []
-
 
     def _context_push(self, attributes, pop_attributes, mark_origin, index):
         seq_attrs = {"transformer": "transformers", "pretransformer": "pretransformers"}
@@ -309,7 +306,7 @@ class StyledSequence:
     def _prepare_context(self):
         self.context = Context()
         source = self.text_plane.owner.context
-        self._parent_context_data = {key:value for key, value in source}
+        self._parent_context_data = {key: value for key, value in source}
         self._reset_context()
 
     def render(self):
@@ -333,7 +330,7 @@ class StyledSequence:
         finally:
             next(render_lock, None)
 
-### Helper functions used exclusively by MarkMap
+# Helper functions used exclusively by MarkMap
 # (Up to class MarkMap iself)
 
 
@@ -347,7 +344,8 @@ def _force_iter(item):
 def _merge_as_lists(*args):
     result = []
     for item in args:
-        if item is None: continue
+        if item is None:
+            continue
         if not isinstance(item, list):
             result.append(item)
         else:
@@ -358,8 +356,9 @@ def _merge_as_lists(*args):
 
 
 def index_is_relative(index):
-     #return index[0] is None or index[1] is None or isinstance(index[0], RelativeMarkIndex) or index[0] < 0 or isinstance(index[1], RelativeMarkIndex) or index[1] < 0
-     return index[0] is None or index[1] is None or isinstance(index[0], RelativeMarkIndex) or isinstance(index[1], RelativeMarkIndex)
+    # return index[0] is None or index[1] is None or isinstance(index[0], RelativeMarkIndex) or index[0] < 0 or isinstance(index[1], RelativeMarkIndex) or index[1] < 0
+    return index[0] is None or index[1] is None or isinstance(index[0], RelativeMarkIndex) or isinstance(index[1], RelativeMarkIndex)
+
 
 def _normalize_component(comp, name):
     if isinstance(comp, RelativeMarkIndex):
@@ -368,10 +367,12 @@ def _normalize_component(comp, name):
         return True, (RelativeMarkIndex(name) + comp)
     return False, comp
 
+
 def normalize_relative_index(index):
     r1, x = _normalize_component(index[0], "WIDTH")
     r2, y = _normalize_component(index[1], "HEIGHT")
     return (r1 | r2), V2(x, y)
+
 
 def get_relative_variants(pos, size=None):
     """Given a position and  a size, yields all possible ways
@@ -467,6 +468,7 @@ class MarkMap(MutableMapping):
 
 
     """
+
     def __init__(self, parent=None):
         self.data = {}
         self.relative_data = {}
@@ -477,7 +479,7 @@ class MarkMap(MutableMapping):
         self.text_plane = parent
         self.is_rendering_copy = False
 
-    def prepare(self, seq_data, tick=0, parsed_text: T.Union[str, GraphemeIter]="", context=None):
+    def prepare(self, seq_data, tick=0, parsed_text: T.Union[str, GraphemeIter] = "", context=None):
         instance = copy(self)
         instance.tick = tick
         instance.seq_data = seq_data
@@ -512,7 +514,6 @@ class MarkMap(MutableMapping):
             new_mark = self.data.get(concrete_index, [])
             new_mark = _merge_as_lists(new_mark, mark)
             self.data[concrete_index] = new_mark
-
 
     def get_full(self, sequence_index, pos, skipped=None):
 
@@ -593,17 +594,18 @@ class MarkMap(MutableMapping):
     def new_line_start(self, index, direction):
         pos = V2(index)
         direction = V2(direction)
-        r = Rect(self.text_plane.size )
+        r = Rect(self.text_plane.size)
         while True:
             pos, direction, flow_changed, position_is_used = self.move_along_marks(pos, direction)
             if flow_changed:
                 return pos, direction
             if not pos in r:
                 return pos, direction
-                #if pos in r: # FIXME: will fail if teleporting marks are chained
-                #else:
-                    ## Flow slipped outside of area - there is no new line
-                    #return None, None
+                # if pos in r: # FIXME: will fail if teleporting marks are chained
+                # else:
+                # Flow slipped outside of area - there is no new line
+                # return None, None
+
     def __getitem__(self, index):
         # TODO retrieve MagicMarks and virtual marks
         # is_relative, index, absolute_index, relative_index = self._convert_to_relative(index)
@@ -646,7 +648,6 @@ class MarkMap(MutableMapping):
             index = V2(index[0], index[1] - self.text_plane.height)
         return self.get(index, default)
 
-
     def __delitem__(self, index):
         found = False
         for i, r_index in enumerate(get_relative_variants(index, self.text_plane.size)):
@@ -663,6 +664,7 @@ class MarkMap(MutableMapping):
         if self.text_plane:
             if not self.relative_data:
                 return iter(self.data)
+
             def gen():
                 yield from iter(self.data)
                 yield from iter(self.relative_data)
@@ -670,6 +672,7 @@ class MarkMap(MutableMapping):
         else:
             from itertools import chain
             return chain(self.data, self.relative_data)
+
     def clear(self):
         self.__init__(parent=self.text_plane)
 
@@ -714,8 +717,10 @@ class Mark:
             if locals()[parameter] is None:
                 continue
             value = locals()[parameter]
-            if parameter == "color": parameter = "foreground"
-            if parameter == "transformer": parameter = "pretransformer"
+            if parameter == "color":
+                parameter = "foreground"
+            if parameter == "transformer":
+                parameter = "pretransformer"
             if parameter in ("foreground", "background") and not isinstance(value, Color):
                 value = Color(value)
             if parameter == "effects" and not (isinstance(value, Effects) or value is TRANSPARENT):
@@ -741,21 +746,21 @@ class Mark:
         # consolidate moveto + rmoveto -
         # However, it would not preserve the order of popping attibutes
         # so, we'd better allow Sequences with a single Key in the "mark_sequence" dictionary.
-        #attributes = m1.attributes or {}
-        #attributes.update(m2.attributes or {})
-        #pop_attributes = m1.pop_attributes or {}
-        #pop_attributes.update(m2.pop_attributes or {})
-        #moveto = m2.moveto or m1.moveto
-        #if m1.rmoveto and m2.rmoveto:
-            #rmoveto = m1.rmoveto + m2.rmoveto
-        #else:
-            #rmoveto = m1.rmoveto or m2.rmoveto
-        #return cls(
-            #attributes=attributes,
-            #pop_attributes=pop_attributes,
-            #moveto=moveto,
-            #rmoveto=rmoveto,
-        #)
+        # attributes = m1.attributes or {}
+        # attributes.update(m2.attributes or {})
+        # pop_attributes = m1.pop_attributes or {}
+        # pop_attributes.update(m2.pop_attributes or {})
+        # moveto = m2.moveto or m1.moveto
+        # if m1.rmoveto and m2.rmoveto:
+        # rmoveto = m1.rmoveto + m2.rmoveto
+        # else:
+        # rmoveto = m1.rmoveto or m2.rmoveto
+        # return cls(
+        # attributes=attributes,
+        # pop_attributes=pop_attributes,
+        # moveto=moveto,
+        # rmoveto=rmoveto,
+        # )
 
     def __repr__(self):
         return f"{self.__class__.__name__}({('attributes=%r, ' % self.attributes) if self.attributes else ''}{('pop_attributes=%r, ' % self.pop_attributes) if self.pop_attributes else ''}{('moveto={!r}, '.format(self.moveto)) if self.moveto else ''}{('rmoveto={!r}'.format(self.rmoveto)) if self.rmoveto else ''})"
@@ -763,12 +768,13 @@ class Mark:
 
 EmptyMark = Mark()
 
+
 class SpecialMark(Mark):
-    __slots__=["index"]
+    __slots__ = ["index"]
+
     def __init__(self, index, *args, **kwargs):
         self.index = index
         super().__init__(*args, **kwargs)
-
 
 
 class Tokenizer:
@@ -807,11 +813,12 @@ class MLTokenizer(Tokenizer):
         offset = 0
         # FIXME: "[[" and "]]" escaped sequences have to be matched, and replaced
         # by "[" "]" post-parsing.
+
         def annotate_and_strip_tokens(match):
             nonlocal offset
-            #st1, st2 = match.span()
-            #m = match.group()
-            #print(m)
+            # st1, st2 = match.span()
+            # m = match.group()
+            # print(m)
             token = match.group()
             raw_tokens.append((match.start() - offset, token.strip("[]")))
             offset += match.end() - match.start()
@@ -880,7 +887,6 @@ class MLTokenizer(Tokenizer):
         self.parsed_text = parsed_text
         self._tokens_to_marks(raw_tokens)
 
-
     def _tokens_to_marks(self, raw_tokens):
         from terminedia.transformers import library as transformers_library
         from terminedia import Effects, Color, Directions, DEFAULT_BG, DEFAULT_FG, TRANSPARENT
@@ -903,7 +909,7 @@ class MLTokenizer(Tokenizer):
 
             token = token.lower().strip() if not "transformer" in token else token.strip()
             if token.startswith("/"):
-                starting_tag= False
+                starting_tag = False
                 token = token[1:]
             else:
                 starting_tag = True
@@ -955,7 +961,7 @@ class MLTokenizer(Tokenizer):
                         action: (
                             Color(value) if action in ("color", "foreground", "background") else
                             sum(Effects.__members__.get(v.strip(), 0) for v in value.split("|"))
-                                if action == "effects" else
+                            if action == "effects" else
                             getattr(Directions, value.upper()) if action == "direction" else
                             # getattr(transformers_library, value) if action == "pretransformer" else
                             value
@@ -1001,6 +1007,7 @@ class MLTokenizer(Tokenizer):
     def escape(cls, text):
         text = text.replace("[", "[[").replace("]", "]]")
         return text
+
 
 class ANSITokenizer(Tokenizer):
     # TODO....
