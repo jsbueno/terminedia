@@ -66,7 +66,7 @@ plane_alias = {
 }
 
 
-plane_names = {**plane_alias, **{value:value for value in plane_alias.values()}}
+plane_names = {**plane_alias, **{value: value for value in plane_alias.values()}}
 
 
 # Shift caused by each 1 unit of padding (always in character-blocks) on
@@ -100,6 +100,7 @@ forward_char_size = {
 }
 
 _bordersentinel = object()
+
 
 class Layouts:
     @staticmethod
@@ -157,8 +158,10 @@ class _RecordingControl:
     def register(self, char, pos, tick, ctx_data):
         self.data.append(RenderData(char, pos, tick, ctx_data))
 
+
 RenderData = namedtuple("RenderData", "char pos tick ctx")
 CtxData = namedtuple("CtxData", "foreground background effects")
+
 
 class TextPlane:
     """Text handling API
@@ -180,7 +183,6 @@ class TextPlane:
     `draw`. `high.draw` and `braille.draw` drawing namespaces - or the owner's values
     for the text[1] plane.
     """
-
 
     def __init__(self, owner):
         """Not intented to be instanced directly - instantiated as a Shape property.
@@ -205,9 +207,9 @@ class TextPlane:
             lambda s, pad_name=pad_name: s.__dict__.get(pad_name) if s.__dict__.get(pad_name) is not None else s.padding,
             lambda s, v, pad_name=pad_name: s.__dict__.__setitem__(pad_name, v)
         )
-    #pad_right = ObservableProperty()
-    #pad_top = ObservableProperty()
-    #pad_bottom = ObservableProperty()
+    # pad_right = ObservableProperty()
+    # pad_top = ObservableProperty()
+    # pad_bottom = ObservableProperty()
 
     @property
     def size(self):
@@ -417,7 +419,6 @@ class TextPlane:
                 del self.owner._raw_setitem
         return last_pos
 
-
     def _at(self, pos, text):
         with self.lock:
             tokens = style.MLTokenizer(text)
@@ -484,7 +485,7 @@ class TextPlane:
 
         # FIXME: take in account double-width chars when rendering
         # big-text
-        target.context.text_last_char_was_double = False
+        target.context.text_lastchar_was_double = False
         rendered_char = render(
             self.plane[index], font=target.context.font or self.font
         )
@@ -521,7 +522,7 @@ class TextPlane:
         data = self.plane
 
         if not rect:
-            rect = Rect((0,0), data.size)
+            rect = Rect((0, 0), data.size)
         elif not isinstance(rect, Rect):
             rect = Rect(rect)
         with target.context as context:
@@ -631,8 +632,8 @@ class TextPlane:
 
         size = ((self.size * self.char_size) + (1, 1) * pad_level * 2 + (1, 1)).ceil
         # hack for sextant size:
-        #if self.char_size.y == 2.5 and not (self.size.y % 2):
-            #size += (0, 3)
+        # if self.char_size.y == 2.5 and not (self.size.y % 2):
+        # size += (0, 3)
         size = self.owner.size
         if pad_level > 1:
             size -= (pad_level - 1, pad_level - 1) * 2
@@ -653,7 +654,6 @@ class TextPlane:
                 pos += roi.c1
 
             self.owner.draw.blit(pos, border_shape, roi=roi)
-
 
     @contextkwords(context_path="owner.context")
     def print(self, text):

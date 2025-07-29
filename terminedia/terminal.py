@@ -73,9 +73,9 @@ effect_double_off = {
 unicode_effect_cache = {}
 
 
-
 if sys.platform != "win32":
     import fcntl
+
     class UnblockTTY:
         """When changing the terminal to raw mode, stdin and stdout it become "unblocking"
         meaning that a large amount of output might raise an IO Error
@@ -97,18 +97,19 @@ if sys.platform != "win32":
             self.fake_stdin = False
             # save old state
             self.flags_save = fcntl.fcntl(self.fd, fcntl.F_GETFL)
-            #self.attrs_save = termios.tcgetattr(self.fd)
+            # self.attrs_save = termios.tcgetattr(self.fd)
             flags = self.flags_save & ~os.O_NONBLOCK
             fcntl.fcntl(self.fd, fcntl.F_SETFL, flags)
 
         def __exit__(self, *args):
-            #termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.attrs_save)
+            # termios.tcsetattr(self.fd, termios.TCSAFLUSH, self.attrs_save)
             if not self.fake_stdin:
                 fcntl.fcntl(self.fd, fcntl.F_SETFL, self.flags_save)
 else:
     class UnblockTTY:
         def __enter__(self):
             pass
+
         def __exit__(self, *args):
             pass
 
@@ -126,12 +127,13 @@ class ScreenCommands(BackendColorContextMixin):
     locks = {}
     last_pos = None
 
-    def __init__(self, absolute_movement=True, force_newlines=False):
+    def __init__(self, absolute_movement=True, force_newlines=False, direct=False):
         self.alternate_terminal_buffer = 0
         self.active_unicode_effects = Effects.none
         self.__class__.last_pos = None
         self.absolute_movement = absolute_movement
         self.force_newlines = force_newlines
+        self.direct = direct
 
     def __repr__(self):
         return "".join(
@@ -174,7 +176,6 @@ class ScreenCommands(BackendColorContextMixin):
                 file.flush()
         return
 
-
         # Historic curiosity: there was a previous code with retry attempts.
         # and breaking the data into chunks.
         # most of this code was written to avoid
@@ -183,7 +184,6 @@ class ScreenCommands(BackendColorContextMixin):
         # The temporary change of the terminal back to blocking
         # should have fixed it.
         # TL;DR: cludge removed
-
 
     def fast_render(self, data, rects=None, file=None):
         key = getattr(file, "name", "<stdout>")
@@ -196,7 +196,7 @@ class ScreenCommands(BackendColorContextMixin):
         if file is None:
             file = sys.stdout
         if rects is None:
-            rects = {Rect((0,0), data.size)}
+            rects = {Rect((0, 0), data.size)}
         CSI = "\x1b["
         SGR = "m"
         MOVE = "H"
@@ -209,7 +209,8 @@ class ScreenCommands(BackendColorContextMixin):
             outstr = ""
             for y in range(rect.top, rect.bottom):
                 for x in range(rect.left, rect.right):
-                    if (x, y) in seen: continue
+                    if (x, y) in seen:
+                        continue
                     seen.add((x, y))
                     # Fast render just for full-4tuple values.
                     char, fg, bg, effects = data[x, y]
@@ -258,7 +259,9 @@ class ScreenCommands(BackendColorContextMixin):
 
                     if csi:
                         outstr += "m"
-                        last_fg = fg; last_bg = bg; last_tm_effects = tm_effects
+                        last_fg = fg
+                        last_bg = bg
+                        last_tm_effects = tm_effects
                     if char is CONTINUATION:
                         # ensure two spaces for terminedia double-width chars -
                         # can possibly be made more efficient if run in a terminal
@@ -283,8 +286,6 @@ class ScreenCommands(BackendColorContextMixin):
                 file.flush()
 
             self.__class__.last_pos = last_pos
-
-
 
     def CSI(self, *args, file=None):
         """Writes a CSI command to the terminal
@@ -358,8 +359,7 @@ class ScreenCommands(BackendColorContextMixin):
     def home(self, file=None):
 
         self.CSI(f"0;0H", file=file)
-        self.__class__.last_pos = V2(0,0)
-
+        self.__class__.last_pos = V2(0, 0)
 
     def moveto(self, pos, file=None):
         """Writes ANSI Sequence to position the text cursor
@@ -383,7 +383,7 @@ class ScreenCommands(BackendColorContextMixin):
                     self.right(pos.x, file=file)
             else:
                 if not self.__class__.last_pos:
-                    self.__class__.last_pos = V2(0,0)
+                    self.__class__.last_pos = V2(0, 0)
                 delta_x = pos.x - self.__class__.last_pos.x
                 delta_y = pos.y - self.__class__.last_pos.y
                 if delta_y > 0:
@@ -400,9 +400,7 @@ class ScreenCommands(BackendColorContextMixin):
                 elif delta_x < 0:
                     self.left(-delta_x, file=file)
 
-
         self.__class__.last_pos = pos
-
 
     def save_cursor_position(self, file=None):
         """Saves the current cursor position (in the TTY software)"""
@@ -475,8 +473,8 @@ class ScreenCommands(BackendColorContextMixin):
                     size = os.get_terminal_size()
                 except OSError:
                     size = 80, 25
-                sh = shape(size)
-                sh.text[1][0,0] = text
+                sh = shape(size, normalize_wide_chars=not self.direct)
+                sh.text[1][0, 0] = text
                 output = sh.render()
                 self._print(output, file=file, flush=flush, sep=sep, end="")
             first_text = False
@@ -602,4 +600,4 @@ def cls():
     """
     cmd = ScreenCommands()
     cmd.clear()
-    cmd.moveto((0,0))
+    cmd.moveto((0, 0))

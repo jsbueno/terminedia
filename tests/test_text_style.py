@@ -9,6 +9,8 @@ import pytest
 from conftest import rendering_test, fast_render_mark
 
 # @pytest.mark.fixture
+
+
 def styled_text():
     sc = TM.Screen((20, 10))
     sh = TM.shape((20, 10))
@@ -29,12 +31,13 @@ def test_styled_sequence_is_rendered():
     for i, char in enumerate(msg):
         assert sc.data[i, 0].value == char
 
+
 @pytest.mark.parametrize(
     ("attrname", "value"), [
         ("color", TM.Color("red"),),
         ("background", TM.Color("green"),),
         ("effects", TM.Effects.blink),
-])
+    ])
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_sequence_is_rendered_with_attribute(attrname, value):
@@ -53,10 +56,10 @@ def test_styled_sequence_is_rendered_with_attribute(attrname, value):
 
 @pytest.mark.parametrize(
     ("attrname", "value", "position", "attr2", "value2"), [
-        ("color", TM.Color("red"),5, "background", TM.Color("white")),
+        ("color", TM.Color("red"), 5, "background", TM.Color("white")),
         ("color", TM.Color("blue"), 1, "effects", TM.Effects.underline),
         ("color", TM.Color("yellow"), 100, "effects", TM.Effects.blink),
-])
+    ])
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_sequence_adds_attributes_at_mark(attrname, value, position, attr2, value2):
@@ -85,10 +88,10 @@ def test_styled_sequence_adds_attributes_at_mark(attrname, value, position, attr
 
 @pytest.mark.parametrize(
     ("pos1", "attrname", "value", "pos2", "default"), [
-        (0, "color", TM.Color("red"),5, TM.DEFAULT_FG),
-        (2, "background", TM.Color("blue"),7, TM.DEFAULT_BG),
+        (0, "color", TM.Color("red"), 5, TM.DEFAULT_FG),
+        (2, "background", TM.Color("blue"), 7, TM.DEFAULT_BG),
         (2, "effects", TM.Effects.blink, 50, TM.Effects.none),
-])
+    ])
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_sequence_pops_attributes(pos1, attrname, value, pos2, default):
@@ -108,21 +111,23 @@ def test_styled_sequence_pops_attributes(pos1, attrname, value, pos2, default):
     if attrname == "color":
         attrname = "foreground"
     for i, char in enumerate(msg):
-        if pos1 <=  i < pos2:
+        if pos1 <= i < pos2:
             assert getattr(sc.data[i, 0], attrname) == value
         else:
             assert getattr(sc.data[i, 0], attrname) == default
 
 # from terminedia.values import WIDTH_INDEX as WIDTH, HEIGHT_INDEX as HEIGHT
-@pytest.mark.parametrize(("method",),[("merged",),("sequence",)])
+
+
+@pytest.mark.parametrize(("method",), [("merged",), ("sequence",)])
 @pytest.mark.parametrize(
     ("moveto", "rmoveto", "expected_pos"), [
-        ((0,1), None, (0,1)),
-        ((5,1), None, (5,1)),
-        (None, (0, 1), (5,1)),
+        ((0, 1), None, (0, 1)),
+        ((5, 1), None, (5, 1)),
+        (None, (0, 1), (5, 1)),
         (None, (-2, 3), (3, 3)),
         ((10, 6), (-1, -1), (9, 5)),
-])
+    ])
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_sequence_move_and_relative_move_work(moveto, rmoveto, expected_pos, method):
@@ -139,7 +144,6 @@ def test_styled_sequence_move_and_relative_move_work(moveto, rmoveto, expected_p
     attr = r.choice(["color", "background"])
     color = r.choice(["yellow", "red", "green", "blue"])
 
-
     aa = StyledSequence(
         msg, {
             pos: Mark(attributes={attr: color}),
@@ -151,13 +155,14 @@ def test_styled_sequence_move_and_relative_move_work(moveto, rmoveto, expected_p
     sc.update()
     yield None
     # TODO: these should be aliased in TM.Context class.
-    assert sc.data[5,0].value == TM.values.EMPTY if expected_pos != (5,0) else True
+    assert sc.data[5, 0].value == TM.values.EMPTY if expected_pos != (5, 0) else True
     assert sc.data[expected_pos].value == '5'
+
 
 @pytest.mark.parametrize(
     ("attrname", "value", "attr2", "value2"), [
         ("color", TM.Color("red"), "background", TM.Color("white")),
-])
+    ])
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_sequence_mark_objects_can_be_sequence(attrname, value, attr2, value2):
@@ -168,7 +173,7 @@ def test_styled_sequence_mark_objects_can_be_sequence(attrname, value, attr2, va
             0: [
                 Mark(attributes={attrname: value}),
                 Mark(attributes={attr2: value2})
-        ]},
+            ]},
         text_plane
     )
     aa.render()
@@ -199,6 +204,7 @@ def test_mltokenizer_generates_mark_sequences_with_markups_at_same_place():
     assert x.mark_sequence[0][0].attributes == {"color": TM.Color("blue")}
     assert x.mark_sequence[0][1].attributes == {"background": TM.Color("white")}
 
+
 def test_mltokenizer_properly_accounts_transformers_spam():
     x = MLTokenizer("[transformer: Z][transformer: Y][transformer: X 20]1[/transformer]2[/transformer]")
     x.parse()
@@ -211,7 +217,7 @@ def test_mltokenizer_properly_accounts_transformers_spam():
 @rendering_test
 def test_styled_sequence_retrives_marks_from_text_plane():
     sc, sh, text_plane = styled_text()
-    text_plane.marks[1,0] = Mark(attributes={"color": TM.Color("yellow")})
+    text_plane.marks[1, 0] = Mark(attributes={"color": TM.Color("yellow")})
     msg = "Hello World!"
     aa = StyledSequence(
         msg, {},
@@ -220,9 +226,9 @@ def test_styled_sequence_retrives_marks_from_text_plane():
     aa.render()
     sc.update()
     yield None
-    assert sc.data[0,0].foreground == TM.DEFAULT_FG
-    for i, letter in enumerate(msg[1:],1):
-        assert sc.data[i,0].foreground == TM.Color("yellow")
+    assert sc.data[0, 0].foreground == TM.DEFAULT_FG
+    for i, letter in enumerate(msg[1:], 1):
+        assert sc.data[i, 0].foreground == TM.Color("yellow")
 
 
 @pytest.mark.parametrize(*fast_render_mark)
@@ -230,7 +236,7 @@ def test_styled_sequence_retrives_marks_from_text_plane():
 def test_richtext_rendering_respects_existing_context():
     sc, sh, text_plane = styled_text()
     msg = "H[color: yellow]ell[/color]o World!"
-    sh.context.color="red"
+    sh.context.color = "red"
     text_plane[0, 0] = msg
 
     sc.update()
@@ -238,6 +244,7 @@ def test_richtext_rendering_respects_existing_context():
     assert sc.data[0, 0].foreground == TM.Color("red")
     assert sc.data[1, 0].foreground == TM.Color("yellow")
     assert sc.data[4, 0].foreground == TM.Color("red")
+
 
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
@@ -251,10 +258,11 @@ def test_text_wraps_at_text_plane_boundary():
 
     sc.update()
     yield None
-    assert sc.data[text_plane.width -1, 5].value == "l"
+    assert sc.data[text_plane.width - 1, 5].value == "l"
     assert sc.data[0, 6].value == "o"
     assert sc.data[2, 6].value == "W"
     assert sc.data[text_plane.width, 5].value == " "
+
 
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
@@ -266,16 +274,17 @@ def test_styled_sequence_can_handle_pretransformers():
         background=lambda pos: TM.Color((0, 0, (255 - pos[0] * 25) % 256)),
     )
     aa = StyledSequence(
-        msg,{0: TM.Mark(attributes={"pretransformer": tt})} ,
+        msg, {0: TM.Mark(attributes={"pretransformer": tt})},
         text_plane
     )
     aa.render()
     sc.update()
     yield None
-    assert sc.data[0,0].foreground == TM.Color((0,0,0))
-    assert sc.data[0,0].background == TM.Color((0,0,255))
-    assert sc.data[9,0].foreground == TM.Color((225,0,0))
-    assert sc.data[9,0].background == TM.Color((0,0,30))
+    assert sc.data[0, 0].foreground == TM.Color((0, 0, 0))
+    assert sc.data[0, 0].background == TM.Color((0, 0, 255))
+    assert sc.data[9, 0].foreground == TM.Color((225, 0, 0))
+    assert sc.data[9, 0].background == TM.Color((0, 0, 30))
+
 
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
@@ -285,10 +294,11 @@ def test_styled_sequence_retrieves_transformers_from_text_plane_transformers_map
     text_plane[0, 5] = "012[transformer: asteriscs]345[/transformer]6789"
     sc.update()
     yield None
-    assert sc.data[2,5].value == "2"
+    assert sc.data[2, 5].value == "2"
     for i in range(3, 6):
-        assert sc.data[i,5].value == "*"
-    assert sc.data[6,5].value == "6"
+        assert sc.data[i, 5].value == "*"
+    assert sc.data[6, 5].value == "6"
+
 
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
@@ -349,10 +359,10 @@ def test_styled_text_render_and_animate_special_marks():
 @rendering_test
 def test_styled_text_transformers_spam_based_index_attribute_and_deactivation():
     sc, sh, text_plane = styled_text()
-    sc.text.transformers_map["red"] = TM.Transformer(foreground=lambda : TM.Color("red"))
-    sc.text.transformers_map["deg1"] = TM.Transformer(background=lambda sequence_index: TM.Color((0, 25 * sequence_index, 255 -25 * sequence_index)))
+    sc.text.transformers_map["red"] = TM.Transformer(foreground=lambda: TM.Color("red"))
+    sc.text.transformers_map["deg1"] = TM.Transformer(background=lambda sequence_index: TM.Color((0, 25 * sequence_index, 255 - 25 * sequence_index)))
 
-    sc.text[1][0,0] = "[transformer: red 5]abc[transformer: deg1 10]defghijklmnopqrstyz"
+    sc.text[1][0, 0] = "[transformer: red 5]abc[transformer: deg1 10]defghijklmnopqrstyz"
     sc.update()
     yield None
     for i in range(0, 20):
@@ -367,10 +377,10 @@ def test_styled_text_transformers_spam_based_index_attribute_and_deactivation():
 @rendering_test
 def test_styled_text_transformers_inline_end_markup_turn_off_just_last_transformer():
     sc, sh, text_plane = styled_text()
-    sc.text.transformers_map["red"] = TM.Transformer(foreground=lambda : TM.Color("red"))
-    sc.text.transformers_map["blue"]  = TM.Transformer(background=lambda : TM.Color("blue"))
+    sc.text.transformers_map["red"] = TM.Transformer(foreground=lambda: TM.Color("red"))
+    sc.text.transformers_map["blue"] = TM.Transformer(background=lambda: TM.Color("blue"))
 
-    sc.text[1][0,0] = "[transformer: red]012[transformer: blue]345[/transformer]67[/transformer]89"
+    sc.text[1][0, 0] = "[transformer: red]012[transformer: blue]345[/transformer]67[/transformer]89"
     sc.update()
     yield None
 
@@ -406,7 +416,7 @@ def test_styled_text_marks_inline_end_markup_dont_turn_off_location_based_mark()
     sc.text[1].marks[5, 0] = TM.Mark(attributes={"color": "green"})
     sc.text[1].marks[7, 0] = TM.Mark(pop_attributes={"color": None})
 
-    sc.text[1][0,0] = "[color: purple]012345[/color]6789"
+    sc.text[1][0, 0] = "[color: purple]012345[/color]6789"
     sc.update()
     yield None
 
@@ -421,10 +431,10 @@ def test_styled_text_marks_inline_end_markup_dont_turn_off_location_based_mark()
 @rendering_test
 def test_styled_text_transformers_inline_end_markup_dont_turn_off_location_based_mark():
     sc, sh, text_plane = styled_text()
-    sc.text.transformers_map["red"] = TM.Transformer(foreground=lambda : TM.Color("red"))
-    sc.text[1].marks[3, 0] = TM.Mark(attributes={"pretransformer": TM.Transformer(background=lambda : TM.Color("blue"))})
+    sc.text.transformers_map["red"] = TM.Transformer(foreground=lambda: TM.Color("red"))
+    sc.text[1].marks[3, 0] = TM.Mark(attributes={"pretransformer": TM.Transformer(background=lambda: TM.Color("blue"))})
 
-    sc.text[1][0,0] = "[transformer: red]012345[/transformer]6789"
+    sc.text[1][0, 0] = "[transformer: red]012345[/transformer]6789"
     sc.update()
     yield None
 
@@ -435,16 +445,15 @@ def test_styled_text_transformers_inline_end_markup_dont_turn_off_location_based
     assert sc.data[6, 0].background == TM.Color("blue")
 
 
-
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
 def test_styled_text_transformers_inline_end_markup_dont_turn_off_location_based_mark_when_both_are_defined_as_string():
     sc, sh, text_plane = styled_text()
-    sc.text.transformers_map["red"] = TM.Transformer(foreground=lambda : TM.Color("red"))
-    sc.text.transformers_map["blue"] = TM.Transformer(background=lambda : TM.Color("blue"))
+    sc.text.transformers_map["red"] = TM.Transformer(foreground=lambda: TM.Color("red"))
+    sc.text.transformers_map["blue"] = TM.Transformer(background=lambda: TM.Color("blue"))
     sc.text[1].marks[3, 0] = TM.Mark(attributes={"pretransformer": "blue"})
 
-    sc.text[1][0,0] = "[transformer: red]012345[/transformer]6789"
+    sc.text[1][0, 0] = "[transformer: red]012345[/transformer]6789"
     sc.update()
     yield None
 
@@ -484,6 +493,7 @@ def test_styled_text_doesnot_skip_positional_mark_placed_at_continuation_of_doub
     # This assert is the object of the current test:
     assert sh[check_point].foreground == TM.Color("red")
 
+
 @pytest.mark.skip("The skipped cell effect order is ok. there is another bug breaking the color popping, though")
 @pytest.mark.parametrize(*fast_render_mark)
 @rendering_test
@@ -495,7 +505,6 @@ def test_styled_text_on_replaying_skipped_cell_mark_should_place_it_first_than_i
     yield None
     assert sh[6, 0].foreground == TM.Color("yellow")
     assert sh[8, 0].foreground == TM.Color("red")
-
 
 
 # Inner unit testing for StyledSequence
@@ -538,25 +547,24 @@ def test_styled_text_push_context_sequence_attribute():
     assert seq.context.pretransformers == original
 
 
-
 ###
 #
 # Markmap and RelativeMarkIndex tests
 #
 ##
+def first(x): return next(iter(x))
 
-first = lambda x: next(iter(x))
 
 def test_markmap_works():
-    sh = TM.shape((10,10))
+    sh = TM.shape((10, 10))
 
     m = TM.Mark()
-    sh.text[1].marks[5,5] = m
-    assert sh.text[1].marks[5,5] is m
+    sh.text[1].marks[5, 5] = m
+    assert sh.text[1].marks[5, 5] is m
 
 
 def test_markmap_indepent_in_different_resolutions():
-    sh = TM.shape((10,10))
+    sh = TM.shape((10, 10))
     assert sh.text[1].marks is not sh.text[4].marks
     assert sh.text[1].marks is sh.text[1].marks
     # Line-break marks (and line-up) inserted with text_plane[1] creation
@@ -565,7 +573,7 @@ def test_markmap_indepent_in_different_resolutions():
 
 
 def test_markmap_works_with_negative_index():
-    sh = TM.shape((10,10))
+    sh = TM.shape((10, 10))
 
     m = TM.Mark()
     mm = sh.text[1].marks
@@ -580,7 +588,7 @@ def test_markmap_works_with_negative_index():
 
 
 def test_markmap_prepare_copies_data_instance():
-    sh = TM.shape((10,10))
+    sh = TM.shape((10, 10))
 
     m = TM.Mark()
     original = mm = sh.text[1].marks
@@ -589,17 +597,16 @@ def test_markmap_prepare_copies_data_instance():
     assert original.data is not mm.data
 
 
-
 @pytest.mark.parametrize(
-    ["input_index","expected_at"], [
+    ["input_index", "expected_at"], [
         [(9, 0), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
         [(-1, 0), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
         [(-1, -10), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
         [(9, -10), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
         [(10, 0), [(10, 0), (None, 0), (None, -10), (WIDTH_INDEX, -10)]],
-])
+    ])
 def test_markmap_mark_retrieved_at_all_possible_positions(input_index, expected_at):
-    sh = TM.shape((10,10))
+    sh = TM.shape((10, 10))
 
     m = TM.Mark()
     mm = sh.text[1].marks
@@ -609,8 +616,9 @@ def test_markmap_mark_retrieved_at_all_possible_positions(input_index, expected_
     for index in expected_at:
         assert mm[index] is m
 
+
 def test_markmap_mark_retrieved_as_absolute_mark_when_rendering():
-    sh = TM.shape((10,10))
+    sh = TM.shape((10, 10))
 
     m = TM.Mark()
     mm = sh.text[1].marks
@@ -626,17 +634,16 @@ def test_markmap_mark_retrieved_as_absolute_mark_when_rendering():
     assert prepared.data[9, 0] == [m, m]
 
 
-
 @pytest.mark.parametrize(
-    ["input_index","marks_at"], [
+    ["input_index", "marks_at"], [
         [(9, 0), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
         [(-1, 0), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
         [(-1, -10), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
         [(9, -10), [(9, 0), (-1, 0), (-1, -10), (9, -10)]],
         [(10, 0), [(10, 0), (None, 0), (None, -10), (WIDTH_INDEX, -10)]],
-])
+    ])
 def test_markmap_mark_deleted_at_all_possible_positions(input_index, marks_at):
-    sh = TM.shape((10,10))
+    sh = TM.shape((10, 10))
     mm = sh.text[1].marks
     mm.relative_data.clear()
 
@@ -649,8 +656,9 @@ def test_markmap_mark_deleted_at_all_possible_positions(input_index, marks_at):
     with pytest.raises(KeyError):
         del mm[input_index]
 
+
 def test_markmap_several_marks_at_same_position_retrieved_as_list():
-    sh = TM.shape((10,10))
+    sh = TM.shape((10, 10))
 
     m = TM.Mark()
     mm = sh.text[1].marks
@@ -672,8 +680,29 @@ def test_mltokenizer_convert_escaped_string_to_single_bracketed():
     xx.parse()
     assert xx.parsed_text == "[color: blue]"
 
+
 def test_mltokenizer_convert_escaped_string_with_inner_token():
     xx = MLTokenizer("[[f[up]]]")
     xx.parse()
     assert xx.parsed_text == "[f]"
     assert list(xx.mark_sequence.keys()) == [2]
+
+
+# Tokenizer renders emojis
+
+def test_mltokenizer_insert_emoji():
+    xx = MLTokenizer("a:apple:b")
+    xx()
+    assert xx.parsed_text == "a\U0001f34eb"
+    xx = MLTokenizer("a:APPLE:b")
+    xx()
+    assert xx.parsed_text == "a\U0001f34eb"
+    xx = MLTokenizer("a:apple:b", use_emojis=False)
+    xx()
+    assert xx.parsed_text == "a:apple:b"
+
+
+def test_mltokenizer_insert_emoji_works_with_spaces():
+    xx = MLTokenizer("a:atom symbol:b")
+    xx()
+    assert xx.parsed_text == "a\u269bb"

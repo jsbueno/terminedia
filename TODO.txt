@@ -251,7 +251,7 @@ Targeted for release (0.4):
         -Do it after "trans-dimensional-marks to ensure text can scroll across  several areas (e.g. columns) before falling off the screen
         - record the initial position and tick - possibly as the value in TextPlane.writtings
 
-    - Allow markup parser to recognize ":emoji_name:" style emojis, using the names and aliases as used by Python-emojis (from Ruby gen emojis):
+    - Allow markup parser to recognize ":emoji_name:" style emojis, using the names and aliases as used by Python-emojis (from Ruby gen emojis) [V]
         - include emoji nick/alias information on TM.Unicode.Character information
         - Allow character search by emoji nick/alias
     - BUG: effects not being suspended upon a [/effect] tag

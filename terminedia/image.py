@@ -356,8 +356,8 @@ class OrderedRegistry:
         return f"Registry <{self.data}>"
 
 
-
 DIRTY_TILE_SIZE = 8
+
 
 class ShapeDirtyMixin:
     def __init__(self, *args, **kwargs):
@@ -626,8 +626,9 @@ class Shape(ABC, ShapeApiMixin, ShapeDirtyMixin):
     def render(self, output=None, backend="ANSI"):
         """Renders shape contents into a text-output.
           Args:
-            - backend (str): currently implemented "ANSI" - output type
             - output(Optional[Union[TextIO, BytesIO]])
+            - backend (str): currently implemented "ANSI" - output type
+
           Output:
             ->Optional[Union[str, bytes]]
 
@@ -1307,11 +1308,12 @@ class FullShape(RasterUndo, Shape):
             [context.effects] * size.x * size.y,
         ]
 
-    def __init__(self, data, **kw):
+    def __init__(self, data, normalize_wide_chars=True, **kw):
         self.width = w = len(data[0][0])
         self.height = h = len(data[0])
-        self.rect = Rect((w,h))
-        self.load_data(data, (w,h))
+        self.rect = Rect((w, h))
+        self.load_data(data, (w, h))
+        self.normalize_wide_chars = normalize_wide_chars
         #self.value_data, self.fg_data, self.bg_data, self.eff_data = (
             #self.load_data(plane, (w, h)) for plane in data
         #)
@@ -1414,7 +1416,7 @@ class FullShape(RasterUndo, Shape):
             if transform_effects:
                 final_char = translate_chars(value[0], transform_effects)
             double_width = char_width(final_char) == 2
-            if double_width:
+            if double_width and self.normalize_wide_chars:
                 if not getattr(self.context, "text_rendering_styled", None) == 1:
                     if pos[0] == self.width - 1:  # Right shape edge
                         double_width = False
@@ -1439,7 +1441,7 @@ class FullShape(RasterUndo, Shape):
                         offset2 = pos[0] + 1
         else:
             double_width = False
-        self.context.shape_lastchar_was_double = double_width
+        self.context.shape_lastchar_was_double = double_width if self.normalize_wide_chars else False
         self._raw_setitem(pos, value, force_transparent_ink, double_width, offset2)
 
     def _raw_setitem(self, pos, value, force_transparent_ink=False, double_width=False, offset2=None):
@@ -1452,7 +1454,7 @@ class FullShape(RasterUndo, Shape):
             # be the "transparent" special marker
             if component is not TRANSPARENT or force_transparent_ink:
                 pixel[i] = component
-                if double_width:
+                if double_width and self.normalize_wide_chars:
                     pixel2[i] = component if i != 0 else CONTINUATION
         if self.undo_active:
             self.data[pos] = pixel
@@ -1507,7 +1509,6 @@ class ShalowShapeRepr:
         for pos, value in zip(Rect(self.size).iter_cells(), self.data):
             shape[pos] = value
         return shape
-
 
 
 def shape(data, color_map=None, promote=False, resolution=None, **kwargs):

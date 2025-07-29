@@ -66,15 +66,17 @@ Markup description:
 from collections.abc import Sequence, MutableMapping
 from copy import copy
 import ast
-import enum
 import re
 import typing as T
 import threading
 
 from terminedia.contexts import Context
+from terminedia.data.emoji import emoji
 from terminedia.unicode import GraphemeIter
 from terminedia.utils import V2, Rect, get_current_tick, Color
 from terminedia.values import WIDTH_INDEX, HEIGHT_INDEX, RelativeMarkIndex, Directions, Effects, TRANSPARENT, RETAIN_POS
+# from terminedia.transformers import library as transformers_library
+from terminedia import DEFAULT_BG, DEFAULT_FG
 
 
 class StyledSequence:
@@ -786,7 +788,7 @@ class Tokenizer:
 class MLTokenizer(Tokenizer):
     _parser = re.compile(r"(?<!\[)\[[^\[].*?\]")
 
-    def __init__(self, initial=""):
+    def __init__(self, initial="", use_emojis=True):
         """Parses a string with special Markup and prepare for rendering
 
         After instantiating, keep calling '.update' to add more text,
@@ -794,6 +796,7 @@ class MLTokenizer(Tokenizer):
         and render it to a text plane.
         """
         self.raw_text = ""
+        self.use_emojis = use_emojis
         self.update(initial)
 
     def update(self, text):
@@ -842,7 +845,6 @@ class MLTokenizer(Tokenizer):
         self.expand()
 
         raw_tokens = []
-        offset = 0
 
         last_token_start = None
         last_token_start_real = None
@@ -888,11 +890,9 @@ class MLTokenizer(Tokenizer):
         self._tokens_to_marks(raw_tokens)
 
     def _tokens_to_marks(self, raw_tokens):
-        from terminedia.transformers import library as transformers_library
-        from terminedia import Effects, Color, Directions, DEFAULT_BG, DEFAULT_FG, TRANSPARENT
 
         self.mark_sequence = {}
-        # Separate stack to anottate the length of the affected string inside each Transformer
+        # Separate stack to annotate the length of the affected string inside each Transformer
         transformer_stack = []
         last_offset = -1
         offset_repeat_counter = -1
@@ -907,7 +907,7 @@ class MLTokenizer(Tokenizer):
             rmoveto = None
             moveto = None
 
-            token = token.lower().strip() if not "transformer" in token else token.strip()
+            token = token.lower().strip() if "transformer" not in token else token.strip()
             if token.startswith("/"):
                 starting_tag = False
                 token = token[1:]
@@ -945,7 +945,7 @@ class MLTokenizer(Tokenizer):
                     transformer_stack.append((value, offset, offset_repeat_counter))
                 else:
                     closing_transformer, oppening_offset, oppening_repeat = transformer_stack.pop()
-                    if not " " in closing_transformer:
+                    if " " not in closing_transformer:
                         # if there is a space, assume the spam of the transformer is given
                         # on the opening tag and do nothing.
                         spam = offset - oppening_offset
@@ -992,7 +992,15 @@ class MLTokenizer(Tokenizer):
                 mark = Mark.merge(self.mark_sequence[offset], mark)
             self.mark_sequence[offset] = mark
 
+    def parse_emojis(self):
+        def replace(match):
+            return emoji.get(match.groups()[0].lower().replace(" ", "_"), match.group())
+
+        self.raw_text = re.sub(r":(.+?):", replace, self.raw_text)
+
     def __call__(self, text_plane=None, context=None, starting_point=(0, 0)):
+        if self.use_emojis:
+            self.parse_emojis()
         self.parse()
         self.styled_sequence = StyledSequence(
             self.parsed_text,
