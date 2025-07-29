@@ -34,11 +34,12 @@ from terminedia.transformers.library import box_transformers as borders
 import terminedia.unicode
 from terminedia.events import EventTypes
 from terminedia.asynchronous import terminedia_main, ainput
+from terminedia.data.emoji import emoji
 
 import terminedia.widgets
 
 
-__version__ = "0.4.3"
+__version__ = "0.5.0"
 __author__ = "João S. O. Bueno"
 
 
