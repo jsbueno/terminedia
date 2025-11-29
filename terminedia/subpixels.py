@@ -114,6 +114,7 @@ class BlockChars_(SubPixels):
     block_width = 2
     block_height = 2
 
+    # WARNING: DO NOT REARRANGE THE DECLARATION ORDER!
     EMPTY = values.EMPTY
     QUADRANT_UPPER_LEFT = "\u2598"
     QUADRANT_UPPER_RIGHT = "\u259D"
@@ -143,6 +144,7 @@ class HalfChars_(SubPixels):
     block_height = 2
     bit_size: int = 0b11
 
+    # WARNING: DO NOT REARRANGE THE DECLARATION ORDER!
     EMPTY = values.EMPTY
     UPPER_HALF_BLOCK = "\u2580"
     LOWER_HALF_BLOCK = "\u2584"
@@ -165,6 +167,8 @@ class BrailleChars_(SubPixels):
     block_height = 4
     bit_size: int = 0b11111111
 
+    # WARNING: DO NOT REARRANGE THE DECLARATION ORDER!
+    # (including the order result from running the loop bellow)
     EMPTY = values.EMPTY
 
     for codepoint in range(0x2801, 0x2900):
@@ -195,6 +199,7 @@ class SextantChars_(SubPixels):
     block_height = 3
     bit_size: int = 0b111111
 
+    # WARNING: DO NOT REARRANGE THE DECLARATION ORDER!
     EMPTY = values.EMPTY
 
     for codepoint in range(0x1FB00, 0x1FB3C):
