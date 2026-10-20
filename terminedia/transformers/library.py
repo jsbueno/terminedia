@@ -63,7 +63,7 @@ def _kernel_table_factory(kernel, expr=("-", "-")):
             else:
                 break
 
-    return KernelTransformer(new_kernel, mask_diags=True)
+    return KernelTransformer(new_kernel, mask_diags=True, block_only=True)
 
 
 ascii_table_transformer = KernelTransformer(kernel_table_ascii)

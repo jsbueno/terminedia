@@ -96,9 +96,10 @@ class Transformer:
 class KernelTransformer(Transformer):
     policy = "abyss"
 
-    def __init__(self, kernel, mask_diags=True, **kwargs):
+    def __init__(self, kernel, mask_diags=True, block_only=False, **kwargs):
         self.kernel = kernel
         self.mask_diags = mask_diags
+        self.block_only = block_only
         super().__init__(**kwargs)
 
     def kernel_match(self, source, pos):
@@ -110,8 +111,15 @@ class KernelTransformer(Transformer):
             source_is_image = True
         else:
             data = source.data
+        if self.block_only and source_is_fullshape and (content:=source.get_raw(pos)[0]) not in (TRANSPARENT, EMPTY, FULL_BLOCK):
+            return content
 
         value = ""
+
+        if self.block_only:
+            condition = lambda v: v == FULL_BLOCK
+        else:
+            condition = lambda v: v not in (EMPTY, TRANSPARENT)
 
         for y in -1, 0, 1:
             for x in -1, 0, 1:
@@ -128,10 +136,10 @@ class KernelTransformer(Transformer):
                 if source_is_image:
                     value += "#" if source.get_raw(compare_pos) != source.context.background else " "
                 elif source_is_fullshape:
-                    value += "#" if source.get_raw(compare_pos)[0] not in (EMPTY, TRANSPARENT) else " "
+                    value += "#" if condition(source.get_raw(compare_pos)[0]) else " "
                 else:
                     offset = source.get_data_offset(compare_pos)
-                    value += "#" if data[offset] not in (EMPTY, TRANSPARENT) else " "
+                    value += "#" if condition(data[offset]) else " "
 
         return self.kernel.get(value, self.kernel.get("default", " "))
 
