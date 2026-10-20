@@ -198,6 +198,12 @@ class JournalingCommandsMixin(BackendColorContextMixin):
             tick, char, color, bg, effect = self.journal[pos][-1]
             call = []
 
+            if getattr(self, "force_newlines", False) and last_pos is not None and pos.y != last_pos.y:
+                # Scrolling with a background set can color the whole new row.
+                self.reset_colors(file=file)
+                last_color = last_bg = None
+                last_effect = Effects.none
+
             if pos != last_pos:
                 last_pos = pos
                 call.append((self.moveto, pos))

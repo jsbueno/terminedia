@@ -217,3 +217,68 @@ def test_render_transparent_characters_dont_overwrite_terminal_contents():
     # Actual render optimizations won't place a 'move' for each non displayed pixel.
     # assert data.count("[MOVE") == 8
     assert re.sub(r"\[.+?\]", "", data).count(EMPTY) == 0
+
+
+@pytest.mark.parametrize("output_kind", ["string", "stream", "path"])
+def test_ansi_export_resets_attributes_before_newlines(output_kind, tmp_path, monkeypatch):
+    for attribute in ("last_color", "last_background", "last_effects"):
+        monkeypatch.setattr(TM.Screen, attribute, None)
+    shape = TM.shape((2, 2))
+    shape.context.color = (255, 0, 0)
+    shape.context.background = (0, 0, 255)
+    shape.context.effects = TM.Effects.underline
+    shape.draw.fill()
+
+    if output_kind == "string":
+        data = shape.render()
+    elif output_kind == "stream":
+        output = io.StringIO()
+        shape.render(output=output)
+        data = output.getvalue()
+    else:
+        output = tmp_path / "image.txt"
+        shape.render(output=output)
+        data = output.read_text()
+
+    first, second = data.split("\n")
+    assert first.endswith(TM.values.FULL_BLOCK * 2 + "\x1b[0m")
+    assert second.endswith(TM.values.FULL_BLOCK * 2 + "\x1b[0m")
+    # Resetting before a newline must not lose attributes shared by both rows.
+    for row in (first, second):
+        attributes = row[:row.index(TM.values.FULL_BLOCK)]
+        assert "\x1b[38;2;255;0;0m" in attributes
+        assert "\x1b[48;2;0;0;255m" in attributes
+        assert "4" in re.findall(r"\x1b\[([0-9;]+)m", attributes)[-1].split(";")
+
+
+def test_ansi_export_restores_changed_attributes_after_newline(monkeypatch):
+    for attribute in ("last_color", "last_background", "last_effects"):
+        monkeypatch.setattr(TM.Screen, attribute, None)
+    shape = TM.shape((1, 2))
+    shape.context.background = (0, 0, 255)
+    shape.context.effects = TM.Effects.underline
+    shape[0, 0] = "A"
+    shape.context.color = (255, 0, 0)
+    shape.context.background = TM.DEFAULT_BG
+    shape.context.effects = TM.Effects.none
+    shape[0, 1] = "B"
+
+    first, second = shape.render().split("\n")
+    assert first.endswith("A\x1b[0m")
+    assert second == "\x1b[38;2;255;0;0m\x1b[49mB\x1b[0m"
+
+
+def test_ansi_export_keeps_blank_rows_at_default_colors(monkeypatch):
+    for attribute in ("last_color", "last_background", "last_effects"):
+        monkeypatch.setattr(TM.Screen, attribute, None)
+    shape = TM.shape((2, 3))
+    shape.clear(transparent=True)
+    shape.context.color = (255, 0, 0)
+    shape.context.background = (0, 0, 255)
+    shape[0, 0] = "A"
+    shape[1, 2] = "B"
+
+    first, middle, last = shape.render().split("\n")
+    assert first.endswith(" \x1b[0m")
+    assert middle == "\x1b[39m\x1b[49m  \x1b[0m"
+    assert last.endswith("\x1b[38;2;255;0;0m\x1b[48;2;0;0;255mB\x1b[0m")
