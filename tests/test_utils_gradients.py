@@ -7,8 +7,8 @@ from terminedia import Color
 
 from terminedia.utils import combine_signatures, TaggedDict, HookList
 from terminedia.utils.descriptors import ObservableProperty
-from terminedia.utils import Rect, V2, ColorGradient, Gradient, EPSILON
-from terminedia.utils.gradient import _unit_stops
+from terminedia.utils import Rect, V2, ColorGradient, HSVColorGradient, Gradient, EPSILON
+from terminedia.utils.gradient import _unit_stops, _interpolate_hue
 
 
 def test_gradient_works():
@@ -168,3 +168,25 @@ def test__unit_stops():
     assert list(_unit_stops(2)) == [0, 1]
     assert list(_unit_stops(3)) == [0, .5, 1]
     assert list(_unit_stops(5)) == [0, .25, .5, .75, 1]
+
+
+def test_interpolate_hue_takes_shortest_path():
+    assert _interpolate_hue(0.0, 0.75, 0.5) == pytest.approx(0.875)
+    assert _interpolate_hue(0.75, 0.0, 0.5) == pytest.approx(0.875)
+
+
+def test_hsv_color_gradient_matches_rgb_for_gray_scale():
+    gr_rgb = ColorGradient([(0, (0, 0, 0)), (1, (1, 1, 1))])
+    gr_hsv = HSVColorGradient([(0, (0, 0, 0)), (1, (1, 1, 1))])
+    for position in (0, 0.25, 0.5, 0.75, 1):
+        assert gr_hsv[position].isclose(gr_rgb[position], abs_tol=1)
+
+
+def test_hsv_color_gradient_differs_from_rgb_for_hue_change():
+    gr_rgb = ColorGradient([(0, "red"), (1, "blue")])
+    gr_hsv = HSVColorGradient([(0, "red"), (1, "blue")])
+    assert gr_rgb[0.5] != gr_hsv[0.5]
+    h_red = Color("red").hsv[0]
+    h_blue = Color("blue").hsv[0]
+    expected = Color(hsv=(_interpolate_hue(h_red, h_blue, 0.5), 1, 1))
+    assert gr_hsv[0.5].isclose(expected, abs_tol=2)

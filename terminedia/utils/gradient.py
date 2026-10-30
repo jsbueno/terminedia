@@ -129,6 +129,33 @@ class ColorGradient(Gradient):
         ))
 
 
+def _interpolate_hue(h_previous, h_next, weight_from_next):
+    """Linear hue blend taking the shortest arc on the color wheel (0-1 range)."""
+    diff = h_next - h_previous
+    if diff > 0.5:
+        diff -= 1
+    elif diff < -0.5:
+        diff += 1
+    hue = h_previous + diff * weight_from_next
+    if hue < 0:
+        hue += 1
+    elif hue >= 1:
+        hue -= 1
+    return hue
+
+
+class HSVColorGradient(ColorGradient):
+    """Color gradient with HSV-space interpolation between stops."""
+
+    def interpolate(self, c_previous, c_next, weight_from_previous, weight_from_next):
+        h1, s1, v1 = c_previous.hsv
+        h2, s2, v2 = c_next.hsv
+        hue = _interpolate_hue(h1, h2, weight_from_next)
+        saturation = s1 * weight_from_previous + s2 * weight_from_next
+        value = v1 * weight_from_previous + v2 * weight_from_next
+        return Color(hsv=(hue, saturation, value))
+
+
 class RangeMap:
     """Helper class -
 
