@@ -17,7 +17,7 @@ from .descriptors import LazyBindProperty, ObservableProperty, ClassCache
 from .vector import V2, NamedV2
 from .rect import Rect
 from .colors import css_colors, Color, SpecialColor
-from .gradient import Gradient, EPSILON, ColorGradient
+from .gradient import Gradient, EPSILON, ColorGradient, HSVColorGradient
 
 
 # TODO: think of a smarter "lazy import" mechanism
