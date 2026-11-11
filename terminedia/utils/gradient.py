@@ -129,28 +129,41 @@ class ColorGradient(Gradient):
         ))
 
 
-def _interpolate_hue(h_previous, h_next, weight_from_next):
+def _interpolate_hue(h_previous, h_next, weight_from_next, direction="shortest"):
     """Linear hue blend taking the shortest arc on the color wheel (0-1 range)."""
+    if direction == "shortest":
+        pass
+    elif direction == "cw":
+        if h_next <= h_previous:
+            h_next += 1
+    elif direction == "ccw":
+        if h_next >= h_previous:
+            h_next -= 1
+    else:
+        raise ValueError("HSV interpolation direction must be one of 'shortest', 'cw', 'ccw'")
+
     diff = h_next - h_previous
-    if diff > 0.5:
-        diff -= 1
-    elif diff < -0.5:
-        diff += 1
+
+    if direction == "shortest":
+        if diff > 0.5:
+            diff -= 1
+        elif diff < -0.5:
+            diff += 1
     hue = h_previous + diff * weight_from_next
-    if hue < 0:
-        hue += 1
-    elif hue >= 1:
-        hue -= 1
-    return hue
+    return hue % 1
 
 
 class HSVColorGradient(ColorGradient):
     """Color gradient with HSV-space interpolation between stops."""
 
+    def __init__(self, *args, direction: T.Literal["shortest", "cw", "ccw"]="shortest", **kwargs):
+        self.direction = direction.lower()
+        super().__init__(*args, **kwargs)
+
     def interpolate(self, c_previous, c_next, weight_from_previous, weight_from_next):
         h1, s1, v1 = c_previous.hsv
         h2, s2, v2 = c_next.hsv
-        hue = _interpolate_hue(h1, h2, weight_from_next)
+        hue = _interpolate_hue(h1 % 1, h2 % 1, weight_from_next, self.direction)
         saturation = s1 * weight_from_previous + s2 * weight_from_next
         value = v1 * weight_from_previous + v2 * weight_from_next
         return Color(hsv=(hue, saturation, value))
